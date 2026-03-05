@@ -108,7 +108,7 @@ def _openai_chat(messages, model: str, temperature: float) -> str:
 
 @router.post("/chat")
 def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, payload.household_id, user["id"], "member")
+    require_household_role(db, user["user_id"], payload.household_id, "member")
 
     # Build context from latest snapshot (if exists)
     system = "You are VantDomus, an AI operator that helps manage a household/unit with focus on clarity, safety, and actionable next steps."
