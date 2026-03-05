@@ -1,4 +1,4 @@
-import { createTask, listTasks, markTaskDone, getDashboard } from "@/lib/api";
+import { createTask, listTasks, markTaskDone, getDashboard } from "../../../lib/api";
 
 export default async function Tasks({ params }: { params: { householdId: string } }) {
   const hid = params.householdId;

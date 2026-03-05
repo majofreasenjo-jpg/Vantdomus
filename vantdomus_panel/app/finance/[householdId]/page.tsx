@@ -1,4 +1,4 @@
-import { addExpense, listExpenses, getDashboard } from "@/lib/api";
+import { addExpense, listExpenses, getDashboard } from "../../../lib/api";
 
 export default async function Finance({ params }: { params: { householdId: string } }) {
   const hid = params.householdId;

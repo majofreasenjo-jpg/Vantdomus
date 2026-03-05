@@ -1,4 +1,4 @@
-import { getPersonTimeline } from "@/lib/api";
+import { getPersonDetail } from "../../../lib/api";
 import { AdherencePlanForm, CheckinButtons } from "./actions";
 
 export default async function PersonPage({ params }: { params: { personId: string } }) {

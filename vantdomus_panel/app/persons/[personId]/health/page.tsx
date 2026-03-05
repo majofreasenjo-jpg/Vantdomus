@@ -1,4 +1,4 @@
-import { getPersonHealthTimeline, setAdherencePlan, healthCheckin } from "@/lib/api";
+import { getPersonHealthTimeline, setAdherencePlan, healthCheckin } from "../../../../lib/api";
 
 export default async function PersonHealth({
   params,

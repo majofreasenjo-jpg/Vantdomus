@@ -1,4 +1,5 @@
-import { getDashboard, seedDemo, getScores, getAssistant, applyAssistant } from "@/lib/api";
+```
+import { getDashboard, seedDemo, getScores, getAssistant, applyAssistant } from "../../../lib/api";
 
 function pillForHSI(hsi: number) {
   if (hsi >= 80) return { cls: "pill good", label: "Stable" };
@@ -41,8 +42,8 @@ export default async function Dashboard({ params }: { params: { householdId: str
             <button className="btn btnPrimary" type="submit">Cargar Demo</button>
           </form>
 
-          <a className="btn" href={`/tasks/${hid}`}>Ir a Tasks</a>
-          <a className="btn" href={`/finance/${hid}`}>Ir a Finance</a>
+          <a className="btn" href={`/ tasks / ${ hid } `}>Ir a Tasks</a>
+          <a className="btn" href={`/ finance / ${ hid } `}>Ir a Finance</a>
         </div>
       </div>
 
@@ -163,23 +164,23 @@ export default async function Dashboard({ params }: { params: { householdId: str
               <a
                 key={p.id}
                 className="btn"
-                href={`/persons/${p.id}/health?hid=${hid}`}
-                style={{ width: "100%", marginBottom: 10, justifyContent: "space-between" }}
+                href={`/ persons / ${ p.id }/health?hid=${hid}`}
+style = {{ width: "100%", marginBottom: 10, justifyContent: "space-between" }}
               >
                 <span>
                   <b>{p.display_name}</b> <span className="small">{p.relation || ""}</span>
                 </span>
                 <span className="small">Ver</span>
-              </a>
+              </a >
             ))}
-            {dash.persons.length === 0 ? <div className="small">Sin personas aún.</div> : null}
-          </div>
-        </div>
-      </div>
+{ dash.persons.length === 0 ? <div className="small">Sin personas aún.</div> : null }
+          </div >
+        </div >
+      </div >
 
-      <div className="footerNote">
-        v0.4 completo: Salud + Tasks + Finance + HSI + Planning Assistant (B+D).
-      </div>
-    </div>
+  <div className="footerNote">
+    v0.4 completo: Salud + Tasks + Finance + HSI + Planning Assistant (B+D).
+  </div>
+    </div >
   );
 }

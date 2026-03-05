@@ -1,4 +1,4 @@
-import { getInbox } from "@/lib/api";
+import { getInbox } from "../../lib/api";
 
 export default async function InboxPage() {
   const householdId = process.env.NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID || "";
