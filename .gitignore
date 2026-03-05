@@ -39,10 +39,11 @@ vantdomus_v0_4_full_bundle/
 vantdomus_v0_4_planning_assistant_addon/
 vantdomus__program/
 *.zip
-*.txt
-*.png
-*.webp
-*.log
-install_error.txt
+!requirements.txt
+installation_logs.txt
 household_id.txt
 token.txt
+ person_id.txt
+ install_error.txt
+ *.webp
+ *.log
