@@ -82,17 +82,31 @@ def ensure_schema():
         is_pg = isinstance(con, PostgresConnectionWrapper)
         
         for name in migrations:
+            print(f"Applying migration: {name}")
             p = mig_dir / name
             sql = p.read_text(encoding="utf-8")
             if is_pg:
                 # Basic script execution for Postgres (split by semicolon)
-                # Note: This is an approximation. For a real product, use a migration tool like Alembic.
                 for statement in sql.split(";"):
                     s = statement.strip()
                     if s:
-                        cur.execute(s)
+                        try:
+                            cur.execute(s)
+                        except Exception as e:
+                            print(f"Error executing statement in {name}: {s}")
+                            print(f"Exception: {e}")
+                            con.conn.rollback()
+                            raise e
             else:
-                cur.cur.executescript(sql) if hasattr(cur, "cur") else con.executescript(sql)
+                try:
+                    cur.cur.executescript(sql) if hasattr(cur, "cur") else con.executescript(sql)
+                except Exception as e:
+                    print(f"Error executing script {name}: {e}")
+                    raise e
+        print("All migrations applied successfully.")
         con.commit()
+    except Exception as e:
+        print(f"SCHEMA ERROR: {e}")
+        raise e
     finally:
         con.close()
