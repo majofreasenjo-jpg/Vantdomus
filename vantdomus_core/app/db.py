@@ -12,8 +12,8 @@ except ImportError:
 
 class PostgresRow(dict):
     """Mimics sqlite3.Row behavior by allowing both key and index access."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, data_dict):
+        super().__init__(data_dict)
         self._key_list = list(self.keys())
 
     def __getitem__(self, key):
@@ -47,8 +47,8 @@ class PostgresConnectionWrapper:
         self.conn = pg_conn
 
     def cursor(self):
-        # Use simple cursor; we handle row mapping in the wrapper
-        return PostgresCursorWrapper(self.conn.cursor())
+        # Use RealDictCursor to get results as dicts, then wrap in PostgresRow for index access
+        return PostgresCursorWrapper(self.conn.cursor(cursor_factory=RealDictCursor))
 
     def execute(self, sql, params=None):
         # Convenience method used in some parts of the app
