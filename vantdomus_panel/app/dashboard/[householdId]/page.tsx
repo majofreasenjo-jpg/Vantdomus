@@ -1,4 +1,3 @@
-```
 import { getDashboard, seedDemo, getScores, getAssistant, applyAssistant } from "../../../lib/api";
 
 function pillForHSI(hsi: number) {
@@ -42,8 +41,8 @@ export default async function Dashboard({ params }: { params: { householdId: str
             <button className="btn btnPrimary" type="submit">Cargar Demo</button>
           </form>
 
-          <a className="btn" href={`/ tasks / ${ hid } `}>Ir a Tasks</a>
-          <a className="btn" href={`/ finance / ${ hid } `}>Ir a Finance</a>
+          <a className="btn" href={`/ tasks / ${hid} `}>Ir a Tasks</a>
+          <a className="btn" href={`/ finance / ${hid} `}>Ir a Finance</a>
         </div>
       </div>
 
@@ -96,7 +95,7 @@ export default async function Dashboard({ params }: { params: { householdId: str
         <div className="small">Recomendaciones + Aplicar ⇒ crea tareas automáticamente.</div>
 
         <div style={{ marginTop: 10 }}>
-          {asst.items?.length ? asst.items.slice(0,6).map((r: any) => (
+          {asst.items?.length ? asst.items.slice(0, 6).map((r: any) => (
             <div key={r.id} className="card" style={{ marginBottom: 10, padding: 12 }}>
               <div className="row">
                 <div>
@@ -164,8 +163,8 @@ export default async function Dashboard({ params }: { params: { householdId: str
               <a
                 key={p.id}
                 className="btn"
-                href={`/ persons / ${ p.id }/health?hid=${hid}`}
-style = {{ width: "100%", marginBottom: 10, justifyContent: "space-between" }}
+                href={`/ persons / ${p.id}/health?hid=${hid}`}
+                style={{ width: "100%", marginBottom: 10, justifyContent: "space-between" }}
               >
                 <span>
                   <b>{p.display_name}</b> <span className="small">{p.relation || ""}</span>
@@ -173,14 +172,14 @@ style = {{ width: "100%", marginBottom: 10, justifyContent: "space-between" }}
                 <span className="small">Ver</span>
               </a >
             ))}
-{ dash.persons.length === 0 ? <div className="small">Sin personas aún.</div> : null }
+            {dash.persons.length === 0 ? <div className="small">Sin personas aún.</div> : null}
           </div >
         </div >
       </div >
 
-  <div className="footerNote">
-    v0.4 completo: Salud + Tasks + Finance + HSI + Planning Assistant (B+D).
-  </div>
+      <div className="footerNote">
+        v0.4 completo: Salud + Tasks + Finance + HSI + Planning Assistant (B+D).
+      </div>
     </div >
   );
 }
