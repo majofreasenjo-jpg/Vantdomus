@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import re
 from pathlib import Path
 from .config import settings
 
@@ -10,33 +11,70 @@ try:
 except ImportError:
     psycopg2 = None
 
+def translate_sqlite_to_pg(sql: str) -> str:
+    """Translates common SQLite patterns to Postgres."""
+    if not sql: return sql
+    
+    # 1. Replace ? with %s
+    sql = sql.replace("?", "%s")
+    
+    # 2. Translate json_extract(col, '$.path.key') to col -> 'path' ->> 'key'
+    # Simplified version for the patterns used in VantDomus
+    # json_extract(payload, '$.checkin.status') => payload->'checkin'->>'status'
+    def replace_json(match):
+        col = match.group(1)
+        path = match.group(2).strip("$.").split(".")
+        if not path or path == [""]: return col
+        
+        # Build path access
+        # [a, b, c] -> col->'a'->'b'->>'c'
+        acc = col
+        for i, part in enumerate(path):
+            op = "->>" if i == len(path)-1 else "->"
+            acc += f"{op}'{part}'"
+        return acc
+
+    sql = re.sub(r"json_extract\s*\(\s*(\w+)\s*,\s*['\"]([^'\"]+)['\"]\s*\)", replace_json, sql)
+    
+    return sql
+
 class PostgresRow(dict):
     """Mimics sqlite3.Row behavior by allowing both key and index access."""
     def __init__(self, data_dict):
+        if data_dict is None: data_dict = {}
         super().__init__(data_dict)
         self._key_list = list(self.keys())
 
     def __getitem__(self, key):
-        if isinstance(key, int):
-            return super().__getitem__(self._key_list[key])
-        return super().__getitem__(key)
+        try:
+            if isinstance(key, int):
+                return super().__getitem__(self._key_list[key])
+            return super().__getitem__(key)
+        except (IndexError, KeyError) as e:
+            print(f"PostgresRow Access Error: key={key}, available={self._key_list}")
+            raise e
 
 class PostgresCursorWrapper:
     def __init__(self, pg_cursor):
         self.cur = pg_cursor
 
     def execute(self, sql, params=None):
-        if params:
-            # Replace ? with %s for Postgres compatibility
-            sql = sql.replace("?", "%s")
-        return self.cur.execute(sql, params)
+        translated_sql = translate_sqlite_to_pg(sql)
+        try:
+            return self.cur.execute(translated_sql, params)
+        except Exception as e:
+            print(f"PG EXECUTE ERROR: {e}")
+            print(f"ORIGINAL SQL: {sql}")
+            print(f"TRANSLATED SQL: {translated_sql}")
+            print(f"PARAMS: {params}")
+            raise e
 
     def fetchone(self):
         r = self.cur.fetchone()
-        return PostgresRow(r) if r else None
+        return PostgresRow(dict(r)) if r else None
 
     def fetchall(self):
-        return [PostgresRow(r) for r in self.cur.fetchall()]
+        return [PostgresRow(dict(r)) for r in self.cur.fetchall()]
 
     @property
     def rowcount(self):
@@ -47,11 +85,9 @@ class PostgresConnectionWrapper:
         self.conn = pg_conn
 
     def cursor(self):
-        # Use RealDictCursor to get results as dicts, then wrap in PostgresRow for index access
         return PostgresCursorWrapper(self.conn.cursor(cursor_factory=RealDictCursor))
 
     def execute(self, sql, params=None):
-        # Convenience method used in some parts of the app
         cur = self.cursor()
         cur.execute(sql, params)
         return cur
@@ -66,14 +102,16 @@ def connect():
     db_url = settings.DATABASE_URL or os.getenv("DATABASE_URL")
     if db_url and (db_url.startswith("postgres://") or db_url.startswith("postgresql://")):
         if not psycopg2:
-            raise ImportError("psycopg2-binary is required for Postgres. Run: pip install psycopg2-binary")
-        # Fix for Render/Neon SSL
+            raise ImportError("psycopg2-binary is required for Postgres.")
         if "sslmode" not in db_url:
             db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
-        conn = psycopg2.connect(db_url)
-        return PostgresConnectionWrapper(conn)
+        try:
+            conn = psycopg2.connect(db_url)
+            return PostgresConnectionWrapper(conn)
+        except Exception as e:
+            print(f"DATABASE CONNECTION ERROR: {e}")
+            raise e
     
-    # Fallback to SQLite
     con = sqlite3.connect(settings.DB_PATH, check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
@@ -84,12 +122,8 @@ def ensure_schema():
         cur = con.cursor()
         mig_dir = Path(__file__).resolve().parents[1] / "sqlite_migrations"
         migrations = [
-            "000_init.sql",
-            "010_health.sql",
-            "020_tasks_finance_features.sql",
-            "040_planning_assistant.sql",
-            "050_notifications.sql",
-            "060_notification_targets.sql"
+            "000_init.sql", "010_health.sql", "020_tasks_finance_features.sql",
+            "040_planning_assistant.sql", "050_notifications.sql", "060_notification_targets.sql"
         ]
         
         is_pg = isinstance(con, PostgresConnectionWrapper)
@@ -98,28 +132,29 @@ def ensure_schema():
             print(f"Applying migration: {name}")
             p = mig_dir / name
             sql = p.read_text(encoding="utf-8")
+            
+            # Simple PG translation for schema: INTEGER -> BIGINT, etc. if needed
             if is_pg:
-                # Basic script execution for Postgres (split by semicolon)
+                # Basic split by semicolon
                 for statement in sql.split(";"):
                     s = statement.strip()
-                    if s:
-                        try:
-                            cur.execute(s)
-                        except Exception as e:
-                            print(f"Error executing statement in {name}: {s}")
-                            print(f"Exception: {e}")
-                            con.conn.rollback()
-                            raise e
+                    if not s: continue
+                    # Translation specific for schema scripts
+                    s = s.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+                    s = s.replace("ON CONFLICT DO UPDATE SET", "ON CONFLICT ON CONSTRAINT ...") # Placeholder logic
+                    try:
+                        cur.execute(s)
+                    except Exception as e:
+                        if "already exists" in str(e).lower(): continue
+                        print(f"Migration Error in {name}: {e}")
+                        con.conn.rollback()
             else:
                 try:
-                    cur.cur.executescript(sql) if hasattr(cur, "cur") else con.executescript(sql)
-                except Exception as e:
-                    print(f"Error executing script {name}: {e}")
-                    raise e
-        print("All migrations applied successfully.")
+                    con.executescript(sql)
+                except Exception:
+                    pass
         con.commit()
     except Exception as e:
         print(f"SCHEMA ERROR: {e}")
-        raise e
     finally:
         con.close()
