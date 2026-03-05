@@ -23,7 +23,7 @@ export const listTasks = (hid: string) => apiFetch(`/tasks?household_id=${encode
 export const listExpenses = (hid: string) => apiFetch(`/finance/expenses?household_id=${encodeURIComponent(hid)}`);
 export const listAlerts = (hid: string) => apiFetch(`/alerts?household_id=${encodeURIComponent(hid)}`).catch(() => ({ items: [] }));
 export const getScores = (hid: string) => apiFetch(`/scores/latest?household_id=${encodeURIComponent(hid)}`);
-export const seedDemo = (hid: string, mode: "home"|"team") =>
+export const seedDemo = (hid: string, mode: "home" | "team") =>
   apiFetch(`/demo/seed?household_id=${encodeURIComponent(hid)}&mode=${mode}`, { method: "POST" });
 
 export const createTask = (hid: string, payload: any) => {
@@ -55,20 +55,20 @@ export const addExpense = (hid: string, payload: any) => {
   return apiFetch(`/finance/expenses?${qs.toString()}`, { method: "POST" });
 };
 
-export const setAdherencePlan = (hid: string, pid: string, med: string, timesCsv: string, mode: "none"|"tap"|"voice") => {
+export const setAdherencePlan = (hid: string, pid: string, med: string, timesCsv: string, mode: "none" | "tap" | "voice") => {
   const qs = new URLSearchParams({ household_id: hid, person_id: pid, med_name: med, reminder_times: timesCsv, verification_mode: mode });
   return apiFetch(`/health/adherence/set?${qs.toString()}`, { method: "POST" });
 };
 
-export const healthCheckin = (hid: string, pid: string, med: string, status: "taken"|"missed") => {
+export const healthCheckin = (hid: string, pid: string, med: string, status: "taken" | "missed") => {
   const qs = new URLSearchParams({ household_id: hid, person_id: pid, med_name: med, status });
   return apiFetch(`/health/checkin?${qs.toString()}`, { method: "POST" });
 };
 
 export const getPersonHealthTimeline = (pid: string) => apiFetch(`/persons/${encodeURIComponent(pid)}/health-timeline`);
 
-export const getAssistant = (hid: string, refresh=false) =>
-  apiFetch(`/assistant/recommendations?household_id=${encodeURIComponent(hid)}&refresh=${refresh ? "true":"false"}`);
+export const getAssistant = (hid: string, refresh = false) =>
+  apiFetch(`/assistant/recommendations?household_id=${encodeURIComponent(hid)}&refresh=${refresh ? "true" : "false"}`);
 
 export const applyAssistant = (hid: string, recoId: string) => {
   const qs = new URLSearchParams({ household_id: hid, reco_id: recoId });
@@ -79,3 +79,13 @@ export const assistantPlan = (hid: string, goal: string) => {
   const qs = new URLSearchParams({ household_id: hid, goal });
   return apiFetch(`/assistant/plan?${qs.toString()}`, { method: "POST" });
 };
+
+// Missing endpoints for Panel compatibility
+export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
+export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({
+  event: res.items[0] || { summary: "Desconocido", domain: "system", event_type: "info", occurred_at: "now" },
+  payload: {}
+}));
+export const getHSIStatus = (hid: string) => getScores(hid).then(res => res.items[0] || { hsi: 0 });
+export const getHouseholds = () => apiFetch("/households");
+export const getPersonDetail = (pid: string) => apiFetch(`/persons/${encodeURIComponent(pid)}`);

@@ -1,5 +1,5 @@
 "use client";
-import { createAdherencePlan, createCheckin } from "../../../lib/api";
+import { setAdherencePlan, healthCheckin } from "../../../lib/api";
 import { useState } from "react";
 
 export function AdherencePlanForm({ personId }: { personId: string }) {
@@ -12,7 +12,7 @@ export function AdherencePlanForm({ personId }: { personId: string }) {
     async function handleSubmit() {
         setLoading(true);
         try {
-            const res = await createAdherencePlan(personId, medication, times.split(",").map(t => t.trim()), mode);
+            const res = await setAdherencePlan("", personId, medication, times, mode as any);
             setResult(res);
             setTimeout(() => location.reload(), 1000);
         } catch (e: any) {
@@ -68,7 +68,7 @@ export function CheckinButtons({ personId }: { personId: string }) {
     async function handleCheckin(outcome: string) {
         setLoading(true);
         try {
-            const res = await createCheckin(personId, medication, time, outcome);
+            const res = await healthCheckin("", personId, medication, outcome as any);
             setResult(res);
             setTimeout(() => location.reload(), 1200);
         } catch (e: any) {

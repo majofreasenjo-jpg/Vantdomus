@@ -1,8 +1,9 @@
-import { getPersonDetail } from "../../../lib/api";
+import { getPersonDetail, getPersonHealthTimeline } from "../../../lib/api";
 import { AdherencePlanForm, CheckinButtons } from "./actions";
 
 export default async function PersonPage({ params }: { params: { personId: string } }) {
-    const data = await getPersonTimeline(params.personId);
+    const timeline = await getPersonHealthTimeline(params.personId);
+    const data = await getPersonDetail(params.personId);
 
     return (
         <div style={{ maxWidth: 900 }}>
