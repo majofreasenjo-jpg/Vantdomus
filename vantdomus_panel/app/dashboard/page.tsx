@@ -1,4 +1,4 @@
-import { getHouseholds, getHSIStatus } from "../../lib/api";
+import { getDashboard, getHouseholds, getHSIStatus } from "../../lib/api";
 
 export default async function DashboardPage() {
     const householdId = process.env.NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID || "";
