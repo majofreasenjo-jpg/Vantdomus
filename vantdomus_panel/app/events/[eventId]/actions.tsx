@@ -1,5 +1,5 @@
 "use client";
-import { evalAndPersist } from "@/lib/api";
+import { evalAndPersist } from "../../lib/api";
 
 export function EvalRulesButton({ eventId }: { eventId: string }) {
   return (

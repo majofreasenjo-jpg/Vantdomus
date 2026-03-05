@@ -1,4 +1,4 @@
-import { getEventDetail } from "@/lib/api";
+import { getEventDetail } from "../../../lib/api";
 import { EvalRulesButton } from "./actions";
 
 export default async function EventDetailPage({ params }: { params: { eventId: string } }) {

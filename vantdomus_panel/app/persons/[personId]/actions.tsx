@@ -1,5 +1,5 @@
 "use client";
-import { createAdherencePlan, createCheckin } from "@/lib/api";
+import { createAdherencePlan, createCheckin } from "../../../lib/api";
 import { useState } from "react";
 
 export function AdherencePlanForm({ personId }: { personId: string }) {

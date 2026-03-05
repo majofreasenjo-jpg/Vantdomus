@@ -1,4 +1,4 @@
-import { getDashboard } from "@/lib/api";
+import { getDashboard } from "../../lib/api";
 
 export default async function DashboardPage() {
     const householdId = process.env.NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID || "";
