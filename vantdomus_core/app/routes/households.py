@@ -10,8 +10,8 @@ router = APIRouter(prefix="/households", tags=["Households"])
 def list_households(user=Depends(get_current_user), db=Depends(get_db)):
     cur = db.cursor()
     cur.execute(
-        "SELECT h.id, h.name FROM households h JOIN household_members m ON m.household_id=h.id WHERE m.user_id=? ORDER BY h.created_at DESC",
-        (user["id"],)
+        "SELECT h.id, h.name FROM households h JOIN household_memberships m ON m.household_id=h.id WHERE m.user_id=? ORDER BY h.created_at DESC",
+        (user["user_id"],)
     )
     rows = cur.fetchall()
     return {"items": [{"id": r[0], "name": r[1]} for r in rows]}

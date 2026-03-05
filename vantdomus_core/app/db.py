@@ -10,6 +10,17 @@ try:
 except ImportError:
     psycopg2 = None
 
+class PostgresRow(dict):
+    """Mimics sqlite3.Row behavior by allowing both key and index access."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._key_list = list(self.keys())
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return super().__getitem__(self._key_list[key])
+        return super().__getitem__(key)
+
 class PostgresCursorWrapper:
     def __init__(self, pg_cursor):
         self.cur = pg_cursor
@@ -21,10 +32,11 @@ class PostgresCursorWrapper:
         return self.cur.execute(sql, params)
 
     def fetchone(self):
-        return self.cur.fetchone()
+        r = self.cur.fetchone()
+        return PostgresRow(r) if r else None
 
     def fetchall(self):
-        return self.cur.fetchall()
+        return [PostgresRow(r) for r in self.cur.fetchall()]
 
     @property
     def rowcount(self):
@@ -35,7 +47,8 @@ class PostgresConnectionWrapper:
         self.conn = pg_conn
 
     def cursor(self):
-        return PostgresCursorWrapper(self.conn.cursor(cursor_factory=RealDictCursor))
+        # Use simple cursor; we handle row mapping in the wrapper
+        return PostgresCursorWrapper(self.conn.cursor())
 
     def execute(self, sql, params=None):
         # Convenience method used in some parts of the app
