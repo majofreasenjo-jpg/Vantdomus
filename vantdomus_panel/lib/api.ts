@@ -89,3 +89,4 @@ export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${enco
 export const getHSIStatus = (hid: string) => getScores(hid).then(res => res.items[0] || { hsi: 0 });
 export const getHouseholds = () => apiFetch("/households");
 export const getPersonDetail = (pid: string) => apiFetch(`/persons/${encodeURIComponent(pid)}`);
+export const evalAndPersist = (eid: string) => Promise.resolve({ ok: true, note: "Dummy implementation for build" });
