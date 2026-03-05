@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.local
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.db
+*.db-journal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+v0/
+v02/
+v03/
+v04/
+v05/
+v06/
+vantdomus_v0_4_full_bundle/
+vantdomus_v0_4_planning_assistant_addon/
+vantdomus__program/
+*.zip
+*.txt
+*.png
+*.webp
+*.log
+install_error.txt
+household_id.txt
+token.txt

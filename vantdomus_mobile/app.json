@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "VantDomus",
+    "slug": "vantdomus-mobile",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0b0f17"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0f17"
+      }
+    },
+    "plugins": [
+      "expo-notifications"
+    ]
+  }
+}

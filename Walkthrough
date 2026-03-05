@@ -1,0 +1,76 @@
+# VantDomus Bundle – Walkthrough
+
+## Qué es VantDomus
+
+**VantDomus** es una plataforma de gestión familiar inteligente con dos componentes:
+
+| Componente | Stack | Puerto |
+|---|---|---|
+| `vantdomus_core` | FastAPI + SQLite | `8000` |
+| `vantdomus_panel` | Next.js 14 + React 18 | `3000` |
+
+### Arquitectura
+
+```mermaid
+graph LR
+  Panel["Panel Next.js :3000"] -->|REST API| API["FastAPI :8000"]
+  API --> DB["SQLite DB"]
+  Worker["Background Worker"] --> DB
+```
+
+---
+
+## Cambios Realizados
+
+### Adaptación PostgreSQL → SQLite (sin Docker)
+
+El proyecto original requería Docker + PostgreSQL. Como no estaban instalados, adapté todo para usar **SQLite** (built-in en Python):
+
+- [config.py](file:///D:/Aplicaciones%20de%20Juegos/VantDomus/vantdomus_bundle/vantdomus_core/app/config.py) – `DATABASE_URL` → `DATABASE_PATH` (SQLite)
+- [db.py](file:///D:/Aplicaciones%20de%20Juegos/VantDomus/vantdomus_bundle/vantdomus_core/app/db.py) – `psycopg` → `sqlite3`
+- [init_db.py](file:///D:/Aplicaciones%20de%20Juegos/VantDomus/vantdomus_bundle/vantdomus_core/init_db.py) – **[NEW]** Script de inicialización SQLite
+- [deps.py](file:///D:/Aplicaciones%20de%20Juegos/VantDomus/vantdomus_bundle/vantdomus_core/app/deps.py) – **[NEW]** Extrajo `get_current_user` para resolver import circular
+- **Todas las rutas** – `%s` → `?`, `gen_random_uuid()` → `uuid4()`, `JSONB` → TEXT
+- [security.py](file:///D:/Aplicaciones%20de%20Juegos/VantDomus/vantdomus_bundle/vantdomus_core/app/security.py) – `passlib` → `bcrypt` directo (fix compatibilidad Python 3.14)
+- [requirements.txt](file:///D:/Aplicaciones%20de%20Juegos/VantDomus/vantdomus_bundle/vantdomus_core/requirements.txt) – Removió `psycopg`, relajó version pins
+
+---
+
+## Verificación
+
+### Backend API
+
+| Endpoint | Resultado |
+|---|---|
+| `GET /health` | ✅ `{"ok": true}` |
+| `POST /auth/register` | ✅ User ID generado |
+| `POST /auth/login` | ✅ JWT + refresh token |
+| `POST /households` | ✅ Household creado |
+| `POST /persons` | ✅ Persona creada |
+| `GET /households/{id}/dashboard` | ✅ KPIs retornados |
+
+### Frontend Panel
+
+![VantDomus Panel funcionando en localhost:3000](C:/Users/casa/.gemini/antigravity/brain/e6ec6f18-b978-4a3a-a2e5-18b5e8958cb2/vantdomus_panel_home_1772511020678.png)
+
+---
+
+## Servicios en Ejecución
+
+| Servicio | URL | Estado |
+|---|---|---|
+| FastAPI Backend | <http://localhost:8000> | 🟢 Running |
+| Background Worker | (proceso en background) | 🟢 Running |
+| Next.js Panel | <http://localhost:3000> | 🟢 Running |
+
+### Datos de Prueba Creados
+
+- **Usuario**: `test@vantdomus.cl`
+- **Hogar**: "Familia Perez" (`723888b3-337b-496d-9b38-b378110ff1cf`)
+- **Persona**: "Pedro Perez" (abuelo)
+
+### API Docs
+
+La documentación interactiva de la API (Swagger UI) está disponible en:
+
+- <http://localhost:8000/docs>

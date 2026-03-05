@@ -1,0 +1,51 @@
+:root{
+  --bg:#0b0f17;
+  --card:#121a26;
+  --muted:#93a4b8;
+  --text:#e9f0ff;
+  --line:#1f2a3a;
+  --good:#31d07a;
+  --warn:#ffcc66;
+  --bad:#ff5c7a;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background: radial-gradient(1200px 800px at 20% 10%, #14203a 0%, var(--bg) 55%);
+  color:var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+a{color:inherit}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.nav{position:sticky;top:0;backdrop-filter: blur(10px);background:rgba(11,15,23,.72);border-bottom:1px solid var(--line);z-index:10}
+.navInner{max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:10px;background: linear-gradient(135deg,#5b7cfa,#31d07a);box-shadow: 0 10px 30px rgba(91,124,250,.25);}
+.brandTitle{font-weight:900;letter-spacing:.3px}
+.badge{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.navLinks{display:flex;gap:10px;flex-wrap:wrap}
+.navLinks a{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:10px;border:1px solid transparent}
+.navLinks a:hover{border-color:var(--line);color:var(--text);background:rgba(255,255,255,.03)}
+.grid{display:grid;gap:14px}
+.kpiGrid{grid-template-columns: repeat(12, 1fr)}
+.card{background: linear-gradient(180deg, rgba(18,26,38,.95), rgba(18,26,38,.75));border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow: 0 18px 50px rgba(0,0,0,.35);}
+.cardTitle{font-size:12px;color:var(--muted);margin-bottom:8px}
+.big{font-size:34px;font-weight:900;letter-spacing:-.8px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.small{font-size:12px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);cursor:pointer;text-decoration:none}
+.btn:hover{background:rgba(255,255,255,.06)}
+.btnPrimary{border-color: rgba(91,124,250,.5);background: linear-gradient(135deg, rgba(91,124,250,.35), rgba(49,208,122,.18));}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px 8px;border-bottom:1px solid rgba(31,42,58,.7);font-size:13px;color:var(--text)}
+.table th{color:var(--muted);font-weight:700;text-align:left}
+.pill{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill.good{color:var(--good);border-color:rgba(49,208,122,.35)}
+.pill.warn{color:var(--warn);border-color:rgba(255,204,102,.35)}
+.pill.bad{color:var(--bad);border-color:rgba(255,92,122,.35)}
+.sectionTitle{font-size:14px;font-weight:900;margin:18px 0 10px 0}
+.input, select{padding:10px 10px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);outline:none}
+input::placeholder{color:#6f829b}
+.formRow{display:flex;gap:10px;flex-wrap:wrap}
+.footerNote{margin-top:14px;color:var(--muted);font-size:12px}
