@@ -26,9 +26,9 @@ def translate_sqlite_to_pg(sql: str) -> str:
         path = match.group(2).strip("$.").split(".")
         if not path or path == [""]: return col
         
-        # Build path access
-        # [a, b, c] -> col->'a'->'b'->>'c'
-        acc = col
+        # Build path access with jsonb cast because SQLite stores it as TEXT
+        # [a, b, c] -> col::jsonb->'a'->'b'->>'c'
+        acc = f"{col}::jsonb"
         for i, part in enumerate(path):
             op = "->>" if i == len(path)-1 else "->"
             acc += f"{op}'{part}'"
