@@ -6,6 +6,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str | None = None
     JWT_SECRET: str = "CHANGE_ME_SUPER_SECRET"
     JWT_ALG: str = "HS256"
-    ACCESS_TOKEN_EXPIRES_SECONDS: int = 3600
+    ACCESS_TOKEN_EXPIRES_SECONDS: int = 315360000
 
 settings = Settings()
