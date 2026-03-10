@@ -64,7 +64,7 @@ class ChatRequest(BaseModel):
 
 def _fallback_reply(household_id: str, db) -> str:
     try:
-        from ..features import compute_features_sqlite
+        from app.features import compute_features_sqlite
         f = compute_features_sqlite(db, household_id)
         
         parts = []
