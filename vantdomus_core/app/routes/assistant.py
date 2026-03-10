@@ -105,18 +105,22 @@ def _openai_chat(messages, model: str, temperature: float) -> str:
 
 @router.post("/chat")
 def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], payload.household_id, "member")
-
-    # Build context from latest snapshot (if exists)
-    system = "You are VantDomus, an AI operator that helps manage a household/unit with focus on clarity, safety, and actionable next steps."
-    context = _fallback_reply(payload.household_id, db)
-    msgs = [{"role": "system", "content": system + "\n\nHousehold context (latest snapshot):\n" + context}]
-    msgs += [{"role": m.role, "content": m.content} for m in payload.messages]
-
-    # If OpenAI configured, use it. Otherwise return deterministic fallback.
-    model = payload.model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     try:
-        reply = _openai_chat(msgs, model=model, temperature=payload.temperature)
-        return {"ok": True, "provider": "openai", "model": model, "reply": reply}
+        require_household_role(db, user["user_id"], payload.household_id, "member")
+
+        # Build context from latest snapshot (if exists)
+        system = "You are VantDomus, an AI operator that helps manage a household/unit with focus on clarity, safety, and actionable next steps."
+        context = _fallback_reply(payload.household_id, db)
+        msgs = [{"role": "system", "content": system + "\n\nHousehold context (latest snapshot):\n" + context}]
+        msgs += [{"role": m.role, "content": m.content} for m in payload.messages]
+
+        # If OpenAI configured, use it. Otherwise return deterministic fallback.
+        model = payload.model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+        try:
+            reply = _openai_chat(msgs, model=model, temperature=payload.temperature)
+            return {"ok": True, "provider": "openai", "model": model, "reply": reply}
+        except Exception as inner_e:
+            return {"ok": True, "provider": "fallback", "model": None, "reply": context, "note": f"OpenAI error: {str(inner_e)}"}
     except Exception as e:
-        return {"ok": True, "provider": "fallback", "model": None, "reply": context, "note": f"OpenAI not configured or failed: {str(e)}"}
+        import traceback
+        return {"ok": True, "provider": "error", "reply": f"CRASH TOTAL EN RENDER: {str(e)}\n\nTRACE: {traceback.format_exc()}"}
