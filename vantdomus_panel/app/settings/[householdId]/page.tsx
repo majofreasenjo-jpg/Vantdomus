@@ -29,7 +29,8 @@ export default async function SettingsPage({ params }: { params: { householdId: 
                             Industria / Perfil Empresa
                         </label>
                         <select name="industry" defaultValue={currentIndustry} className="input">
-                            <option value="default">General (VantUnit Clásico)</option>
+                            <option value="default">General (VantUnit Clásico / Neutro)</option>
+                            <option value="family">Hogar / Familia (B2C Consumidor)</option>
                             <option value="mining">Minería Subterránea / Faena</option>
                             <option value="construction">Construcción / Obra Civil</option>
                             <option value="healthcare">Salud / Piso Clínico Hospitalario</option>

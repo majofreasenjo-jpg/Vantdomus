@@ -13,6 +13,15 @@ INDUSTRY_PRESETS = {
         "health": "Bienestar",
         "ai_role": "an AI operational analyst managing a team"
     },
+    "family": {
+        "name": "Hogar / Familia (B2C)",
+        "unit": "Hogar",
+        "persons": "Familia",
+        "tasks": "Quehaceres",
+        "finance": "Gastos Comunes",
+        "health": "Salud Familiar",
+        "ai_role": "a friendly AI smart home assistant managing family tasks and wellness"
+    },
     "mining": {
         "name": "Minería Subterránea",
         "unit": "Mina / Faena",

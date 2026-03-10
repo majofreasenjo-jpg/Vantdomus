@@ -51,7 +51,7 @@ from typing import List, Optional
 import os
 import json
 import urllib.request
-from .taxonomy import get_taxonomy
+from app.taxonomy import get_taxonomy
 
 class ChatMessage(BaseModel):
     role: str  # system|user|assistant

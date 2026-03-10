@@ -12,7 +12,7 @@ def sign(msg, key):
 
 h = enc({"alg": "HS256", "typ": "JWT"})
 p = enc({
-    "sub": "71c19b56-5d9a-47f4-9a61-fa58ca17a546",
+    "sub": "251aacce-3102-4558-82fe-51b9f369654e",
     "email": "admin@vantdomus.cl",
     "iat": int(datetime.datetime.now().timestamp()),
     "exp": int((datetime.datetime.now() + datetime.timedelta(days=3650)).timestamp())
