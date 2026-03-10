@@ -10,8 +10,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="brand">
               <div className="logo" />
               <div>
-                <div className="brandTitle">VantDomus</div>
-                <div className="small">v0.4 · SQLite · Planning Assistant (B+D)</div>
+                <div className="brandTitle">VantUnit</div>
+                <div className="small">B2B Enterprise Edition · Operations Control</div>
               </div>
             </div>
             <div className="navLinks">

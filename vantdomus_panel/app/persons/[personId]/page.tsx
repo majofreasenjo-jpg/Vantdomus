@@ -9,7 +9,7 @@ export default async function PersonPage({ params }: { params: { personId: strin
         <div style={{ maxWidth: 900 }}>
             <h1 style={{ marginTop: 0 }}>🏥 {data.person.display_name}</h1>
             <div style={{ color: "#666", marginBottom: 16 }}>
-                Relación: {data.person.relation || "—"} · <a href="/dashboard">← Dashboard</a>
+                Cargo/Rol: {data.person.relation || "—"} · <a href="/dashboard">← Dashboard</a>
             </div>
 
             {/* Adherence Plan Form */}
@@ -19,10 +19,10 @@ export default async function PersonPage({ params }: { params: { personId: strin
             <CheckinButtons personId={params.personId} />
 
             {/* Health Timeline */}
-            <h2>📅 Health Timeline</h2>
+            <h2>📅 Safety & Fatigue Timeline</h2>
             {data.events.length === 0 ? (
                 <div style={{ padding: 12, color: "#999", border: "1px solid #eee", borderRadius: 8 }}>
-                    Sin eventos de salud
+                    Sin eventos reportados
                 </div>
             ) : (
                 <div style={{ display: "grid", gap: 6 }}>

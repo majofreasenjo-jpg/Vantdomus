@@ -80,7 +80,7 @@ export function DashboardScreen({ navigation }: any) {
 
       {dash ? (
         <>
-          <Card title="Stability">
+          <Card title="Operational Stability Index (OSI)">
             <View style={styles.rowBetween}>
               <View>
                 <Text style={styles.big}>{hsi}</Text>
@@ -91,7 +91,7 @@ export function DashboardScreen({ navigation }: any) {
               </Pressable>
             </View>
             <View style={{ marginTop: 10 }}>
-              <Text style={styles.muted}>Health {f?.health_score ?? 0} · Tasks {f?.task_score ?? 0} · Finance {f?.finance_score ?? 0}</Text>
+              <Text style={styles.muted}>Seguridad/Fatiga {f?.health_score ?? 0} · Operaciones {f?.task_score ?? 0} · Insumos {f?.finance_score ?? 0}</Text>
             </View>
           </Card>
 
@@ -117,15 +117,15 @@ export function DashboardScreen({ navigation }: any) {
           <Card title="Navegar">
             <View style={styles.row}>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Tasks")}>
-                <Text style={styles.btnText}>Tasks</Text>
+                <Text style={styles.btnText}>Operaciones</Text>
               </Pressable>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Finance")}>
-                <Text style={styles.btnText}>Finance</Text>
+                <Text style={styles.btnText}>Insumos</Text>
               </Pressable>
             </View>
             <View style={[styles.row, { marginTop: 10 }]}>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Persons")}>
-                <Text style={styles.btnText}>Persons</Text>
+                <Text style={styles.btnText}>Cuadrilla</Text>
               </Pressable>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Chat")}>
                 <Text style={styles.btnText}>Chat</Text>

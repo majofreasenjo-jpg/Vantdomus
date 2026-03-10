@@ -66,24 +66,24 @@ def generate_recommendations(db, household_id: str, force_refresh: bool = False)
     if f["missed_7d"] >= 2:
         _insert_reco(
             db, household_id, "health",
-            "Reforzar adherencia de medicación",
-            f"Se detectaron {f['missed_7d']} missed en los últimos 7 días. Ajusta rutina y recordatorios.",
+            "Alerta de Fatiga/Incidente en Trabajador",
+            f"Se detectaron {f['missed_7d']} fallos de seguridad en 7 días. Ajusta carga laboral.",
             80,
             {"actions":[
-                {"type":"create_task","title":"Revisar adherencia y ajustar rutina","priority":"high","tags":["health","adherence"]},
-                {"type":"create_task","title":"Preparar pastillero / recordatorio visible","priority":"medium","tags":["health"]},
+                {"type":"create_task","title":"Auditar protocolos de seguridad y fatiga","priority":"high","tags":["health","adherence"]},
+                {"type":"create_task","title":"Pausa obligatoria / Rote de personal","priority":"medium","tags":["health"]},
             ]}
         )
 
     if f["tasks_overdue"] >= 2:
         _insert_reco(
             db, household_id, "tasks",
-            "Recuperación de tareas vencidas",
-            f"Hay {f['tasks_overdue']} tareas vencidas. Prioriza y delega.",
+            "Alerta CRÍTICA: Protocolos de Mantenimiento Atrasados",
+            f"Hay {f['tasks_overdue']} mantenimientos críticos vencidos. Prioriza y re-asigna.",
             70,
             {"actions":[
-                {"type":"create_task","title":"Recovery sprint: 3 tareas críticas hoy","priority":"high","tags":["recovery","tasks"]},
-                {"type":"create_task","title":"Reasignar responsabilidades (10 min)","priority":"medium","tags":["planning","tasks"]},
+                {"type":"create_task","title":"Intervención Inmediata: 3 mantenimientos críticos hoy","priority":"high","tags":["recovery","tasks"]},
+                {"type":"create_task","title":"Reasignar responsabilidades de turno (10 min)","priority":"medium","tags":["planning","tasks"]},
             ]}
         )
 
@@ -103,11 +103,11 @@ def generate_recommendations(db, household_id: str, force_refresh: bool = False)
     if f["hsi"] < 60:
         _insert_reco(
             db, household_id, "stability",
-            "Activar Recovery Mode (HSI bajo)",
-            f"HSI={f['hsi']} indica riesgo. Ejecuta plan 48h.",
+            "Activar Protocolo de Contención (OSI crítico)",
+            f"OSI={f['hsi']} indica riesgo operacional. Ejecuta plan 48h urgente.",
             85,
             {"actions":[
-                {"type":"create_task","title":"Recovery Mode 48h: plan + seguimiento","priority":"high","tags":["stability","recovery"]},
+                {"type":"create_task","title":"Protocolo de Contención 48h: plan + reunión de seguimiento","priority":"high","tags":["stability","recovery"]},
             ]}
         )
 

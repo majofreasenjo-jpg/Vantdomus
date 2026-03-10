@@ -29,36 +29,47 @@ export function HealthScreen({ route }: any) {
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    (async () => {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.householdId) || process.env.EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID;
+      if (val) setHid(val);
+      else setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!hid) return;
+    refresh();
+  }, [hid]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.h1}>Health</Text>
+      <Text style={styles.h1}>Seguridad y Fatiga</Text>
       <Text style={styles.muted}>{name || personId}</Text>
 
-      <Card title="Adherence Plan">
+      <Card title="Protocolos Operativos">
         <View style={styles.row}>
-          <TextInput value={med} onChangeText={setMed} style={styles.input} placeholder="Medication" placeholderTextColor="#6f829b" />
+          <TextInput value={med} onChangeText={setMed} style={styles.input} placeholder="Protocolo / Check" placeholderTextColor="#6f829b" />
           <Pressable style={[styles.btn, styles.btnPrimary]} onPress={async () => { await setAdherencePlan(hid, personId, med, "08:00,20:00", "tap"); await refresh(); }}>
-            <Text style={styles.btnText}>Set Plan</Text>
+            <Text style={styles.btnText}>Definir Plan</Text>
           </Pressable>
         </View>
         <Text style={styles.muted}>Default: 08:00,20:00 · tap</Text>
       </Card>
 
-      <Card title="Check-in">
+      <Card title="Control en Terreno">
         <View style={styles.row}>
           <Pressable style={styles.btn} onPress={async () => { await healthCheckin(hid, personId, med, "taken"); await refresh(); }}>
-            <Text style={styles.btnText}>Taken</Text>
+            <Text style={styles.btnText}>Seguro / OK</Text>
           </Pressable>
           <Pressable style={styles.btn} onPress={async () => { await healthCheckin(hid, personId, med, "missed"); await refresh(); }}>
-            <Text style={styles.btnText}>Missed</Text>
+            <Text style={styles.btnText}>Riesgo / Fallo</Text>
           </Pressable>
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </Card>
 
-      <Card title="Timeline">
+      <Card title="Historial de Novedades">
         {loading ? <ActivityIndicator /> : null}
         {items.map((it) => (
           <View key={it.id} style={styles.item}>

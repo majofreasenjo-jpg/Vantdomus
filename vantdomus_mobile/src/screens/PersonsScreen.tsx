@@ -24,11 +24,22 @@ export function PersonsScreen({ navigation }: any) {
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    (async () => {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.householdId) || process.env.EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID;
+      if (val) setHid(val);
+      else setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!hid) return;
+    refresh();
+  }, [hid]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.h1}>Persons</Text>
+      <Text style={styles.h1}>Cuadrilla Operativa</Text>
       <Text style={styles.muted}>{hid}</Text>
 
       <Card title="Listado">
@@ -43,13 +54,13 @@ export function PersonsScreen({ navigation }: any) {
           >
             <View>
               <Text style={styles.personName}>{p.display_name}</Text>
-              <Text style={styles.muted}>{p.relation || ""}</Text>
+              <Text style={styles.muted}>{p.relation || "Sin Cargo Asignado"}</Text>
             </View>
             <Text style={styles.muted}>Ver</Text>
           </Pressable>
         ))}
 
-        {!loading && persons.length === 0 ? <Text style={styles.muted}>Sin personas.</Text> : null}
+        {!loading && persons.length === 0 ? <Text style={styles.muted}>Sin personal asignado a la cuadrilla.</Text> : null}
       </Card>
     </ScrollView>
   );

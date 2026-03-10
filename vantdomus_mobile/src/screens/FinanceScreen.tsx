@@ -26,19 +26,30 @@ export function FinanceScreen() {
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    (async () => {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.householdId) || process.env.EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID;
+      if (val) setHid(val);
+      else setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!hid) return;
+    refresh();
+  }, [hid]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.h1}>Finance</Text>
+      <Text style={styles.h1}>Insumos/Presupuestos</Text>
       <Text style={styles.muted}>{hid}</Text>
 
-      <Card title="Agregar gasto">
+      <Card title="Registrar insumo">
         <View style={styles.row}>
           <TextInput
             value={amount}
             onChangeText={setAmount}
-            placeholder="Monto (ej 45)"
+            placeholder="Costo/Monto (ej 45)"
             placeholderTextColor="#6f829b"
             keyboardType="numeric"
             style={styles.input}
@@ -59,7 +70,7 @@ export function FinanceScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </Card>
 
-      <Card title="Últimos gastos">
+      <Card title="Últimos movimientos">
         {loading ? <ActivityIndicator /> : null}
         {items.map((e) => (
           <View key={e.id} style={styles.item}>
@@ -73,7 +84,7 @@ export function FinanceScreen() {
             <Text style={styles.amount}><Text style={{ fontWeight: "900" }}>{e.amount}</Text> <Text style={styles.muted}>{e.currency}</Text></Text>
           </View>
         ))}
-        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin gastos.</Text> : null}
+        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin movimientos registrados.</Text> : null}
       </Card>
     </ScrollView>
   );

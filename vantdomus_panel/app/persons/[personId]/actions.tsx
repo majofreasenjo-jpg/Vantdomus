@@ -23,10 +23,10 @@ export function AdherencePlanForm({ personId }: { personId: string }) {
 
     return (
         <div style={{ padding: 16, border: "1px solid #e0e0e0", borderRadius: 8, background: "#f9fafb", marginBottom: 16 }}>
-            <h3 style={{ margin: "0 0 12px" }}>💊 Definir Plan de Adherencia</h3>
+            <h3 style={{ margin: "0 0 12px" }}>🛡️ Definir Protocolo de Seguridad</h3>
             <div style={{ display: "grid", gap: 8 }}>
                 <label style={{ fontSize: 13 }}>
-                    Medication:
+                    Protocolo / Check:
                     <input value={medication} onChange={e => setMedication(e.target.value)}
                         style={{ display: "block", width: "100%", padding: "6px 8px", border: "1px solid #ddd", borderRadius: 4, marginTop: 4 }} />
                 </label>
@@ -79,10 +79,10 @@ export function CheckinButtons({ personId }: { personId: string }) {
 
     return (
         <div style={{ padding: 16, border: "1px solid #e0e0e0", borderRadius: 8, background: "#f9fafb", marginBottom: 16 }}>
-            <h3 style={{ margin: "0 0 12px" }}>🔔 Registrar Check-in</h3>
+            <h3 style={{ margin: "0 0 12px" }}>⏱️ Registrar Control Operativo</h3>
             <div style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
                 <label style={{ fontSize: 13 }}>
-                    Medication:
+                    Protocolo / Check:
                     <input value={medication} onChange={e => setMedication(e.target.value)}
                         style={{ display: "block", padding: "6px 8px", border: "1px solid #ddd", borderRadius: 4, marginTop: 4 }} />
                 </label>
@@ -93,18 +93,18 @@ export function CheckinButtons({ personId }: { personId: string }) {
                 </label>
                 <button onClick={() => handleCheckin("taken")} disabled={loading}
                     style={{ padding: "8px 16px", background: "#4caf50", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
-                    ✅ Taken
+                    ✅ Seguro / OK
                 </button>
                 <button onClick={() => handleCheckin("missed")} disabled={loading}
                     style={{ padding: "8px 16px", background: "#d32f2f", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>
-                    ❌ Missed
+                    ❌ Riesgo / Fallo
                 </button>
             </div>
             {result && (
                 <div style={{ marginTop: 12 }}>
                     {result.alert_created && (
                         <div style={{ padding: 10, background: "#ffebee", border: "1px solid #ffcdd2", borderRadius: 6, marginBottom: 8 }}>
-                            <strong>⚠️ ALERTA CREADA:</strong> {result.alert_created.consecutive_misses} dosis consecutivas perdidas
+                            <strong>⚠️ ALERTA CREADA:</strong> {result.alert_created.consecutive_misses} controles consecutivos fallidos
                         </div>
                     )}
                     <pre style={{ padding: 8, background: "#fff", border: "1px solid #eee", borderRadius: 4, fontSize: 12, overflow: "auto" }}>

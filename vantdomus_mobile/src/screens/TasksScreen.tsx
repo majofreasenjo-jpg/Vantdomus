@@ -26,11 +26,22 @@ export function TasksScreen() {
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    (async () => {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.householdId) || process.env.EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID;
+      if (val) setHid(val);
+      else setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!hid) return;
+    refresh();
+  }, [hid]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.h1}>Tasks</Text>
+      <Text style={styles.h1}>Operaciones</Text>
       <Text style={styles.muted}>{hid}</Text>
 
       <Card title="Crear">
@@ -38,7 +49,7 @@ export function TasksScreen() {
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Nueva tarea"
+            placeholder="Nueva operación"
             placeholderTextColor="#6f829b"
             style={styles.input}
           />
@@ -77,7 +88,7 @@ export function TasksScreen() {
             )}
           </View>
         ))}
-        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin tareas.</Text> : null}
+        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin operaciones asignadas.</Text> : null}
       </Card>
     </ScrollView>
   );

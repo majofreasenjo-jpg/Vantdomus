@@ -21,7 +21,7 @@ export default async function Dashboard({ params }: { params: { householdId: str
     <div className="grid" style={{ gap: 14 }}>
       <div className="row" style={{ alignItems: "flex-end" }}>
         <div>
-          <div className="cardTitle">Unit</div>
+          <div className="cardTitle">Unidad Operativa</div>
           <div className="big" style={{ fontSize: 28 }}>{dash.household.name}</div>
           <div className="small">{dash.household.id}</div>
         </div>
@@ -35,8 +35,8 @@ export default async function Dashboard({ params }: { params: { householdId: str
             }}
           >
             <select className="input" name="mode" defaultValue="home" style={{ marginRight: 8 }}>
-              <option value="home">Demo Hogar</option>
-              <option value="team">Demo Equipo</option>
+              <option value="home">Demo Unidad</option>
+              <option value="team">Demo Cuadrilla</option>
             </select>
             <button className="btn btnPrimary" type="submit">Cargar Demo</button>
           </form>
@@ -50,7 +50,7 @@ export default async function Dashboard({ params }: { params: { householdId: str
         <div className="card" style={{ gridColumn: "span 4" }}>
           <div className="row">
             <div>
-              <div className="cardTitle">Household Stability Index</div>
+              <div className="cardTitle">Operational Stability Index (OSI)</div>
               <div className="big">{hsi}</div>
               <div className={pill.cls}>{pill.label}</div>
             </div>
@@ -62,13 +62,13 @@ export default async function Dashboard({ params }: { params: { householdId: str
         </div>
 
         <div className="card" style={{ gridColumn: "span 2" }}>
-          <div className="cardTitle">Health</div>
+          <div className="cardTitle">Seguridad/Salud</div>
           <div className="big">{f?.health_score ?? 0}</div>
           <div className="small">missed 7d: {f?.missed_7d ?? 0}</div>
         </div>
 
         <div className="card" style={{ gridColumn: "span 3" }}>
-          <div className="cardTitle">Tasks</div>
+          <div className="cardTitle">Operaciones</div>
           <div className="big">{f?.task_score ?? 0}</div>
           <div className="small">
             done 7d: {f?.tasks_done_7d ?? 0} · overdue: {f?.tasks_overdue ?? 0}
@@ -76,7 +76,7 @@ export default async function Dashboard({ params }: { params: { householdId: str
         </div>
 
         <div className="card" style={{ gridColumn: "span 3" }}>
-          <div className="cardTitle">Finance</div>
+          <div className="cardTitle">Insumos/Presupuesto</div>
           <div className="big">{f?.finance_score ?? 0}</div>
           <div className="small">
             spend 30d: {Math.round(((f?.spend_30d_total ?? 0) as number) * 100) / 100}
@@ -155,8 +155,8 @@ export default async function Dashboard({ params }: { params: { householdId: str
         </div>
 
         <div className="card">
-          <div className="sectionTitle">Persons</div>
-          <div className="small">Drill-down de salud (timeline + check-ins).</div>
+          <div className="sectionTitle">Personal Operativo</div>
+          <div className="small">Drill-down de seguridad y control de fatiga.</div>
 
           <div style={{ marginTop: 10 }}>
             {dash.persons.map((p: any) => (
@@ -172,7 +172,7 @@ export default async function Dashboard({ params }: { params: { householdId: str
                 <span className="small">Ver</span>
               </a >
             ))}
-            {dash.persons.length === 0 ? <div className="small">Sin personas aún.</div> : null}
+            {dash.persons.length === 0 ? <div className="small">Sin personal asignado aún.</div> : null}
           </div >
         </div >
       </div >

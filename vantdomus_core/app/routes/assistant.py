@@ -68,19 +68,19 @@ def _fallback_reply(household_id: str, db) -> str:
         f = compute_features_sqlite(db, household_id)
         
         parts = []
-        parts.append(f"Estado de Hogar Alpha: HSI={f.get('hsi', 0)} (Health {f.get('health_score',0)} · Tasks {f.get('task_score',0)} · Finance {f.get('finance_score',0)})")
+        parts.append(f"Estado de Unidad Operacional Alpha: OSI={f.get('hsi', 0)} (Fatiga {f.get('health_score',0)} · Ops {f.get('task_score',0)} · Insumos {f.get('finance_score',0)})")
         
         if f.get('missed_7d', 0) > 0:
-            parts.append(f"Alerta: Tienes {f['missed_7d']} dosis médicas fallidas en la última semana.")
+            parts.append(f"Alerta de Seguridad: {f['missed_7d']} controles de fatiga fallidos en los últimos 7 días.")
             
         if f.get('tasks_overdue', 0) > 0:
-            parts.append(f"Alerta: Tienes {f['tasks_overdue']} tareas vencidas pendientes.")
+            parts.append(f"Alerta Operativa: {f['tasks_overdue']} protocolos de mantenimiento vencidos.")
             
-        parts.append("Como VantDomus AI, te sugiero revisar tus rutinas y aplicar las recomendaciones del Dashboard para subir tu HSI.")
+        parts.append("Como VantUnit AI, sugiero ejecutar los protocolos de mitigación del Dashboard para estabilizar el OSI.")
         return "\n".join(parts)
     except Exception as e:
         print(f"Fallback Context Error: {e}")
-        return "Hola. Soy VantDomus. Estoy listo para ayudarte con tu hogar."
+        return "Hola. Soy VantUnit. Listo para asistir en el control operativo del turno."
 
 def _openai_chat(messages, model: str, temperature: float) -> str:
     api_key = os.getenv("OPENAI_API_KEY", "")
@@ -109,9 +109,9 @@ def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db
         require_household_role(db, user["user_id"], payload.household_id, "member")
 
         # Build context from latest snapshot (if exists)
-        system = "You are VantDomus, an AI operator that helps manage a household/unit with focus on clarity, safety, and actionable next steps."
+        system = "You are VantUnit, an AI operational analyst managing a high-risk shift with focus on safety protocols, resource management, and risk mitigation."
         context = _fallback_reply(payload.household_id, db)
-        msgs = [{"role": "system", "content": system + "\n\nHousehold context (latest snapshot):\n" + context}]
+        msgs = [{"role": "system", "content": system + "\n\nOperational context (latest snapshot):\n" + context}]
         msgs += [{"role": m.role, "content": m.content} for m in payload.messages]
 
         # If OpenAI configured, use it. Otherwise return deterministic fallback.
