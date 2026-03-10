@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { Card } from "../components/Card";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
@@ -9,10 +9,17 @@ export function ChatScreen() {
   const [hid, setHid] = useState<string>("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<{ role: "user"|"assistant"; content: string }[]>([
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([
     { role: "assistant", content: "Hola. Soy VantDomus. Pregúntame por el estado del hogar, alertas, tareas o salud." }
   ]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.householdId) || process.env.EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID;
+      if (val) setHid(val);
+    })();
+  }, []);
 
   const send = async () => {
     const text = input.trim();
@@ -33,7 +40,7 @@ export function ChatScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Text style={styles.h1}>Chat</Text>
         <Text style={styles.muted}>{hid}</Text>
@@ -62,7 +69,7 @@ export function ChatScreen() {
           <Text style={styles.btnText}>Enviar</Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

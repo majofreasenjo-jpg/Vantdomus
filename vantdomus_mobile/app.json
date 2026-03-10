@@ -15,7 +15,8 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0b0f17"
-      }
+      },
+      "softwareKeyboardLayoutMode": "pan"
     },
     "plugins": [
       "expo-asset"
