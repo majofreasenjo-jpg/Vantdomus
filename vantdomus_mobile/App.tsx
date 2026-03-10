@@ -14,7 +14,6 @@ import { TasksScreen } from "./src/screens/TasksScreen";
 import { FinanceScreen } from "./src/screens/FinanceScreen";
 import { PersonsScreen } from "./src/screens/PersonsScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
-import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { TaxonomyProvider, useTaxonomy } from "./src/context/TaxonomyContext";
 
 const Stack = createNativeStackNavigator();
@@ -67,18 +66,16 @@ export default function App() {
   if (!ready) return null;
 
   return (
-    <ErrorBoundary>
-      <TaxonomyProvider>
-        <NavigationContainer theme={DarkTheme}>
-          <StatusBar style="light" />
-          <Stack.Navigator initialRouteName={hasToken ? "Main" : "Auth"} screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="PickHousehold" component={PickHouseholdScreen} />
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: "Asistente AI", headerStyle: { backgroundColor: "#1f2a3a" }, headerTintColor: "#e9f0ff" }} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </TaxonomyProvider>
-    </ErrorBoundary>
+    <TaxonomyProvider>
+      <NavigationContainer theme={DarkTheme}>
+        <StatusBar style="light" />
+        <Stack.Navigator initialRouteName={hasToken ? "Main" : "Auth"} screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="PickHousehold" component={PickHouseholdScreen} />
+          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: "Asistente AI", headerStyle: { backgroundColor: "#1f2a3a" }, headerTintColor: "#e9f0ff" }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </TaxonomyProvider>
   );
 }
