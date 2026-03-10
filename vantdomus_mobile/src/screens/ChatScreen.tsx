@@ -40,36 +40,42 @@ export function ChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Text style={styles.h1}>Chat</Text>
-        <Text style={styles.muted}>{hid}</Text>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 80}
+      >
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          <Text style={styles.h1}>Chat</Text>
+          <Text style={styles.muted}>{hid}</Text>
 
-        <Card title="Conversación">
-          {messages.map((m, idx) => (
-            <View key={idx} style={[styles.bubble, m.role === "user" ? styles.user : styles.assistant]}>
-              <Text style={styles.bubbleText}>{m.content}</Text>
-            </View>
-          ))}
-          {loading ? <ActivityIndicator style={{ marginTop: 10 }} /> : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-        </Card>
-      </ScrollView>
+          <Card title="Conversación">
+            {messages.map((m, idx) => (
+              <View key={idx} style={[styles.bubble, m.role === "user" ? styles.user : styles.assistant]}>
+                <Text style={styles.bubbleText}>{m.content}</Text>
+              </View>
+            ))}
+            {loading ? <ActivityIndicator style={{ marginTop: 10 }} /> : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </Card>
+        </ScrollView>
 
-      <View style={styles.inputBar}>
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Escribe aquí…"
-          placeholderTextColor="#6f829b"
-          style={styles.input}
-          onSubmitEditing={send}
-        />
-        <Pressable style={[styles.btn, styles.btnPrimary]} onPress={send}>
-          <Text style={styles.btnText}>Enviar</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+        <View style={styles.inputBar}>
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Escribe aquí…"
+            placeholderTextColor="#6f829b"
+            style={styles.input}
+            onSubmitEditing={send}
+          />
+          <Pressable style={[styles.btn, styles.btnPrimary]} onPress={send}>
+            <Text style={styles.btnText}>Enviar</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
