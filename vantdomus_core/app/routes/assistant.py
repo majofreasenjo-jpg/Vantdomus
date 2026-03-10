@@ -69,7 +69,7 @@ def _fallback_reply(household_id: str, db) -> str:
     row = cur.fetchone()
     if row and row[0]:
         try:
-            snap = json.loads(row[0])
+            snap = row[0] if isinstance(row[0], dict) else json.loads(row[0])
             f = snap.get("features", {}) or {}
             alerts = (snap.get("alerts") or [])
             recos = (snap.get("assistant") or {}).get("items") or []
