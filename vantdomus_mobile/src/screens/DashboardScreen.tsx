@@ -7,7 +7,7 @@ import { STORAGE_KEYS } from "../config";
 import { applyAssistant, getAssistant, getDashboard, registerPushToken } from "../lib/api";
 import { registerForPushToken } from "../lib/push";
 
-function toneForHSI(hsi: number): "good"|"warn"|"bad" {
+function toneForHSI(hsi: number): "good" | "warn" | "bad" {
   if (hsi >= 80) return "good";
   if (hsi >= 60) return "warn";
   return "bad";
@@ -36,17 +36,26 @@ export function DashboardScreen({ navigation }: any) {
     }
   };
 
-  useEffect(() => { 
-  refresh();
-  (async () => {
-    try {
-      const reg = await registerForPushToken();
-      if (reg && reg.token) {
-        await registerPushToken(hid, reg.platform, reg.token, reg.deviceName);
-      }
-    } catch {}
-  })();
-}, []);
+  useEffect(() => {
+    (async () => {
+      const val = await AsyncStorage.getItem(STORAGE_KEYS.householdId) || process.env.EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID;
+      if (val) setHid(val);
+      else setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!hid) return;
+    refresh();
+    (async () => {
+      try {
+        const reg = await registerForPushToken();
+        if (reg && reg.token) {
+          await registerPushToken(hid, reg.platform, reg.token, reg.deviceName);
+        }
+      } catch { }
+    })();
+  }, [hid]);
 
   const f = dash?.features;
   const hsi = f?.hsi ?? 0;
