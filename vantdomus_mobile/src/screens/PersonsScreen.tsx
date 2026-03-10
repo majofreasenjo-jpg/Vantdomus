@@ -4,8 +4,10 @@ import { Card } from "../components/Card";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { getDashboard } from "../lib/api";
+import { useTaxonomy } from "../context/TaxonomyContext";
 
 export function PersonsScreen({ navigation }: any) {
+  const { tax } = useTaxonomy();
   const [hid, setHid] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [persons, setPersons] = useState<any[]>([]);
@@ -39,7 +41,7 @@ export function PersonsScreen({ navigation }: any) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.h1}>Cuadrilla Operativa</Text>
+      <Text style={styles.h1}>{tax.persons}</Text>
       <Text style={styles.muted}>{hid}</Text>
 
       <Card title="Listado">
@@ -60,7 +62,7 @@ export function PersonsScreen({ navigation }: any) {
           </Pressable>
         ))}
 
-        {!loading && persons.length === 0 ? <Text style={styles.muted}>Sin personal asignado a la cuadrilla.</Text> : null}
+        {!loading && persons.length === 0 ? <Text style={styles.muted}>Sin {tax.persons.toLowerCase()} asignado a la unidad.</Text> : null}
       </Card>
     </ScrollView>
   );

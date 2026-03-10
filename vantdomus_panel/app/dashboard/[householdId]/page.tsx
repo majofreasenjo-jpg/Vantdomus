@@ -1,4 +1,5 @@
 import { getDashboard, seedDemo, getScores, getAssistant, applyAssistant } from "../../../lib/api";
+import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 
 function pillForHSI(hsi: number) {
   if (hsi >= 80) return { cls: "pill good", label: "Stable" };
@@ -16,12 +17,14 @@ export default async function Dashboard({ params }: { params: { householdId: str
   const f = dash.features || (scores.exists ? scores : null);
   const hsi = f?.hsi ?? 0;
   const pill = pillForHSI(hsi);
+  const presetKey = dash.household.meta?.industry_preset || "default";
+  const tax = INDUSTRY_PRESETS_UI[presetKey] || INDUSTRY_PRESETS_UI["default"];
 
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="row" style={{ alignItems: "flex-end" }}>
         <div>
-          <div className="cardTitle">Unidad Operativa</div>
+          <div className="cardTitle">{tax.unit}</div>
           <div className="big" style={{ fontSize: 28 }}>{dash.household.name}</div>
           <div className="small">{dash.household.id}</div>
         </div>
@@ -35,14 +38,14 @@ export default async function Dashboard({ params }: { params: { householdId: str
             }}
           >
             <select className="input" name="mode" defaultValue="home" style={{ marginRight: 8 }}>
-              <option value="home">Demo Unidad</option>
-              <option value="team">Demo Cuadrilla</option>
+              <option value="home">Demo Unidad B2B</option>
+              <option value="team">Demo Operarios</option>
             </select>
             <button className="btn btnPrimary" type="submit">Cargar Demo</button>
           </form>
 
-          <a className="btn" href={`/ tasks / ${hid} `}>Ir a Tasks</a>
-          <a className="btn" href={`/ finance / ${hid} `}>Ir a Finance</a>
+          <a className="btn" href={`/tasks/${hid}`}>Ir a {tax.tasks}</a>
+          <a className="btn" href={`/finance/${hid}`}>Ir a {tax.finance}</a>
         </div>
       </div>
 
@@ -62,13 +65,13 @@ export default async function Dashboard({ params }: { params: { householdId: str
         </div>
 
         <div className="card" style={{ gridColumn: "span 2" }}>
-          <div className="cardTitle">Seguridad/Salud</div>
+          <div className="cardTitle">{tax.health}</div>
           <div className="big">{f?.health_score ?? 0}</div>
           <div className="small">missed 7d: {f?.missed_7d ?? 0}</div>
         </div>
 
         <div className="card" style={{ gridColumn: "span 3" }}>
-          <div className="cardTitle">Operaciones</div>
+          <div className="cardTitle">{tax.tasks}</div>
           <div className="big">{f?.task_score ?? 0}</div>
           <div className="small">
             done 7d: {f?.tasks_done_7d ?? 0} · overdue: {f?.tasks_overdue ?? 0}
@@ -76,7 +79,7 @@ export default async function Dashboard({ params }: { params: { householdId: str
         </div>
 
         <div className="card" style={{ gridColumn: "span 3" }}>
-          <div className="cardTitle">Insumos/Presupuesto</div>
+          <div className="cardTitle">{tax.finance}</div>
           <div className="big">{f?.finance_score ?? 0}</div>
           <div className="small">
             spend 30d: {Math.round(((f?.spend_30d_total ?? 0) as number) * 100) / 100}
@@ -155,15 +158,15 @@ export default async function Dashboard({ params }: { params: { householdId: str
         </div>
 
         <div className="card">
-          <div className="sectionTitle">Personal Operativo</div>
-          <div className="small">Drill-down de seguridad y control de fatiga.</div>
+          <div className="sectionTitle">{tax.persons}</div>
+          <div className="small">Drill-down operativo de la cuadrilla (Métrica Individual).</div>
 
           <div style={{ marginTop: 10 }}>
             {dash.persons.map((p: any) => (
               <a
                 key={p.id}
                 className="btn"
-                href={`/ persons / ${p.id}/health?hid=${hid}`}
+                href={`/persons/${p.id}/health?hid=${hid}`}
                 style={{ width: "100%", marginBottom: 10, justifyContent: "space-between" }}
               >
                 <span>

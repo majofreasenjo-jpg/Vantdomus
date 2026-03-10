@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { applyAssistant, getAssistant, getDashboard, registerPushToken } from "../lib/api";
 import { registerForPushToken } from "../lib/push";
+import { useTaxonomy } from "../context/TaxonomyContext";
 
 function toneForHSI(hsi: number): "good" | "warn" | "bad" {
   if (hsi >= 80) return "good";
@@ -15,6 +16,7 @@ function toneForHSI(hsi: number): "good" | "warn" | "bad" {
 
 export function DashboardScreen({ navigation }: any) {
   const [hid, setHid] = useState<string>("");
+  const { tax, setTaxonomy } = useTaxonomy();
 
   const [loading, setLoading] = useState(true);
   const [dash, setDash] = useState<any>(null);
@@ -29,6 +31,10 @@ export function DashboardScreen({ navigation }: any) {
       const a = await getAssistant(hid, false);
       setDash(d);
       setAsst(a);
+      // Inyectar el context si viene de la db
+      if (d?.household?.meta?.industry_preset) {
+        setTaxonomy(d.household.meta.industry_preset);
+      }
     } catch (e: any) {
       setError(e?.message || String(e));
     } finally {
@@ -91,7 +97,7 @@ export function DashboardScreen({ navigation }: any) {
               </Pressable>
             </View>
             <View style={{ marginTop: 10 }}>
-              <Text style={styles.muted}>Seguridad/Fatiga {f?.health_score ?? 0} · Operaciones {f?.task_score ?? 0} · Insumos {f?.finance_score ?? 0}</Text>
+              <Text style={styles.muted}>{tax.health} {f?.health_score ?? 0} · {tax.tasks} {f?.task_score ?? 0} · {tax.finance} {f?.finance_score ?? 0}</Text>
             </View>
           </Card>
 
@@ -117,15 +123,15 @@ export function DashboardScreen({ navigation }: any) {
           <Card title="Navegar">
             <View style={styles.row}>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Tasks")}>
-                <Text style={styles.btnText}>Operaciones</Text>
+                <Text style={styles.btnText}>{tax.tasks}</Text>
               </Pressable>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Finance")}>
-                <Text style={styles.btnText}>Insumos</Text>
+                <Text style={styles.btnText}>{tax.finance}</Text>
               </Pressable>
             </View>
             <View style={[styles.row, { marginTop: 10 }]}>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Persons")}>
-                <Text style={styles.btnText}>Cuadrilla</Text>
+                <Text style={styles.btnText}>{tax.persons}</Text>
               </Pressable>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Chat")}>
                 <Text style={styles.btnText}>Chat</Text>

@@ -51,6 +51,7 @@ from typing import List, Optional
 import os
 import json
 import urllib.request
+from .taxonomy import get_taxonomy
 
 class ChatMessage(BaseModel):
     role: str  # system|user|assistant
@@ -62,25 +63,25 @@ class ChatRequest(BaseModel):
     model: Optional[str] = None  # e.g. gpt-4.1-mini
     temperature: float = 0.2
 
-def _fallback_reply(household_id: str, db) -> str:
+def _fallback_reply(household_id: str, db, taxonomy: dict) -> str:
     try:
         from app.features import compute_features_sqlite
         f = compute_features_sqlite(db, household_id)
         
         parts = []
-        parts.append(f"Estado de Unidad Operacional Alpha: OSI={f.get('hsi', 0)} (Fatiga {f.get('health_score',0)} · Ops {f.get('task_score',0)} · Insumos {f.get('finance_score',0)})")
+        parts.append(f"Estado de {taxonomy['unit']} Alpha: OSI={f.get('hsi', 0)} ({taxonomy['health']} {f.get('health_score',0)} · {taxonomy['tasks']} {f.get('task_score',0)} · {taxonomy['finance']} {f.get('finance_score',0)})")
         
         if f.get('missed_7d', 0) > 0:
-            parts.append(f"Alerta de Seguridad: {f['missed_7d']} controles de fatiga fallidos en los últimos 7 días.")
+            parts.append(f"Alerta de {taxonomy['health']}: {f['missed_7d']} fallos registrados en los últimos 7 días.")
             
         if f.get('tasks_overdue', 0) > 0:
-            parts.append(f"Alerta Operativa: {f['tasks_overdue']} protocolos de mantenimiento vencidos.")
+            parts.append(f"Alerta Operativa: {f['tasks_overdue']} {taxonomy['tasks'].lower()} críticos vencidos.")
             
-        parts.append("Como VantUnit AI, sugiero ejecutar los protocolos de mitigación del Dashboard para estabilizar el OSI.")
+        parts.append(f"Como VantUnit AI, sugiero ejecutar los protocolos de mitigación del Dashboard para estabilizar el OSI.")
         return "\n".join(parts)
     except Exception as e:
         print(f"Fallback Context Error: {e}")
-        return "Hola. Soy VantUnit. Listo para asistir en el control operativo del turno."
+        return f"Hola. Soy VantUnit. Listo para asistir en el control de su {taxonomy['unit']}."
 
 def _openai_chat(messages, model: str, temperature: float) -> str:
     api_key = os.getenv("OPENAI_API_KEY", "")
@@ -108,9 +109,18 @@ def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db
     try:
         require_household_role(db, user["user_id"], payload.household_id, "member")
 
+        # Fetch dynamic preset
+        h = db.execute("SELECT meta FROM households WHERE id=?", (payload.household_id,)).fetchone()
+        industry = "default"
+        if h and h["meta"]:
+            meta_json = json.loads(h["meta"])
+            industry = meta_json.get("industry_preset", "default")
+            
+        taxonomy = get_taxonomy(industry)
+
         # Build context from latest snapshot (if exists)
-        system = "You are VantUnit, an AI operational analyst managing a high-risk shift with focus on safety protocols, resource management, and risk mitigation."
-        context = _fallback_reply(payload.household_id, db)
+        system = f"You are VantUnit, {taxonomy['ai_role']}."
+        context = _fallback_reply(payload.household_id, db, taxonomy)
         msgs = [{"role": "system", "content": system + "\n\nOperational context (latest snapshot):\n" + context}]
         msgs += [{"role": m.role, "content": m.content} for m in payload.messages]
 

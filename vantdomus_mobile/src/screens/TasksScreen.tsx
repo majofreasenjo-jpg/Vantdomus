@@ -5,8 +5,10 @@ import { Pill } from "../components/Pill";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { createTask, listTasks, markTaskDone } from "../lib/api";
+import { useTaxonomy } from "../context/TaxonomyContext";
 
 export function TasksScreen() {
+  const { tax } = useTaxonomy();
   const [hid, setHid] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<any[]>([]);
@@ -41,7 +43,7 @@ export function TasksScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
-      <Text style={styles.h1}>Operaciones</Text>
+      <Text style={styles.h1}>{tax.tasks}</Text>
       <Text style={styles.muted}>{hid}</Text>
 
       <Card title="Crear">
@@ -49,7 +51,7 @@ export function TasksScreen() {
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Nueva operación"
+            placeholder={`Nueva ${tax.tasks.toLowerCase()}`}
             placeholderTextColor="#6f829b"
             style={styles.input}
           />
@@ -88,7 +90,7 @@ export function TasksScreen() {
             )}
           </View>
         ))}
-        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin operaciones asignadas.</Text> : null}
+        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin {tax.tasks.toLowerCase()} asignadas.</Text> : null}
       </Card>
     </ScrollView>
   );

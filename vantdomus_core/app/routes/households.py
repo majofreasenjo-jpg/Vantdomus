@@ -22,6 +22,24 @@ def list_households(user=Depends(get_current_user), db=Depends(get_db)):
         traceback.print_exc()
         raise e
 
+from pydantic import BaseModel
+class TaxonomySettingsUpdate(BaseModel):
+    industry_preset: str
+
+@router.patch("/{household_id}/settings/taxonomy")
+def update_taxonomy(household_id: str, payload: TaxonomySettingsUpdate, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "admin")
+    h = db.execute("SELECT meta FROM households WHERE id=?", (household_id,)).fetchone()
+    if not h:
+        raise HTTPException(status_code=404, detail="Household not found")
+        
+    meta = json.loads(h["meta"] or "{}")
+    meta["industry_preset"] = payload.industry_preset
+    
+    db.execute("UPDATE households SET meta=? WHERE id=?", (json.dumps(meta), household_id))
+    db.commit()
+    return {"ok": True, "industry_preset": payload.industry_preset}
+
 
 def now():
     return datetime.now(timezone.utc).isoformat()
