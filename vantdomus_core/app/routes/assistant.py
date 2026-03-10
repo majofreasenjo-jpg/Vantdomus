@@ -63,27 +63,24 @@ class ChatRequest(BaseModel):
     temperature: float = 0.2
 
 def _fallback_reply(household_id: str, db) -> str:
-    # lightweight, deterministic summary
-    cur = db.cursor()
-    cur.execute("SELECT snapshot_json FROM state_snapshots WHERE household_id=? ORDER BY created_at DESC LIMIT 1", (household_id,))
-    row = cur.fetchone()
-    if row and row[0]:
-        try:
-            snap = row[0] if isinstance(row[0], dict) else json.loads(row[0])
-            f = snap.get("features", {}) or {}
-            alerts = (snap.get("alerts") or [])
-            recos = (snap.get("assistant") or {}).get("items") or []
-            parts = []
-            parts.append(f"Estado: HSI={f.get('hsi', 0)} (Health {f.get('health_score',0)} · Tasks {f.get('task_score',0)} · Finance {f.get('finance_score',0)})")
-            if alerts:
-                parts.append(f"Alertas activas: {len(alerts)}. Ej: {alerts[0].get('title','')}")
-            if recos:
-                parts.append(f"Recomendaciones: {len(recos)}. Top: {recos[0].get('title','')}")
-            parts.append("Siguiente paso sugerido: aplicar la recomendación con mayor impacto y revisar los check-ins de salud.")
-            return "\n".join(parts)
-        except Exception:
-            pass
-    return "No encontré un snapshot reciente. Usa Dashboard/Refresh y vuelve a intentar."
+    try:
+        from ..features import compute_features_sqlite
+        f = compute_features_sqlite(db, household_id)
+        
+        parts = []
+        parts.append(f"Estado de Hogar Alpha: HSI={f.get('hsi', 0)} (Health {f.get('health_score',0)} · Tasks {f.get('task_score',0)} · Finance {f.get('finance_score',0)})")
+        
+        if f.get('missed_7d', 0) > 0:
+            parts.append(f"Alerta: Tienes {f['missed_7d']} dosis médicas fallidas en la última semana.")
+            
+        if f.get('tasks_overdue', 0) > 0:
+            parts.append(f"Alerta: Tienes {f['tasks_overdue']} tareas vencidas pendientes.")
+            
+        parts.append("Como VantDomus AI, te sugiero revisar tus rutinas y aplicar las recomendaciones del Dashboard para subir tu HSI.")
+        return "\n".join(parts)
+    except Exception as e:
+        print(f"Fallback Context Error: {e}")
+        return "Hola. Soy VantDomus. Estoy listo para ayudarte con tu hogar."
 
 def _openai_chat(messages, model: str, temperature: float) -> str:
     api_key = os.getenv("OPENAI_API_KEY", "")
