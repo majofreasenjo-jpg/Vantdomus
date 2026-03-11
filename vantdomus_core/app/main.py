@@ -1,9 +1,18 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from .deps import get_db
 from .db import ensure_schema
 from .routes import auth, households, persons, health, tasks, finance, scores, assistant, demo, alerts, notifications
 
 app = FastAPI(title="VantDomus Core API", version="v0.6.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def _startup():
