@@ -1,0 +1,2968 @@
+==== SECUENCIA.docx ====
+
+CANALETAS
+
+Secuencia Constructiva – Instalación de Cañerías HDPE
+
+Actividades Previas
+
+Solicitud de permiso de ingreso al área.
+
+Habilitación provisoria de IIFF (6 personas – 4 días).
+
+Preparación del Área
+
+Mejoramiento del terreno y de los accesos.
+
+Instalación de accesos internos a canaletas.
+
+Retiro de borra o material excedente (2 días).
+
+Preparación de Fundación
+
+Optimización de fondo para soporte de cañerías HDPE (1 día).
+
+Relleno y nivelación del sello (1 día).
+
+Montaje de Cañerías
+
+Posicionamiento de cañerías para acople (1 día).
+
+Acople de cañerías (½ día).
+
+Instalación de media caña de ajuste (½ día).
+
+Instalación de cañería en tres tramos (1 día).
+
+Alineación de la cañería (1 día).
+
+Estabilización y Protección
+
+Instalación de maxisacos con arena o material fino (1 día).
+
+Ejecución de camellones de arena (1 día).
+
+Retiro de maxisacos (½ día).
+
+Duración Total Aproximada (por frente de trabajo): entre 10 y 11 días efectivos.
+
+Estrategia con Dos Frentes de Trabajo:
+
+Dado que se trata de una actividad repetitiva, se recomienda un sistema tipo “tren de actividades”:
+
+Frente 1: inicia con preparación, seguido por montaje y estabilización.
+
+Frente 2: comienza con un desfase de 2 a 3 días, ingresando cuando el Frente 1 se encuentre en fundación o montaje.
+
+Esta metodología permite reducir el plazo total en un 30–40% y optimizar el uso de equipos tales como camión pluma, excavadora, compactador y cuadrilla.
+
+Secuencia Tipo (Línea de Producción):
+
+Preparación de terreno
+
+Sello
+
+Montaje
+
+Alineación
+
+Estabilización
+
+Mientras un frente ejecuta el montaje, el otro avanza con la preparación.
+
+Recomendaciones Técnicas:
+
+Verificar pendiente y alineación antes del acople, aspecto fundamental en HDPE.
+
+Realizar control de compactación en el sello para evitar deformaciones.
+
+Supervisar radios de curvatura del HDPE según especificaciones.
+
+Garantizar limpieza estricta antes de cada unión.
+
+LÁMINAS
+
+Actividad: Instalación de Geomembrana
+
+Revisión: 0
+
+1. Dotación de Personal (HH por turno)
+
+Para realizar estos trabajos, se considera el siguiente equipo por turno:
+
+2 soldadores, con apoyo para control de calidad y corte, dedicados al retiro de la geomembrana en la primera etapa.
+
+12 ayudantes, encargados del retiro de la geomembrana.
+
+2. Procedimiento de Ejecución
+
+# 2.1 Retiro de Geosintéticos
+
+Actividades:
+
+Desanclaje
+
+Corte
+
+Dimensionamiento
+
+Enrollado y retiro del material
+
+Incluye retirar la primera capa de HDPE.
+
+Duración estimada: 5 días
+
+# 2.2 Retiro de Geonet
+
+Actividades similares:
+
+Desanclaje
+
+Corte
+
+Dimensionamiento
+
+Retiro del material
+
+Duración: 5 días
+
+# 2.3 Retiro de Geomembrana (Primera Etapa)
+
+Mismos pasos:
+
+Desanclaje
+
+Corte
+
+Dimensionamiento
+
+Retiro del material
+
+Duración: 5 días
+
+# 2.4 Retiro de Geotextil
+
+Actividades:
+
+Desanclaje
+
+Corte
+
+Dimensionamiento
+
+Retiro del material
+
+Duración: 5 días
+
+# 2.5 Instalación de Geosintéticos (20.000 m² aprox.)
+
+Pasos:
+
+Preparación del terreno
+
+Extensión de paños (300 gr/m²)
+
+Duración: 7 días
+
+Promedio de avance: 2.857 m²/día
+
+# 2.6 Instalación de Geomembrana LLDPE
+
+Duración: 10 días
+
+Avance promedio: 2.000 m²/día
+
+# 2.7 Instalación de Geonet HDPE (5 mm)
+
+Duración: 7 días
+
+# 2.8 Instalación de Geomembrana HDPE (2 mm)
+
+Duración: 10 días
+
+3. Equipos, Herramientas y Materiales
+
+Equipos principales:
+
+4 extrusoras
+
+4 equipos de soldadura por cuña
+
+2 tensiómetros
+
+2 cuponeras
+
+4 manómetros con aguja + compresor portátil
+
+1 spark tester
+
+8 sopladores de aire caliente
+
+Equipos eléctricos:
+
+2 generadores (41 KVA y 45 KVA con tablero eléctrico)
+
+Herramientas y apoyo:
+
+Esmeriles angulares, barras desplegadoras, carretillas, escaleras de gato (20 m), carros retráctiles, herramientas menores (alicates, llaves, etc.)
+
+Materiales e insumos:
+
+Cuerdas perlón, sacos (5.000 unidades), amarras plásticas, trapos industriales, discos de lija (granos 36, 60, 80, 100), pintura spray, cuchillos y repuestos, alcohol isopropílico, 300 kg de soldadura HDPE
+
+4. Equipos y Elementos de Seguridad (EPP)
+
+Uso obligatorio de:
+
+Casco con barbiquejo
+
+Lentes de seguridad (transparente o ámbar)
+
+Protector auditivo (según exposición)
+
+Guantes de cabritilla y anticorte
+
+Protector solar
+
+Botines de seguridad (punta y planta de acero)
+
+Buzo con huincha reflectante
+
+Chaleco geólogo verde con identificación “RIGGER” (solo personal autorizado)
+
+Arnés de seguridad (cuando corresponda)
+
+5. Alcances y Consideraciones
+
+Los tiempos son referenciales y pueden mejorarse incorporando más mano de obra o turnos nocturnos. La planificación es flexible, adaptable a las condiciones de terreno y operación.
+
+6. Resumen General de Plazos
+
+| Actividad                        | Duración         |
+
+|----------------------------------|:---------------:|
+
+| Retiro de capas (4 procesos)     | 20 días         |
+
+| Instalación de geosintéticos     | 7 días          |
+
+| Instalación geomembrana LLDPE    | 10 días         |
+
+| Instalación geonet               | 7 días          |
+
+| Instalación geomembrana HDPE     | 10 días         |
+
+| Total estimado               | 54 días     |
+
+| Total de soldadores          | 6           |
+
+==== Programa Actividades (PDF) ====
+
+#
+Activity ID
+Activity Name
+Remaining
+Duration
+Start
+Finish
+Units % Complete
+Budgeted Labor
+Units
+1
+Antucoya Contrato
+Antucoya Contrato 724 Rev3_Rev0
+390
+11-Mar-26
+04-Apr-27
+0%
+205780
+2
+HITOS
+HITOS
+390
+11-Mar-26
+04-Apr-27
+0%
+0
+3
+PUMA
+PUMA
+390
+11-Mar-26
+04-Apr-27
+0%
+0
+4
+A1000
+Adjudicación
+0
+11-Mar-26
+0%
+0
+5
+A1010
+KOM
+0
+18-Mar-26
+0%
+0
+6
+A2005
+Inicio Movilización
+0
+19-Mar-26
+0%
+0
+7
+A1020
+Inicio Construcción
+0
+14-Apr-26
+0%
+0
+8
+A2025
+Termino Movilización
+0
+14-Apr-26
+0%
+0
+9
+A1030
+Termino Reparación Piscinas PLS/ILS
+0
+03-Feb-27
+0%
+0
+10
+A1040
+Termino Entubado Canaletas Lixiviación
+0
+09-Mar-27
+0%
+0
+11
+A2625
+Termino Contrato
+0
+04-Apr-27
+0%
+0
+12
+ANTUCOYA
+ANTUCOYA
+221
+14-Apr-26
+21-Nov-26
+0%
+0
+13
+Reparación Canaletas de
+Reparación Canaletas de Lixiviación
+221
+14-Apr-26
+21-Nov-26
+0%
+0
+14
+A1955
+Entrega Area F1 Pila Este PLS
+0
+14-Apr-26*
+0%
+0
+15
+A2635
+Entrega Area F2 Pila Este ILS
+0
+11-Jun-26*
+0%
+0
+16
+A2645
+Entrega Area F3 Pila Oeste PLS
+0
+30-Sep-26*
+0%
+0
+17
+A2655
+Entrega Area F4 Pila Oeste ILS
+0
+21-Nov-26*
+0%
+0
+18
+Reparación Piscinas PLS
+Reparación Piscinas PLS/ILS
+198
+14-Apr-26
+29-Oct-26
+0%
+0
+19
+A2665
+Entrega Area Piscinas ILS 1
+0
+14-Apr-26*
+0%
+0
+20
+A1965
+Entrega Area Piscinas PLS 2
+0
+23-Jul-26*
+0%
+0
+21
+A2675
+Entrega Area Piscinas ILS 2
+0
+29-Oct-26*
+0%
+0
+22
+INGENIERÍA
+INGENIERÍA
+0
+14-Apr-26
+14-Apr-26
+0%
+0
+23
+A1070
+Ingeniería Apta Para Construcción
+0
+14-Apr-26
+0%
+0
+24
+SUMINISTROS CLIE
+SUMINISTROS CLIENTE
+0
+14-Apr-26
+14-Apr-26
+0%
+0
+25
+Reparación Canaletas d
+Reparación Canaletas de Lixiviación
+0
+14-Apr-26
+14-Apr-26
+0%
+0
+26
+A1080
+Suministro de tuberías de HDPE corrugadas 1200mm diáme
+0
+14-Apr-26
+0%
+0
+27
+Reparación Piscinas PL
+Reparación Piscinas PLS/ILS
+0
+14-Apr-26
+14-Apr-26
+0%
+0
+28
+A1885
+Suministros Geomembrana HDPE
+0
+14-Apr-26
+0%
+0
+29
+A1975
+Suministros Geotextil de protección
+0
+14-Apr-26
+0%
+0
+30
+A1985
+Suministros Geonet
+0
+14-Apr-26
+0%
+0
+31
+A1995
+Suministros Tapón obturador.
+0
+14-Apr-26
+0%
+0
+32
+ACTIVIDADES PRE
+ACTIVIDADES PREVIAS
+27
+18-Mar-26
+14-Apr-26
+0%
+0
+33
+A1100
+Acreditación
+17
+18-Mar-26
+03-Apr-26
+0%
+0
+34
+A1110
+Instalación de Faenas
+10
+04-Apr-26
+14-Apr-26
+0%
+0
+35
+CONSTRUCCIÓN
+CONSTRUCCIÓN
+330
+14-Apr-26
+09-Mar-27
+0%
+145737
+36
+Reparación Canaletas d
+Reparación Canaletas de Lixiviación
+330
+14-Apr-26
+09-Mar-27
+0%
+45821
+37
+Área de trabajo 1: Canale
+Área de trabajo 1: Canaleta Pila Dinámica Este
+169
+14-Apr-26
+29-Sep-26
+0%
+23064
+38
+F-1 Pila Este, Línea PLS
+F-1 Pila Este, Línea PLS
+110
+14-Apr-26
+01-Aug-26
+0%
+11535
+39
+Retiro de Canaletas
+Retiro de Canaletas
+43
+14-Apr-26
+26-May-26
+0%
+489
+40
+Mecanica
+Mecanica
+43
+14-Apr-26
+26-May-26
+0%
+489
+41
+A1130_2.2.1
+Retiro de Canaleta HDPE corrugado diámetro 1,5 m
+43
+14-Apr-26
+26-May-26
+0%
+489
+42
+Limpieza de Canaletas
+Limpieza de Canaletas
+48
+27-May-26
+13-Jul-26
+0%
+3391
+43
+Civil
+Civil
+48
+27-May-26
+13-Jul-26
+0%
+3391
+44
+A1140_2.3.1
+Limpieza de canaletas Pila Este, Línea PLS
+48
+27-May-26
+13-Jul-26
+0%
+3391
+45
+Reparacion Canaleta
+Reparacion Canaleta
+19
+14-Jul-26
+01-Aug-26
+0%
+7655
+46
+Civil
+Civil
+19
+14-Jul-26
+01-Aug-26
+0%
+3295
+47
+A2135
+Solicitud ingreso
+1
+14-Jul-26
+14-Jul-26
+0%
+0
+48
+A2145
+Instalacion de Faena provisoria
+4
+15-Jul-26
+18-Jul-26
+0%
+0
+49
+A2155
+Preparacion de area
+2
+19-Jul-26
+20-Jul-26
+0%
+0
+50
+A2165_2.1.1.a
+Preparacion de sello
+2
+21-Jul-26
+22-Jul-26
+0%
+1680
+51
+A2225_2.1.2.a
+Instalacion de maxisacos
+1
+30-Jul-26
+30-Jul-26
+0%
+248
+52
+A2235_2.1.1.b
+Fabricacion de camellones
+1
+31-Jul-26
+31-Jul-26
+0%
+1120
+53
+A2245_2.1.2.b
+Retiro de maxisacos
+1
+01-Aug-26
+01-Aug-26
+0%
+248
+54
+Mecanica
+Mecanica
+7
+23-Jul-26
+29-Jul-26
+0%
+4360
+55
+A2175
+Posicionamiento cañerias
+2
+23-Jul-26
+24-Jul-26
+0%
+436
+56
+A2185
+Acople de cañeria
+1
+25-Jul-26
+25-Jul-26
+0%
+436
+57
+A2195
+Instalacion de media caña
+1
+26-Jul-26
+26-Jul-26
+0%
+1308
+58
+A2205
+Instalacion de 3 tramos cañeria
+2
+27-Jul-26
+28-Jul-26
+0%
+1744
+59
+A2215
+Alineacion de cañeria
+1
+29-Jul-26
+29-Jul-26
+0%
+436
+60
+F-2 Pila Este, Línea ILS
+F-2 Pila Este, Línea ILS
+111
+11-Jun-26
+29-Sep-26
+0%
+11529
+61
+Retiro de Canaletas
+Retiro de Canaletas
+43
+11-Jun-26
+23-Jul-26
+0%
+489
+62
+Mecanica
+Mecanica
+43
+11-Jun-26
+23-Jul-26
+0%
+489
+63
+A1730_2.2.2
+Retiro de Canaleta HDPE corrugado diámetro 1,5 m
+43
+11-Jun-26
+23-Jul-26
+0%
+489
+64
+Limpieza de Canaletas
+Limpieza de Canaletas
+48
+24-Jul-26
+09-Sep-26
+0%
+3385
+65
+Civil
+Civil
+48
+24-Jul-26
+09-Sep-26
+0%
+3385
+66
+A1740_2.3.2
+Limpieza de canaletas Pila Este, Línea ILS
+48
+24-Jul-26
+09-Sep-26
+0%
+3385
+67
+Reparacion Canaleta
+Reparacion Canaleta
+20
+10-Sep-26
+29-Sep-26
+0%
+7655
+68
+Civil
+Civil
+20
+10-Sep-26
+29-Sep-26
+0%
+3295
+69
+A2255
+Solicitud ingreso
+1
+10-Sep-26
+10-Sep-26
+0%
+0
+70
+A2265
+Instalacion de Faena provisoria
+4
+11-Sep-26
+14-Sep-26
+0%
+0
+71
+A2275
+Preparacion de area
+2
+15-Sep-26
+16-Sep-26
+0%
+0
+72
+A2285_2.1.1.a
+Preparacion de sello
+2
+17-Sep-26
+18-Sep-26
+0%
+1680
+Mar
+Apr
+May
+Jun
+Jul
+Aug
+Sep
+Oct
+Nov
+Dec
+Jan
+Feb
+Mar
+Apr
+May
+2026
+2027
+04-Apr-27, Antucoya Contrato 724 Rev3_
+04-Apr-27, HITOS
+04-Apr-27, PUMA
+Adjudicación
+KOM
+Inicio Movilización
+Inicio Construcción
+Termino Movilización
+Termino Reparación Piscinas PLS/ILS
+Termino Entubado Canaletas Lixiviación
+Termino Contrato
+21-Nov-26, ANTUCOYA
+21-Nov-26, Reparación Canaletas de Lixiviación
+Entrega Area F1 Pila Este PLS
+Entrega Area F2 Pila Este ILS
+Entrega Area F3 Pila Oeste PLS
+Entrega Area F4 Pila Oeste ILS
+29-Oct-26, Reparación Piscinas PLS/ILS
+Entrega Area Piscinas ILS 1
+Entrega Area Piscinas PLS 2
+Entrega Area Piscinas ILS 2
+14-Apr-26, INGENIERÍA
+Ingeniería Apta Para Construcción
+14-Apr-26, SUMINISTROS CLIENTE
+14-Apr-26, Reparación Canaletas de Lixiviación
+Suministro de tuberías de HDPE corrugadas 1200mm diámetro y anillos de unión.
+14-Apr-26, Reparación Piscinas PLS/ILS
+Suministros Geomembrana HDPE
+Suministros Geotextil de protección
+Suministros Geonet
+Suministros Tapón obturador.
+14-Apr-26, ACTIVIDADES PREVIAS
+Acreditación
+Instalación de Faenas
+09-Mar-27, CONSTRUCCIÓN
+09-Mar-27, Reparación Canaletas de Lixiviación
+29-Sep-26, Área de trabajo 1: Canaleta Pila Dinámica Este
+01-Aug-26, F-1 Pila Este, Línea PLS
+26-May-26, Retiro de Canaletas
+26-May-26, Mecanica
+Retiro de Canaleta HDPE corrugado diámetro 1,5 m
+13-Jul-26, Limpieza de Canaletas
+13-Jul-26, Civil
+Limpieza de canaletas Pila Este, Línea PLS
+01-Aug-26, Reparacion Canaleta
+01-Aug-26, Civil
+Solicitud ingreso
+Instalacion de Faena provisoria
+Preparacion de area
+Preparacion de sello
+Instalacion de maxisacos
+Fabricacion de camellones
+Retiro de maxisacos
+29-Jul-26, Mecanica
+Posicionamiento cañerias
+Acople de cañeria
+Instalacion de media caña
+Instalacion de 3 tramos cañeria
+Alineacion de cañeria
+29-Sep-26, F-2 Pila Este, Línea ILS
+23-Jul-26, Retiro de Canaletas
+23-Jul-26, Mecanica
+Retiro de Canaleta HDPE corrugado diámetro 1,5 m
+09-Sep-26, Limpieza de Canaletas
+09-Sep-26, Civil
+Limpieza de canaletas Pila Este, Línea ILS
+29-Sep-26, Reparacion Canaleta
+29-Sep-26, Civil
+Solicitud ingreso
+Instalacion de Faena provisoria
+Preparacion de area
+Preparacion de sello
+ANTUCOYA
+Contrato 4644009834/4540008749
+“Contrato de Construcción GPRO 2025/2026”
+Summary
+Milestone
+Actual Work
+Remaining Work
+Critical Remaining Work
+Remaining Level of Effort
+Actual Level of Effort
+Project Baseline Bar
+ 
+ 
+Página 1 de 4
+Data Date: 11-Mar-26
+Name Planner: Felipe Espinoza
+Date
+Revision
+Checked
+Approved
+30-Mar-26
+Contrato GPRO 2025/2026
+FEN
+#
+Activity ID
+Activity Name
+Remaining
+Duration
+Start
+Finish
+Units % Complete
+Budgeted Labor
+Units
+73
+A2345_2.1.2.a
+Instalacion de maxisacos
+1
+27-Sep-26
+27-Sep-26
+0%
+248
+74
+A2355_2.1.1.b
+Fabricacion de camellones
+1
+28-Sep-26
+28-Sep-26
+0%
+1120
+75
+A2365_2.1.2.b
+Retiro de maxisacos
+1
+29-Sep-26
+29-Sep-26
+0%
+248
+76
+Mecanica
+Mecanica
+7
+20-Sep-26
+26-Sep-26
+0%
+4360
+77
+A2295
+Posicionamiento cañerias 10%
+2
+20-Sep-26
+21-Sep-26
+0%
+436
+78
+A2305
+Acople de cañeria 10%
+1
+22-Sep-26
+22-Sep-26
+0%
+436
+79
+A2315
+Instalacion de media caña 30%
+1
+23-Sep-26
+23-Sep-26
+0%
+1308
+80
+A2325
+Instalacion de 3 tramos cañeria 40%
+2
+24-Sep-26
+25-Sep-26
+0%
+1744
+81
+A2335
+Alineacion de cañeria 10%
+1
+26-Sep-26
+26-Sep-26
+0%
+436
+82
+Área de trabajo 2: Canale
+Área de trabajo 2: Canaleta Pila Dinámica Oeste
+161
+30-Sep-26
+09-Mar-27
+0%
+22756
+83
+F-3 Pila Oeste, Línea PLS
+F-3 Pila Oeste, Línea PLS
+108
+30-Sep-26
+15-Jan-27
+0%
+11384
+84
+Retiro de Canaletas
+Retiro de Canaletas
+41
+30-Sep-26
+09-Nov-26
+0%
+391
+85
+Mecanica
+Mecanica
+41
+30-Sep-26
+09-Nov-26
+0%
+391
+86
+A1770_2.2.3
+Retiro de Canaleta HDPE corrugado diámetro 0,9 m
+41
+30-Sep-26
+09-Nov-26
+0%
+391
+87
+Limpieza de Canaletas
+Limpieza de Canaletas
+48
+10-Nov-26
+27-Dec-26
+0%
+3338
+88
+Civil
+Civil
+48
+10-Nov-26
+27-Dec-26
+0%
+3338
+89
+A1780_2.3.3
+Limpieza de canaletas Pila Oeste, Línea PLS
+48
+10-Nov-26
+27-Dec-26
+0%
+3338
+90
+Reparacion Canaleta
+Reparacion Canaleta
+19
+28-Dec-26
+15-Jan-27
+0%
+7655
+91
+Civil
+Civil
+19
+28-Dec-26
+15-Jan-27
+0%
+3295
+92
+A2375
+Solicitud ingreso
+1
+28-Dec-26
+28-Dec-26
+0%
+0
+93
+A2385
+Instalacion de Faena provisoria
+4
+29-Dec-26
+01-Jan-27
+0%
+0
+94
+A2395
+Preparacion de area
+2
+02-Jan-27
+03-Jan-27
+0%
+0
+95
+A2405_2.1.1.a
+Preparacion de sello
+2
+04-Jan-27
+05-Jan-27
+0%
+1680
+96
+A2465_2.1.2.a
+Instalacion de maxisacos
+1
+13-Jan-27
+13-Jan-27
+0%
+248
+97
+A2475_2.1.1.b
+Fabricacion de camellones
+1
+14-Jan-27
+14-Jan-27
+0%
+1120
+98
+A2485_2.1.2.b
+Retiro de maxisacos
+1
+15-Jan-27
+15-Jan-27
+0%
+248
+99
+Mecanica
+Mecanica
+7
+06-Jan-27
+12-Jan-27
+0%
+4360
+100
+A2415
+Posicionamiento cañerias
+2
+06-Jan-27
+07-Jan-27
+0%
+436
+101
+A2425
+Acople de cañeria
+1
+08-Jan-27
+08-Jan-27
+0%
+436
+102
+A2435
+Instalacion de media caña
+1
+09-Jan-27
+09-Jan-27
+0%
+1308
+103
+A2445
+Instalacion de 3 tramos cañeria
+2
+10-Jan-27
+11-Jan-27
+0%
+1744
+104
+A2455
+Alineacion de cañeria
+1
+12-Jan-27
+12-Jan-27
+0%
+436
+105
+F-4 Pila Oeste, Línea ILS
+F-4 Pila Oeste, Línea ILS
+109
+21-Nov-26
+09-Mar-27
+0%
+11372
+106
+Retiro de Canaletas
+Retiro de Canaletas
+41
+21-Nov-26
+31-Dec-26
+0%
+391
+107
+Mecanica
+Mecanica
+41
+21-Nov-26
+31-Dec-26
+0%
+391
+108
+A1810_2.2.4
+Retiro de Canaleta HDPE corrugado diámetro 0,9 m
+41
+21-Nov-26
+31-Dec-26
+0%
+391
+109
+Limpieza de Canaletas
+Limpieza de Canaletas
+48
+01-Jan-27
+17-Feb-27
+0%
+3326
+110
+Civil
+Civil
+48
+01-Jan-27
+17-Feb-27
+0%
+3326
+111
+A1820_2.3.4
+Limpieza de canaletas Pila Oeste, Línea ILS
+48
+01-Jan-27
+17-Feb-27
+0%
+3326
+112
+Reparacion Canaleta
+Reparacion Canaleta
+19
+19-Feb-27
+09-Mar-27
+0%
+7655
+113
+Civil
+Civil
+19
+19-Feb-27
+09-Mar-27
+0%
+3295
+114
+A2495
+Solicitud ingreso
+1
+19-Feb-27
+19-Feb-27
+0%
+0
+115
+A2505
+Instalacion de Faena provisoria
+4
+20-Feb-27
+23-Feb-27
+0%
+0
+116
+A2515
+Preparacion de area
+2
+24-Feb-27
+25-Feb-27
+0%
+0
+117
+A2525_2.1.1.a
+Preparacion de sello
+2
+26-Feb-27
+27-Feb-27
+0%
+1680
+118
+A25855_2.1.2.a
+Instalacion de maxisacos
+1
+07-Mar-27
+07-Mar-27
+0%
+248
+119
+A2595_2.1.1.b
+Fabricacion de camellones
+1
+08-Mar-27
+08-Mar-27
+0%
+1120
+120
+A2605_2.1.2.b
+Retiro de maxisacos
+1
+09-Mar-27
+09-Mar-27
+0%
+248
+121
+Mecanica
+Mecanica
+7
+28-Feb-27
+06-Mar-27
+0%
+4360
+122
+A2535
+Posicionamiento cañerias
+2
+28-Feb-27
+01-Mar-27
+0%
+436
+123
+A2545
+Acople de cañeria
+1
+02-Mar-27
+02-Mar-27
+0%
+436
+124
+A2555
+Instalacion de media caña
+1
+03-Mar-27
+03-Mar-27
+0%
+1308
+125
+A2565
+Instalacion de 3 tramos cañeria
+2
+04-Mar-27
+05-Mar-27
+0%
+1744
+126
+A2575
+Alineacion de cañeria
+1
+06-Mar-27
+06-Mar-27
+0%
+436
+127
+Reparación Piscinas PL
+Reparación Piscinas PLS/ILS
+296
+14-Apr-26
+03-Feb-27
+0%
+99916
+128
+Piscina ILS 1
+Piscina ILS 1
+96
+14-Apr-26
+18-Jul-26
+0%
+34600
+129
+Obras previas
+Obras previas
+5
+14-Apr-26
+18-Apr-26
+0%
+290
+130
+APLS.2_3.1.1.11
+Montaje Cuerda de Vida
+5
+14-Apr-26
+18-Apr-26
+0%
+290
+131
+Movimiento de tierra
+Movimiento de tierra
+91
+19-Apr-26
+18-Jul-26
+0%
+12169
+132
+APLS.2_3.1.2.27
+Retiro "Borra" Existente
+5
+19-Apr-26
+23-Apr-26
+0%
+3200
+133
+APLS.2_3.1.2.67
+Mejoramiento de Suelo e=15 cm
+5
+11-May-26
+15-May-26
+0%
+1188
+134
+APLS.2_3.1.2.17
+Excavación Zanja de Anclaje
+5
+16-May-26
+20-May-26
+0%
+192
+135
+APLS.2_3.1.2.77
+Mejoramiento Rampa existente
+7
+16-May-26
+22-May-26
+0%
+265
+136
+APLS.2_3.1.2.57
+Relleno Rampa Temporal Desarenador
+12
+23-May-26
+03-Jun-26
+0%
+3051
+137
+APLS.2_3.1.2.37
+Relleno Rampa Temporal Piscina
+11
+04-Jun-26
+14-Jun-26
+0%
+3552
+138
+APLS.2_3.1.2.47
+Relleno Zanja de Anclaje
+5
+14-Jul-26
+18-Jul-26
+0%
+721
+139
+Civil
+Civil
+89
+20-Apr-26
+17-Jul-26
+0%
+22141
+140
+Retiro de Membranas
+Retiro de Membranas
+21
+20-Apr-26
+10-May-26
+0%
+7402
+141
+Retiro Membrana HDP
+Retiro Membrana HDPE 2mm
+6
+20-Apr-26
+25-Apr-26
+0%
+3430
+142
+APLS.2.2285
+Desanclaje Existente
+1
+21-Apr-26
+21-Apr-26
+0%
+0
+143
+APLS.2.2375
+Corte
+1
+22-Apr-26
+22-Apr-26
+0%
+0
+144
+APLS.2.2405
+Retiro primera capa HDPE
+3
+20-Apr-26
+22-Apr-26
+0%
+0
+145
+APLS.2.2385
+Dimensionamiento
+1
+23-Apr-26
+23-Apr-26
+0%
+0
+Mar
+Apr
+May
+Jun
+Jul
+Aug
+Sep
+Oct
+Nov
+Dec
+Jan
+Feb
+Mar
+Apr
+May
+2026
+2027
+Instalacion de maxisacos
+Fabricacion de camellones
+Retiro de maxisacos
+26-Sep-26, Mecanica
+Posicionamiento cañerias 10%
+Acople de cañeria 10%
+Instalacion de media caña 30%
+Instalacion de 3 tramos cañeria 40%
+Alineacion de cañeria 10%
+09-Mar-27, Área de trabajo 2: Canaleta Pila Dinámica Oeste
+15-Jan-27, F-3 Pila Oeste, Línea PLS
+09-Nov-26, Retiro de Canaletas
+09-Nov-26, Mecanica
+Retiro de Canaleta HDPE corrugado diámetro 0,9 m
+27-Dec-26, Limpieza de Canaletas
+27-Dec-26, Civil
+Limpieza de canaletas Pila Oeste, Línea PLS
+15-Jan-27, Reparacion Canaleta
+15-Jan-27, Civil
+Solicitud ingreso
+Instalacion de Faena provisoria
+Preparacion de area
+Preparacion de sello
+Instalacion de maxisacos
+Fabricacion de camellones
+Retiro de maxisacos
+12-Jan-27, Mecanica
+Posicionamiento cañerias
+Acople de cañeria
+Instalacion de media caña
+Instalacion de 3 tramos cañeria
+Alineacion de cañeria
+09-Mar-27, F-4 Pila Oeste, Línea ILS
+31-Dec-26, Retiro de Canaletas
+31-Dec-26, Mecanica
+Retiro de Canaleta HDPE corrugado diámetro 0,9 m
+17-Feb-27, Limpieza de Canaletas
+17-Feb-27, Civil
+Limpieza de canaletas Pila Oeste, Línea ILS
+09-Mar-27, Reparacion Canaleta
+09-Mar-27, Civil
+Solicitud ingreso
+Instalacion de Faena provisoria
+Preparacion de area
+Preparacion de sello
+Instalacion de maxisacos
+Fabricacion de camellones
+Retiro de maxisacos
+06-Mar-27, Mecanica
+Posicionamiento cañerias
+Acople de cañeria
+Instalacion de media caña
+Instalacion de 3 tramos cañeria
+Alineacion de cañeria
+03-Feb-27, Reparación Piscinas PLS/ILS
+18-Jul-26, Piscina ILS 1
+18-Apr-26, Obras previas
+Montaje Cuerda de Vida
+18-Jul-26, Movimiento de tierra
+Retiro "Borra" Existente
+Mejoramiento de Suelo e=15 cm
+Excavación Zanja de Anclaje
+Mejoramiento Rampa existente
+Relleno Rampa Temporal Desarenador
+Relleno Rampa Temporal Piscina
+Relleno Zanja de Anclaje
+17-Jul-26, Civil
+10-May-26, Retiro de Membranas
+25-Apr-26, Retiro Membrana HDPE 2mm
+Desanclaje Existente
+Corte
+Retiro primera capa HDPE
+Dimensionamiento
+ANTUCOYA
+Contrato 4644009834/4540008749
+“Contrato de Construcción GPRO 2025/2026”
+Summary
+Milestone
+Actual Work
+Remaining Work
+Critical Remaining Work
+Remaining Level of Effort
+Actual Level of Effort
+Project Baseline Bar
+ 
+ 
+Página 2 de 4
+Data Date: 11-Mar-26
+Name Planner: Felipe Espinoza
+Date
+Revision
+Checked
+Approved
+30-Mar-26
+Contrato GPRO 2025/2026
+FEN
+#
+Activity ID
+Activity Name
+Remaining
+Duration
+Start
+Finish
+Units % Complete
+Budgeted Labor
+Units
+146
+APLS.2.2395
+Retiro del Material ( proceso enrollado)
+2
+24-Apr-26
+25-Apr-26
+0%
+3430
+147
+Retiro Geotextil 120 gr
+Retiro Geotextil 120 gr/m2
+5
+26-Apr-26
+30-Apr-26
+0%
+957
+148
+APLS.2.2345
+Desanclaje Existente
+1
+26-Apr-26
+26-Apr-26
+0%
+0
+149
+APLS.2.2445
+Corte
+1
+27-Apr-26
+27-Apr-26
+0%
+0
+150
+APLS.2.2455
+Dimensionamiento
+1
+28-Apr-26
+28-Apr-26
+0%
+0
+151
+APLS.2.2465
+Retiro del Material ( proceso enrollado)
+2
+29-Apr-26
+30-Apr-26
+0%
+957
+152
+Retiro Geonet NLDG5
+Retiro Geonet NLDG50 D200
+5
+01-May-26
+05-May-26
+0%
+2058
+153
+APLS.2.2355
+Desanclaje Existente
+1
+01-May-26
+01-May-26
+0%
+0
+154
+APLS.2.2415
+Corte
+1
+02-May-26
+02-May-26
+0%
+0
+155
+APLS.2.2425
+Dimensionamiento
+1
+03-May-26
+03-May-26
+0%
+0
+156
+APLS.2.2435
+Retiro del Material ( proceso enrollado)
+2
+04-May-26
+05-May-26
+0%
+2058
+157
+Retiro Geotextil 270 gr
+Retiro Geotextil 270 gr/m2
+5
+06-May-26
+10-May-26
+0%
+957
+158
+APLS.2.2365
+Desanclaje Existente
+1
+06-May-26
+06-May-26
+0%
+0
+159
+APLS.2.2475
+Corte
+1
+07-May-26
+07-May-26
+0%
+0
+160
+APLS.2.2485
+Dimensionamiento
+1
+08-May-26
+08-May-26
+0%
+0
+161
+APLS.2.2495
+Retiro del Material ( proceso enrollado)
+2
+09-May-26
+10-May-26
+0%
+957
+162
+Reposición de Membra
+Reposición de Membranas
+29
+15-Jun-26
+13-Jul-26
+0%
+14306
+163
+Obras Previas
+Obras Previas
+2
+15-Jun-26
+16-Jun-26
+0%
+0
+164
+APLS.2.2295
+Preparacion de Terreno
+2
+15-Jun-26
+16-Jun-26
+0%
+0
+165
+HDPE 2mm
+HDPE 2mm
+10
+17-Jun-26
+26-Jun-26
+0%
+10290
+166
+APLS.2.2505
+Montaje Rollo Membrana HDPE 2mm
+10
+17-Jun-26
+26-Jun-26
+0%
+10290
+167
+Geonet NLDG50 D200
+Geonet NLDG50 D200
+7
+27-Jun-26
+03-Jul-26
+0%
+2421
+168
+APLS.2.2325
+Montaje Geonet NLDG50 D200
+7
+27-Jun-26
+03-Jul-26
+0%
+2421
+169
+Geotextil 270 gr/m2
+Geotextil 270 gr/m2
+10
+04-Jul-26
+13-Jul-26
+0%
+1595
+170
+APLS.2.2335
+Montaje Geotextil 270 gr/m2
+10
+04-Jul-26
+13-Jul-26
+0%
+1595
+171
+Pozo de Infiltración
+Pozo de Infiltración
+8
+06-Jul-26
+13-Jul-26
+0%
+94
+172
+APLS.2.2305
+Canto Rodado
+4
+06-Jul-26
+09-Jul-26
+0%
+94
+173
+APLS.2.2515
+Montaje Tubería HDPE 300mm
+4
+10-Jul-26
+13-Jul-26
+0%
+0
+174
+Vertedero
+Vertedero
+4
+14-Jul-26
+17-Jul-26
+0%
+339
+175
+APLS.2.2315
+Sistema de reducción de velocidad de flujo
+4
+14-Jul-26
+17-Jul-26
+0%
+339
+176
+Piscina PLS 2
+Piscina PLS 2
+93
+23-Jul-26
+23-Oct-26
+0%
+32977
+177
+Obras previas
+Obras previas
+5
+23-Jul-26
+27-Jul-26
+0%
+290
+178
+APLS.2_3.1.1.1
+Montaje Cuerda de Vida
+5
+23-Jul-26
+27-Jul-26
+0%
+290
+179
+Movimiento de tierra
+Movimiento de tierra
+88
+28-Jul-26
+23-Oct-26
+0%
+10634
+180
+APLS.2_3.1.2.7
+Retiro "Borra" Existente
+5
+28-Jul-26
+01-Aug-26
+0%
+3200
+181
+APLS.2_3.1.2.5
+Mejoramiento de Suelo e=15 cm
+5
+19-Aug-26
+23-Aug-26
+0%
+1188
+182
+APLS.2_3.1.2.1
+Excavación Zanja de Anclaje
+4
+24-Aug-26
+27-Aug-26
+0%
+193
+183
+APLS.2_3.1.2.6
+Mejoramiento Rampa existente
+7
+24-Aug-26
+30-Aug-26
+0%
+265
+184
+APLS.2_3.1.2.4
+Relleno Rampa Temporal Desarenador
+10
+31-Aug-26
+09-Sep-26
+0%
+2251
+185
+APLS.2_3.1.2.3
+Relleno Rampa Temporal Piscina
+10
+10-Sep-26
+19-Sep-26
+0%
+2813
+186
+APLS.2_3.1.2.2
+Relleno Zanja de Anclaje
+5
+19-Oct-26
+23-Oct-26
+0%
+724
+187
+Civil
+Civil
+86
+29-Jul-26
+22-Oct-26
+0%
+22053
+188
+Retiro de Membranas
+Retiro de Membranas
+21
+29-Jul-26
+18-Aug-26
+0%
+7375
+189
+Retiro Membrana HDP
+Retiro Membrana HDPE 2mm
+6
+29-Jul-26
+03-Aug-26
+0%
+3418
+190
+APLS.2.1270
+Desanclaje Existente
+1
+30-Jul-26
+30-Jul-26
+0%
+0
+191
+APLS.2.2135
+Corte
+1
+31-Jul-26
+31-Jul-26
+0%
+0
+192
+APLS.2.2165
+Retiro primera capa HDPE
+3
+29-Jul-26
+31-Jul-26
+0%
+0
+193
+APLS.2.2145
+Dimensionamiento
+1
+01-Aug-26
+01-Aug-26
+0%
+0
+194
+APLS.2.2155
+Retiro del Material ( proceso enrollado)
+2
+02-Aug-26
+03-Aug-26
+0%
+3418
+195
+Retiro Geotextil 120 gr
+Retiro Geotextil 120 gr/m2
+5
+04-Aug-26
+08-Aug-26
+0%
+953
+196
+APLS.2.2105
+Desanclaje Existente
+1
+04-Aug-26
+04-Aug-26
+0%
+0
+197
+APLS.2.2205
+Corte
+1
+05-Aug-26
+05-Aug-26
+0%
+0
+198
+APLS.2.2215
+Dimensionamiento
+1
+06-Aug-26
+06-Aug-26
+0%
+0
+199
+APLS.2.2225
+Retiro del Material ( proceso enrollado)
+2
+07-Aug-26
+08-Aug-26
+0%
+953
+200
+Retiro Geonet NLDG5
+Retiro Geonet NLDG50 D200
+5
+09-Aug-26
+13-Aug-26
+0%
+2051
+201
+APLS.2.2115
+Desanclaje Existente
+1
+09-Aug-26
+09-Aug-26
+0%
+0
+202
+APLS.2.2175
+Corte
+1
+10-Aug-26
+10-Aug-26
+0%
+0
+203
+APLS.2.2185
+Dimensionamiento
+1
+11-Aug-26
+11-Aug-26
+0%
+0
+204
+APLS.2.2195
+Retiro del Material ( proceso enrollado)
+2
+12-Aug-26
+13-Aug-26
+0%
+2051
+205
+Retiro Geotextil 270 gr
+Retiro Geotextil 270 gr/m2
+5
+14-Aug-26
+18-Aug-26
+0%
+953
+206
+APLS.2.2125
+Desanclaje Existente
+1
+14-Aug-26
+14-Aug-26
+0%
+0
+207
+APLS.2.2235
+Corte
+1
+15-Aug-26
+15-Aug-26
+0%
+0
+208
+APLS.2.2245
+Dimensionamiento
+1
+16-Aug-26
+16-Aug-26
+0%
+0
+209
+APLS.2.2255
+Retiro del Material ( proceso enrollado)
+2
+17-Aug-26
+18-Aug-26
+0%
+953
+210
+Reposición de Membra
+Reposición de Membranas
+29
+20-Sep-26
+18-Oct-26
+0%
+14257
+211
+Obras Previas
+Obras Previas
+2
+20-Sep-26
+21-Sep-26
+0%
+0
+212
+APLS.2.1280
+Preparacion de Terreno
+2
+20-Sep-26
+21-Sep-26
+0%
+0
+213
+HDPE 2mm
+HDPE 2mm
+10
+22-Sep-26
+01-Oct-26
+0%
+10255
+214
+APLS.2.2265
+Montaje Rollo Membrana HDPE 2mm
+10
+22-Sep-26
+01-Oct-26
+0%
+10255
+215
+Geonet NLDG50 D200
+Geonet NLDG50 D200
+7
+02-Oct-26
+08-Oct-26
+0%
+2413
+216
+APLS.2.2085
+Montaje Geonet NLDG50 D200
+7
+02-Oct-26
+08-Oct-26
+0%
+2413
+217
+Geotextil 270 gr/m2
+Geotextil 270 gr/m2
+10
+09-Oct-26
+18-Oct-26
+0%
+1589
+218
+APLS.2.2095
+Montaje Geotextil 270 gr/m2
+10
+09-Oct-26
+18-Oct-26
+0%
+1589
+Mar
+Apr
+May
+Jun
+Jul
+Aug
+Sep
+Oct
+Nov
+Dec
+Jan
+Feb
+Mar
+Apr
+May
+2026
+2027
+Retiro del Material ( proceso enrollado)
+30-Apr-26, Retiro Geotextil 120 gr/m2
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+05-May-26, Retiro Geonet NLDG50 D200
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+10-May-26, Retiro Geotextil 270 gr/m2
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+13-Jul-26, Reposición de Membranas
+16-Jun-26, Obras Previas
+Preparacion de Terreno
+26-Jun-26, HDPE 2mm
+Montaje Rollo Membrana HDPE 2mm
+03-Jul-26, Geonet NLDG50 D200
+Montaje Geonet NLDG50 D200
+13-Jul-26, Geotextil 270 gr/m2
+Montaje Geotextil 270 gr/m2
+13-Jul-26, Pozo de Infiltración
+Canto Rodado
+Montaje Tubería HDPE 300mm
+17-Jul-26, Vertedero
+Sistema de reducción de velocidad de flujo
+23-Oct-26, Piscina PLS 2
+27-Jul-26, Obras previas
+Montaje Cuerda de Vida
+23-Oct-26, Movimiento de tierra
+Retiro "Borra" Existente
+Mejoramiento de Suelo e=15 cm
+Excavación Zanja de Anclaje
+Mejoramiento Rampa existente
+Relleno Rampa Temporal Desarenador
+Relleno Rampa Temporal Piscina
+Relleno Zanja de Anclaje
+22-Oct-26, Civil
+18-Aug-26, Retiro de Membranas
+03-Aug-26, Retiro Membrana HDPE 2mm
+Desanclaje Existente
+Corte
+Retiro primera capa HDPE
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+08-Aug-26, Retiro Geotextil 120 gr/m2
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+13-Aug-26, Retiro Geonet NLDG50 D200
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+18-Aug-26, Retiro Geotextil 270 gr/m2
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+18-Oct-26, Reposición de Membranas
+21-Sep-26, Obras Previas
+Preparacion de Terreno
+01-Oct-26, HDPE 2mm
+Montaje Rollo Membrana HDPE 2mm
+08-Oct-26, Geonet NLDG50 D200
+Montaje Geonet NLDG50 D200
+18-Oct-26, Geotextil 270 gr/m2
+Montaje Geotextil 270 gr/m2
+ANTUCOYA
+Contrato 4644009834/4540008749
+“Contrato de Construcción GPRO 2025/2026”
+Summary
+Milestone
+Actual Work
+Remaining Work
+Critical Remaining Work
+Remaining Level of Effort
+Actual Level of Effort
+Project Baseline Bar
+ 
+ 
+Página 3 de 4
+Data Date: 11-Mar-26
+Name Planner: Felipe Espinoza
+Date
+Revision
+Checked
+Approved
+30-Mar-26
+Contrato GPRO 2025/2026
+FEN
+#
+Activity ID
+Activity Name
+Remaining
+Duration
+Start
+Finish
+Units % Complete
+Budgeted Labor
+Units
+219
+Pozo de Infiltración
+Pozo de Infiltración
+8
+11-Oct-26
+18-Oct-26
+0%
+74
+220
+APLS.2.1290
+Canto Rodado
+4
+11-Oct-26
+14-Oct-26
+0%
+74
+221
+APLS.2.2275
+Montaje Tubería HDPE 300mm
+4
+15-Oct-26
+18-Oct-26
+0%
+0
+222
+Vertedero
+Vertedero
+4
+19-Oct-26
+22-Oct-26
+0%
+347
+223
+APLS.2.1905
+Sistema de reducción de velocidad de flujo
+4
+19-Oct-26
+22-Oct-26
+0%
+347
+224
+Piscina ILS 2
+Piscina ILS 2
+98
+29-Oct-26
+03-Feb-27
+0%
+32340
+225
+Obras previas
+Obras previas
+5
+29-Oct-26
+02-Nov-26
+0%
+290
+226
+APLS.2_3.1.1.21
+Montaje Cuerda de Vida
+5
+29-Oct-26
+02-Nov-26
+0%
+290
+227
+Movimiento de tierra
+Movimiento de tierra
+93
+03-Nov-26
+03-Feb-27
+0%
+9384
+228
+APLS.2_3.1.2.97
+Retiro "Borra" Existente
+5
+03-Nov-26
+07-Nov-26
+0%
+3200
+229
+APLS.2_3.1.2.137
+Mejoramiento de Suelo e=15 cm
+5
+25-Nov-26
+29-Nov-26
+0%
+1188
+230
+APLS.2_3.1.2.87
+Excavación Zanja de Anclaje
+4
+30-Nov-26
+03-Dec-26
+0%
+193
+231
+APLS.2_3.1.2.147
+Corte rampa desarenador
+6
+30-Nov-26
+05-Dec-26
+0%
+219
+232
+APLS.2_3.1.2.127
+Relleno Rampa Temporal Desarenador
+10
+06-Dec-26
+15-Dec-26
+0%
+1048
+233
+APLS.2_3.1.2.107
+Relleno Rampa Temporal Piscina
+10
+16-Dec-26
+25-Dec-26
+0%
+2813
+234
+APLS.2_3.1.2.117
+Relleno Zanja de Anclaje
+5
+30-Jan-27
+03-Feb-27
+0%
+723
+235
+Civil
+Civil
+88
+04-Nov-26
+30-Jan-27
+0%
+22666
+236
+Retiro de Membranas
+Retiro de Membranas
+21
+04-Nov-26
+24-Nov-26
+0%
+7458
+237
+Retiro Membrana HDP
+Retiro Membrana HDPE 2mm
+6
+04-Nov-26
+09-Nov-26
+0%
+3456
+238
+APLS.2.2525
+Desanclaje Existente
+1
+05-Nov-26
+05-Nov-26
+0%
+0
+239
+APLS.2.2615
+Corte
+1
+06-Nov-26
+06-Nov-26
+0%
+0
+240
+APLS.2.2645
+Retiro primera capa HDPE
+3
+04-Nov-26
+06-Nov-26
+0%
+0
+241
+APLS.2.2625
+Dimensionamiento
+1
+07-Nov-26
+07-Nov-26
+0%
+0
+242
+APLS.2.2635
+Retiro del Material ( proceso enrollado)
+2
+08-Nov-26
+09-Nov-26
+0%
+3456
+243
+Retiro Geotextil 120 gr
+Retiro Geotextil 120 gr/m2
+5
+10-Nov-26
+14-Nov-26
+0%
+964
+244
+APLS.2.2585
+Desanclaje Existente
+1
+10-Nov-26
+10-Nov-26
+0%
+0
+245
+APLS.2.2685
+Corte
+1
+11-Nov-26
+11-Nov-26
+0%
+0
+246
+APLS.2.2695
+Dimensionamiento
+1
+12-Nov-26
+12-Nov-26
+0%
+0
+247
+APLS.2.2705
+Retiro del Material ( proceso enrollado)
+2
+13-Nov-26
+14-Nov-26
+0%
+964
+248
+Retiro Geonet NLDG5
+Retiro Geonet NLDG50 D200
+5
+15-Nov-26
+19-Nov-26
+0%
+2074
+249
+APLS.2.2595
+Desanclaje Existente
+1
+15-Nov-26
+15-Nov-26
+0%
+0
+250
+APLS.2.2655
+Corte
+1
+16-Nov-26
+16-Nov-26
+0%
+0
+251
+APLS.2.2665
+Dimensionamiento
+1
+17-Nov-26
+17-Nov-26
+0%
+0
+252
+APLS.2.2675
+Retiro del Material ( proceso enrollado)
+2
+18-Nov-26
+19-Nov-26
+0%
+2074
+253
+Retiro Geotextil 270 gr
+Retiro Geotextil 270 gr/m2
+5
+20-Nov-26
+24-Nov-26
+0%
+964
+254
+APLS.2.2605
+Desanclaje Existente
+1
+20-Nov-26
+20-Nov-26
+0%
+0
+255
+APLS.2.2715
+Corte
+1
+21-Nov-26
+21-Nov-26
+0%
+0
+256
+APLS.2.2725
+Dimensionamiento
+1
+22-Nov-26
+22-Nov-26
+0%
+0
+257
+APLS.2.2735
+Retiro del Material ( proceso enrollado)
+2
+23-Nov-26
+24-Nov-26
+0%
+964
+258
+Reposición de Membra
+Reposición de Membranas
+32
+26-Dec-26
+26-Jan-27
+0%
+14416
+259
+Obras Previas
+Obras Previas
+2
+26-Dec-26
+27-Dec-26
+0%
+0
+260
+APLS.2.2535
+Preparacion de Terreno
+2
+26-Dec-26
+27-Dec-26
+0%
+0
+261
+HDPE 2mm
+HDPE 2mm
+10
+28-Dec-26
+06-Jan-27
+0%
+10369
+262
+APLS.2.2745
+Montaje Rollo Membrana HDPE 2mm
+10
+28-Dec-26
+06-Jan-27
+0%
+10369
+263
+Geonet NLDG50 D200
+Geonet NLDG50 D200
+10
+07-Jan-27
+16-Jan-27
+0%
+2440
+264
+APLS.2.2565
+Montaje Geonet NLDG50 D200
+10
+07-Jan-27
+16-Jan-27
+0%
+2440
+265
+Geotextil 270 gr/m2
+Geotextil 270 gr/m2
+10
+17-Jan-27
+26-Jan-27
+0%
+1607
+266
+APLS.2.2575
+Montaje Geotextil 270 gr/m2
+10
+17-Jan-27
+26-Jan-27
+0%
+1607
+267
+Pozo de Infiltración
+Pozo de Infiltración
+11
+19-Jan-27
+29-Jan-27
+0%
+453
+268
+APLS.2.2545
+Canto Rodado
+4
+19-Jan-27
+22-Jan-27
+0%
+23
+269
+APLS.2.2755
+Montaje Tubería HDPE 300mm
+4
+23-Jan-27
+26-Jan-27
+0%
+0
+270
+3.6.1
+Tubería encamisado HDPE 1200mm
+6
+23-Jan-27
+28-Jan-27
+0%
+385
+271
+3.8.1
+Tapones obturadores succión
+1
+29-Jan-27
+29-Jan-27
+0%
+45
+272
+Vertedero
+Vertedero
+4
+27-Jan-27
+30-Jan-27
+0%
+339
+273
+APLS.2.2555
+Sistema de reducción de velocidad de flujo
+4
+27-Jan-27
+30-Jan-27
+0%
+339
+274
+HORAS HOMBRE N
+HORAS HOMBRE NO LABORABLES
+330
+14-Apr-26
+09-Mar-27
+0%
+59383
+275
+A2695
+Operadores + Riggers
+330
+14-Apr-26
+09-Mar-27
+0%
+59383
+276
+AUTO CONTROL C
+AUTO CONTROL CALIDAD
+330
+14-Apr-26
+09-Mar-27
+0%
+0
+277
+A2685
+Control de Calidad Soldadura
+330
+14-Apr-26
+09-Mar-27
+0%
+0
+278
+COMISIONAMIENTO
+COMISIONAMIENTO
+40
+04-Feb-27
+15-Mar-27
+0%
+0
+279
+A2615
+PEM
+40
+04-Feb-27
+15-Mar-27
+0%
+0
+280
+DESMOVILIZACIÓN
+DESMOVILIZACIÓN
+20
+16-Mar-27
+04-Apr-27
+0%
+660
+281
+A1710
+Desmovilización
+20
+16-Mar-27
+04-Apr-27
+0%
+660
+Mar
+Apr
+May
+Jun
+Jul
+Aug
+Sep
+Oct
+Nov
+Dec
+Jan
+Feb
+Mar
+Apr
+May
+2026
+2027
+18-Oct-26, Pozo de Infiltración
+Canto Rodado
+Montaje Tubería HDPE 300mm
+22-Oct-26, Vertedero
+Sistema de reducción de velocidad de flujo
+03-Feb-27, Piscina ILS 2
+02-Nov-26, Obras previas
+Montaje Cuerda de Vida
+03-Feb-27, Movimiento de tierra
+Retiro "Borra" Existente
+Mejoramiento de Suelo e=15 cm
+Excavación Zanja de Anclaje
+Corte rampa desarenador
+Relleno Rampa Temporal Desarenador
+Relleno Rampa Temporal Piscina
+Relleno Zanja de Anclaje
+30-Jan-27, Civil
+24-Nov-26, Retiro de Membranas
+09-Nov-26, Retiro Membrana HDPE 2mm
+Desanclaje Existente
+Corte
+Retiro primera capa HDPE
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+14-Nov-26, Retiro Geotextil 120 gr/m2
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+19-Nov-26, Retiro Geonet NLDG50 D200
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+24-Nov-26, Retiro Geotextil 270 gr/m2
+Desanclaje Existente
+Corte
+Dimensionamiento
+Retiro del Material ( proceso enrollado)
+26-Jan-27, Reposición de Membranas
+27-Dec-26, Obras Previas
+Preparacion de Terreno
+06-Jan-27, HDPE 2mm
+Montaje Rollo Membrana HDPE 2mm
+16-Jan-27, Geonet NLDG50 D200
+Montaje Geonet NLDG50 D200
+26-Jan-27, Geotextil 270 gr/m2
+Montaje Geotextil 270 gr/m2
+29-Jan-27, Pozo de Infiltración
+Canto Rodado
+Montaje Tubería HDPE 300mm
+Tubería encamisado HDPE 1200mm
+Tapones obturadores succión
+30-Jan-27, Vertedero
+Sistema de reducción de velocidad de flujo
+09-Mar-27, HORAS HOMBRE NO LABORABLES
+Operadores + Riggers
+09-Mar-27, AUTO CONTROL CALIDAD
+Control de Calidad Soldadura
+15-Mar-27, COMISIONAMIENTO
+PEM
+04-Apr-27, DESMOVILIZACIÓN
+Desmovilización
+ANTUCOYA
+Contrato 4644009834/4540008749
+“Contrato de Construcción GPRO 2025/2026”
+Summary
+Milestone
+Actual Work
+Remaining Work
+Critical Remaining Work
+Remaining Level of Effort
+Actual Level of Effort
+Project Baseline Bar
+ 
+ 
+Página 4 de 4
+Data Date: 11-Mar-26
+Name Planner: Felipe Espinoza
+Date
+Revision
+Checked
+Approved
+30-Mar-26
+Contrato GPRO 2025/2026
+FEN

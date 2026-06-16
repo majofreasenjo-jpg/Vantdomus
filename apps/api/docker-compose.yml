@@ -1,0 +1,87 @@
+version: "3.9"
+
+# SECURITY:
+# All secret env vars below use the ${VAR:?error message} form, which makes
+# docker-compose FAIL FAST if the variable is not provided. Provide them via a
+# local .env file (not committed) or via your orchestrator's secret manager.
+#
+# Required env (sample .env):
+#   APP_ENV=staging
+#   POSTGRES_PASSWORD=...
+#   JWT_SECRET=...
+#   VANTDOMUS_MFA_SECRET_KEY=...   # >= 32 chars
+#
+# NEVER use placeholder values like "CHANGE_ME_*" here — config.py refuses to
+# boot the API with default secrets in staging/production, but it's safer to
+# also keep the compose file from carrying them.
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: vantdomus
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: ${APP_ENV:?APP_ENV is required (local|staging|production)}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/vantdomus
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      VANTDOMUS_MFA_SECRET_KEY: ${VANTDOMUS_MFA_SECRET_KEY:?VANTDOMUS_MFA_SECRET_KEY is required (>=32 chars)}
+      VANTDOMUS_MALWARE_SCAN_MODE: clamav
+      VANTDOMUS_CLAMAV_HOST: clamav
+      VANTDOMUS_CLAMAV_PORT: 3310
+      VANTDOMUS_MALWARE_FAIL_CLOSED: "true"
+      VANTDOMUS_API_RATE_LIMIT_MODE: redis
+      VANTDOMUS_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - clamav
+      - redis
+
+  worker:
+    build: .
+    command: python -m app.worker
+    environment:
+      APP_ENV: ${APP_ENV:?APP_ENV is required (local|staging|production)}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/vantdomus
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      VANTDOMUS_MFA_SECRET_KEY: ${VANTDOMUS_MFA_SECRET_KEY:?VANTDOMUS_MFA_SECRET_KEY is required (>=32 chars)}
+      VANTDOMUS_MALWARE_SCAN_MODE: clamav
+      VANTDOMUS_CLAMAV_HOST: clamav
+      VANTDOMUS_CLAMAV_PORT: 3310
+      VANTDOMUS_MALWARE_FAIL_CLOSED: "true"
+      VANTDOMUS_API_RATE_LIMIT_MODE: redis
+      VANTDOMUS_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - clamav
+      - redis
+
+  clamav:
+    image: clamav/clamav:stable
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamavdata:/var/lib/clamav
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  dbdata:
+  clamavdata:
+  redisdata:

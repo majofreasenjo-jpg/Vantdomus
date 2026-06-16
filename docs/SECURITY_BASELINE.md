@@ -1,0 +1,288 @@
+# Security Baseline
+
+This baseline is the first implemented layer for customer data protection in VantDomus Improved.
+
+For production operations, deployment gates, rotation and incident response, use `docs/PRODUCTION_RUNBOOK.md`.
+
+## Implemented
+
+- Configurable CORS in `apps/api/app/main.py`.
+- No hardcoded local paths for assistant document/report tools.
+- Backend audit tables:
+  - `audit_log`
+  - `assistant_action_log`
+- Backend security event table:
+  - `security_events`
+- Security events are written with a tamper-evident hash chain:
+  - `previous_hash`
+  - `event_hash`
+- `tools/security_gate.py` runs `apps/api/scripts/security_event_metadata_lint.py` to block raw sensitive metadata keys such as `email`, `token`, `password`, `secret`, `file_path` and `attachment_path` in new `write_security_event` calls.
+- Security event hash chains can be verified with:
+  - `python apps/api/scripts/verify_security_events.py`
+- Tenant-scoped incident evidence packages can be exported with:
+  - `python apps/api/scripts/incident_evidence_export.py --household-id <id> --output-dir <dir>`
+- Incident evidence packages include audit events, assistant actions, security events, hash-chain verification and a package SHA-256.
+- Windows Task Scheduler jobs can be installed with:
+  - `tools/windows/Install-ScheduledSecurityJobs.ps1`
+- Windows scheduled security jobs cover ClamAV health, encrypted backup drills, security-event integrity, retention dry-runs and production preflight checks.
+- Tenant foundation tables:
+  - `organizations`
+  - `organization_memberships`
+- `households` now carries `organization_id` as the tenant boundary.
+- Existing units are backfilled into the user's default organization.
+- Sensitive operational tables now carry `organization_id`:
+  - `persons`
+  - `events`
+  - `alerts`
+  - `task_items`
+  - `expenses`
+  - `features_daily`
+  - `state_snapshot`
+  - `logbook_entries`
+  - `audit_log`
+  - `assistant_action_log`
+- Startup backfill repairs missing tenant ids for existing rows.
+- New task, finance, person, health, demo, assistant and recommendation writes propagate tenant ids.
+- Task, finance and health writes reject `person_id` references that do not belong to the same household.
+- Mutating task and finance endpoints write audit events.
+- Assistant tool calls are logged with arguments, result, status, user and household.
+- Admin-only audit API:
+  - `GET /audit?household_id=...`
+  - `GET /audit/assistant-actions?household_id=...`
+  - `GET /audit/security-events?household_id=...`
+- Web audit view:
+  - `/settings/{householdId}/audit`
+- Organization API:
+  - `GET /organizations`
+- Automated tenant isolation test:
+  - `tests/security/test_tenant_isolation.py`
+- Logbook attachments are stored outside the public `/uploads` mount.
+- Logbook attachments are served only through protected `/logbook/{entry_id}/attachment`.
+- Coupling gateways require admin role for listing/creation.
+- Coupling webhooks bind ingested alerts to the gateway's `organization_id`.
+- Security tests cover private attachment access and coupling tenant scope.
+- Logbook attachments enforce configurable allowlists:
+  - `VANTDOMUS_ALLOWED_UPLOAD_MIMES`
+  - `VANTDOMUS_ALLOWED_UPLOAD_EXTENSIONS`
+  - `VANTDOMUS_MAX_UPLOAD_BYTES`
+- Webhooks require `X-VantDomus-Event-Id` for replay protection.
+- Webhooks are rate-limited per gateway via:
+  - `VANTDOMUS_WEBHOOK_RATE_LIMIT_EVENTS`
+  - `VANTDOMUS_WEBHOOK_RATE_LIMIT_WINDOW_SECONDS`
+- `webhook_ingest_log` records ingested webhook event ids and enforces gateway-level uniqueness.
+- Gateway tokens expire via `VANTDOMUS_GATEWAY_TOKEN_TTL_DAYS`.
+- Admins can rotate gateway tokens with:
+  - `POST /coupling/{household_id}/gateways/{gateway_id}/rotate-token`
+- Webhooks reject rotated or expired tokens.
+- Web gateway management exposes token expiry/rotation metadata and reveals tokens only after create/rotate actions.
+- Vision batch processing now requires an authenticated household member.
+- Vision crops and galleries are stored under private storage, not public `/uploads`.
+- Vision galleries are served only through protected `/vision/batches/{batch_id}/gallery?household_id=...`.
+- Vision gallery HTML embeds private crop images as data URIs to avoid unauthenticated asset URLs.
+- Security tests cover private vision batches and cross-tenant denial.
+- Access tokens now enforce JWT signature and expiration validation.
+- Default access token lifetime is reduced to 8 hours via `ACCESS_TOKEN_EXPIRES_SECONDS`.
+- Security tests reject forged and expired JWTs.
+- Registration enforces email normalization and a configurable minimum password length via `VANTDOMUS_MIN_PASSWORD_LENGTH`.
+- Failed login attempts are stored in `auth_login_attempts`.
+- Login is rate-limited per normalized email via:
+  - `VANTDOMUS_AUTH_MAX_FAILED_LOGIN_ATTEMPTS`
+  - `VANTDOMUS_AUTH_FAILED_LOGIN_WINDOW_SECONDS`
+- Failed credential/MFA attempts and login throttles record tamper-evident `security_events` with `source=auth`; events store only an email fingerprint, not the raw email.
+- Security tests cover weak password rejection and failed-login throttling.
+- Authenticated users can change their own password with `POST /auth/password/change`; the API validates the current password, rejects weak/reused passwords, clears failed-login counters and records `change_password` audit plus high-severity `password_changed` security event.
+- Failed password-change attempts record medium-severity `password_change_failed` security events without storing the raw email.
+- Every successful login creates an `auth_sessions` row and JWTs include a `jti`; authenticated requests reject revoked or unknown sessions.
+- Users can list sessions with `GET /auth/sessions`, revoke one session with `POST /auth/sessions/revoke`, revoke other sessions with `POST /auth/sessions/revoke-others`, and close the current session with `POST /auth/logout`.
+- Session revocations record tamper-evident `security_events` with `source=auth_session`; revoking all other sessions is high severity.
+- Registration creates a one-time email verification token stored only as SHA-256 hash. Local/dev responses include the raw token for testing, while staging/production responses do not.
+- The web panel includes `/login` and stores authenticated sessions in `HttpOnly` `vantdomus_access_token` / `vantdomus_session_id` cookies; `NEXT_PUBLIC_ACCESS_TOKEN` remains a server-side local demo fallback only.
+- Web logout calls the API `POST /auth/logout` with the current bearer token before deleting local session and CSRF cookies, so server-side sessions are revoked instead of only hidden from the browser.
+- Protected web routes are guarded by Next.js middleware; dashboard, finance, tasks, settings, audit, inbox, person, event and executive views redirect to `/login?next=...` unless a session cookie is present. Local/dev may still use the explicit demo token fallback.
+- Authenticated browser calls go through the Next.js `/api/proxy/*` route, which injects the bearer token server-side. Public auth flows use the allow-listed `/api/public/*` proxy.
+- Mutating authenticated browser calls require a double-submit CSRF token (`vantdomus_csrf` cookie plus `X-VantDomus-CSRF` header) and same-origin validation before the proxy forwards them to the API.
+- The web proxy rejects oversized requests before forwarding them: `VANTDOMUS_WEB_PROXY_MAX_BODY_BYTES` defaults to 10 MB for authenticated routes and `VANTDOMUS_WEB_PUBLIC_PROXY_MAX_BODY_BYTES` defaults to 1 MB for public auth flows.
+- The API no longer mounts `/uploads` by default. Public static uploads are local/dev opt-in only via `VANTDOMUS_ENABLE_PUBLIC_UPLOADS=true`, and staging/production runtime validation rejects that flag.
+- Users can check/request/confirm email verification with `GET /auth/email/status`, `POST /auth/email/verification/request` and `POST /auth/email/verify`.
+- Password reset uses one-time hashed tokens via `POST /auth/password/reset/request` and `POST /auth/password/reset/confirm`; completion revokes all existing sessions, clears failed-login counters and records a high-severity `password_reset_completed` security event.
+- Verification and password-reset emails are delivered through SMTP using `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`; staging/production refuses to start without SMTP and an HTTPS `VANTDOMUS_APP_PUBLIC_URL`.
+- Sensitive actions can require verified email with `VANTDOMUS_REQUIRE_VERIFIED_EMAIL_FOR_SENSITIVE_ACTIONS=true`; staging/production enables this requirement automatically. The protected actions include household export/deletion, member/invitation changes, signed-link creation/revocation, gateway creation/token rotation and admin MFA reset.
+- General API requests are rate-limited per authenticated user or source IP via:
+  - `VANTDOMUS_API_RATE_LIMIT_MODE`
+  - `VANTDOMUS_API_RATE_LIMIT_REQUESTS`
+  - `VANTDOMUS_API_RATE_LIMIT_WINDOW_SECONDS`
+  - `VANTDOMUS_API_RATE_LIMIT_EXEMPT_PATHS`
+  - `VANTDOMUS_REDIS_URL`
+  - `VANTDOMUS_REDIS_TIMEOUT_SECONDS`
+- `/health` is exempt by default for service probes.
+- Local/dev can use `VANTDOMUS_API_RATE_LIMIT_MODE=memory`; staging/production require `VANTDOMUS_API_RATE_LIMIT_MODE=redis` and `VANTDOMUS_REDIS_URL`.
+- `apps/api/docker-compose.yml` includes a reference Redis service for shared rate limiting across API instances.
+- Security tests cover per-user API throttling, health-check exemption, Redis-backed counters and staging/production Redis enforcement.
+- Rate-limit exceedances are recorded as `security_events` with `event_type=rate_limit_exceeded`.
+- High-severity security events can be dispatched to an external alert webhook via:
+  - `VANTDOMUS_SECURITY_ALERT_WEBHOOK_URL`
+  - `VANTDOMUS_SECURITY_ALERT_MIN_SEVERITY`
+  - `VANTDOMUS_SECURITY_ALERT_TIMEOUT_SECONDS`
+  - `VANTDOMUS_SECURITY_ALERT_SIGNING_SECRET`
+- Security alert webhooks are best-effort, can be signed with `X-VantDomus-Signature`, and redact sensitive metadata before storage and dispatch.
+- `APP_ENV=staging|production` refuses to start with the default or weak `JWT_SECRET`.
+- `APP_ENV=staging|production` also refuses to start unless the following deployment controls are explicitly configured:
+  - `VANTDOMUS_BACKUP_ENCRYPTION_KEY`
+  - `VANTDOMUS_SECURITY_ALERT_WEBHOOK_URL`
+  - `VANTDOMUS_SECURITY_ALERT_SIGNING_SECRET`
+  - `CORS_ALLOWED_ORIGINS`
+- `VANTDOMUS_ALLOWED_HOSTS` is required in staging/production, must be explicit, must not include wildcard/localhost hosts and must include the host from `VANTDOMUS_APP_PUBLIC_URL`.
+- The API applies `TrustedHostMiddleware` when `VANTDOMUS_ALLOWED_HOSTS` is configured, rejecting requests with unexpected `Host` headers.
+- Staging/production CORS origins must be explicit and must not include `localhost`, `127.0.0.1` or `*`.
+- The API sends baseline security headers:
+  - `X-Content-Type-Options`
+  - `X-Frame-Options`
+  - `Referrer-Policy`
+  - `Permissions-Policy`
+  - `Cross-Origin-Opener-Policy`
+  - `Cache-Control`
+- The web panel sends baseline browser security headers and a Content Security Policy via `next.config.js`; browser `connect-src` is restricted to `self` so authenticated calls do not connect directly to the API origin.
+- Sensitive web routes and all Next.js API proxy responses send `Cache-Control: no-store, max-age=0`, `Pragma: no-cache` and `Expires: 0` to reduce browser/proxy retention of customer data.
+- Frontend deployment preflight blocks production/staging builds that expose `NEXT_PUBLIC_ACCESS_TOKEN`, expose `NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID`, omit `NEXT_PUBLIC_API_BASE`, or point the browser at non-HTTPS/local API origins.
+- Local/demo may keep `NEXT_PUBLIC_ACCESS_TOKEN` and `NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID` for fast testing only; customer environments must resolve identity and tenant context after login.
+- `tools/secret_scan.py` scans source, docs, tests and tooling for accidentally committed private keys, cloud tokens, JWTs and high-risk secret assignments while allowing documented placeholders.
+- Security tests cover production secret validation and API security headers.
+- Private logbook attachments are scanned before being persisted.
+- Vision source PDFs are scanned before being opened or rendered.
+- Basic malware scanning detects EICAR by default and can be configured via:
+  - `VANTDOMUS_MALWARE_SCAN_MODE`
+  - `VANTDOMUS_MALWARE_SIGNATURES`
+- Security tests cover malware rejection for logbook attachments and vision batches.
+- Malware scanning now supports ClamAV streaming mode with:
+  - `VANTDOMUS_MALWARE_SCAN_MODE=clamav`
+  - `VANTDOMUS_CLAMAV_HOST`
+  - `VANTDOMUS_CLAMAV_PORT`
+  - `VANTDOMUS_CLAMAV_TIMEOUT_SECONDS`
+  - `VANTDOMUS_MALWARE_FAIL_CLOSED`
+- Staging/production runtime validation requires `VANTDOMUS_MALWARE_SCAN_MODE=clamav`.
+- In ClamAV mode, uploads and vision PDFs are streamed through ClamAV `INSTREAM`; scanner outages fail closed by default.
+- `apps/api/docker-compose.yml` includes a reference `clamav` service for shared environments.
+- ClamAV daemon monitoring can be run with:
+  - `python apps/api/scripts/clamav_healthcheck.py`
+- The ClamAV healthcheck validates daemon reachability with `PING`/`VERSION` and records high-severity `security_events` with `event_type=clamav_healthcheck_failed` on failure.
+- Security tests cover clean ClamAV responses, `FOUND` responses, healthcheck event recording and production-mode scanner enforcement.
+- Malware detections are recorded as critical `security_events`.
+- Malware scanner outages are recorded as high-severity `security_events`.
+- Admins can create short-lived signed links for logbook attachments with:
+  - `POST /logbook/{entry_id}/share`
+- Signed link raw tokens are shown only once; only SHA-256 token hashes are stored.
+- Signed link max TTL is controlled by `VANTDOMUS_SIGNED_URL_MAX_TTL_SECONDS`.
+- Signed attachment downloads are audited with `download_signed_link`.
+- Security tests cover tenant denial, token hashing, unauthenticated signed download and expiry.
+- The CEO logbook UI can create short-lived signed evidence links and shows the raw URL only after creation.
+- Admins can revoke signed evidence links before expiry with:
+  - `POST /logbook/shared/{token}/revoke`
+- The CEO logbook UI can revoke generated signed evidence links and marks them as revoked locally.
+- Revocations are audited with `revoke_signed_link`.
+- Users can enroll TOTP MFA with:
+  - `POST /auth/mfa/setup`
+  - `POST /auth/mfa/enable`
+  - `POST /auth/mfa/disable`
+- Logins for MFA-enabled users require `mfa_code`.
+- MFA enable/disable events are audited with `enable_mfa` and `disable_mfa`.
+- Security tests cover TOTP setup, invalid code rejection, MFA-required login and MFA disable.
+- The web panel exposes MFA setup, confirmation and disable controls at `/settings/{householdId}/security`.
+- MFA enablement generates single-use recovery codes; only SHA-256 hashes are stored.
+- Recovery code count is controlled by `VANTDOMUS_MFA_RECOVERY_CODE_COUNT`.
+- Recovery codes can be used as `mfa_code` once and are consumed after successful login.
+- Users can regenerate recovery codes from the MFA security panel after entering a valid TOTP code.
+- Admins can reset MFA for another member of the same household with:
+  - `POST /auth/mfa/admin-reset`
+- Admin-assisted resets cannot self-reset and are audited with `admin_reset_mfa`.
+- MFA enablement, recovery-code regeneration, disablement and admin resets also record tamper-evident `security_events`; disablement and admin resets are high severity.
+- The MFA security panel exposes admin-assisted reset for the current household.
+- TOTP secrets are encrypted at rest with Fernet before being stored in `user_mfa.totp_secret`.
+- Local/dev MFA encryption derives from `VANTDOMUS_MFA_SECRET_KEY` when present, otherwise from `JWT_SECRET`.
+- `APP_ENV=staging|production` refuses to start without `VANTDOMUS_MFA_SECRET_KEY` of at least 32 characters.
+- Existing plaintext TOTP secrets remain readable and are migrated to encrypted storage after successful MFA verification.
+- MFA key rotation supports `VANTDOMUS_MFA_SECRET_KEYS` as an ordered key ring; the first key encrypts, previous keys decrypt.
+- MFA secrets encrypted with an older key are re-encrypted with the active key after successful MFA verification.
+- Operators can rotate all stored MFA secrets with:
+  - `python apps/api/scripts/rotate_mfa_secrets.py --apply`
+- The rotation tool runs in dry-run mode unless `--apply` is provided.
+- Admins can export a tenant-scoped customer data package with:
+  - `GET /households/{household_id}/export`
+- Customer exports redact auth tokens, push tokens, signed-link hashes and private server file paths.
+- Customer exports record `security_events` with `event_type=household_data_exported` and `severity=high`.
+- Household owners can execute contractual deletion with:
+  - `DELETE /households/{household_id}?confirm=DELETE`
+- Contractual deletion purges tenant rows, revokes active sessions for household members, revokes signed-link records, removes private attachment/vision directories and writes a final `delete_household_data` audit event.
+- Contractual deletion records a final `security_events` row with `event_type=household_data_deleted` and `severity=critical`.
+- Contractual export/deletion includes medication adherence tables:
+  - `adherence_plans`
+  - `medication_state`
+- Security tests cover cross-tenant denial, export redaction and contractual deletion cleanup.
+- Security tests cover cross-tenant `person_id` reference rejection for tasks, expenses and health/adherence endpoints.
+- Security tests cover cross-tenant read denial for alerts, scores, assistant recommendations/chat, logbook, notification targets/outbox, person detail/health timelines, CEO dashboard aggregation and organization listing.
+- Security tests cover admin-only access to tenant security events.
+- Admins can inspect tenant-scoped operational security status with:
+  - `GET /audit/operational-status?household_id=...`
+- Operational status summarizes database integrity, Redis rate-limit backend health, ClamAV daemon health, latest local backup artifact, and recent high/critical security events without exposing secrets.
+- Operational status also verifies the tenant security-event hash chain.
+- The web panel exposes operational status inside `/settings/{householdId}/audit`.
+- Security tests cover admin-only operational status access, tenant-scoped high-severity event visibility and security-event tamper detection.
+- Demo seed, CEO seed/fast-forward simulation and notification test endpoints are disabled in staging/production unless explicitly enabled via:
+  - `VANTDOMUS_ALLOW_DEMO_SEED`
+  - `VANTDOMUS_ALLOW_NOTIFICATION_TESTS`
+- Household role permissions are documented in `docs/ROLE_MATRIX.md`.
+- Security tests cover the role matrix for viewer/member/admin/owner across read, write, audit, signed-link, integration, export and deletion actions.
+- Admins can list household members, add registered users as viewer/member/admin, change non-owner roles and remove non-owner access.
+- Owners can grant/revoke owner role; the API prevents removing or demoting the last owner.
+- Membership changes are audited with `add_member`, `update_member_role` and `remove_member`.
+- Membership changes also record tamper-evident `security_events` with `source=household_membership`; owner grants/removals are high severity and event metadata stores email fingerprints instead of raw emails.
+- Admins can create/revoke expiring invitations for viewer/member/admin roles.
+- Owners can create/revoke owner invitations.
+- Invitation tokens are stored only as SHA-256 hashes and raw tokens are returned only once on creation.
+- Invitation acceptance requires the current authenticated email to match the invited email.
+- Invitation changes are audited with `create_invitation`, `accept_invitation` and `revoke_invitation`.
+- Invitation creation, acceptance and revocation also record tamper-evident `security_events` with `source=household_invitation`; owner invitations are high severity and event metadata stores email fingerprints instead of raw emails.
+- The web panel exposes member management at `/settings/{householdId}/members`.
+- SQLite backup/restore drills can be run with:
+  - `python apps/api/scripts/backup_restore_drill.py --backup-dir <dir>`
+- The backup drill creates a consistent SQLite backup, restores it into a temporary database, runs `PRAGMA integrity_check`, and verifies required security tables exist.
+- SQLite backup/restore drills can write encrypted backup envelopes with:
+  - `VANTDOMUS_BACKUP_ENCRYPTION_KEY`
+  - `python apps/api/scripts/backup_restore_drill.py --backup-dir <dir> --encrypt`
+- Encrypted backups use a per-backup salt, PBKDF2-SHA256 key derivation, and a Fernet authenticated encryption envelope; the drill decrypts and restores the artifact before reporting success.
+- Backup drills write a `.manifest.json` with backup size and SHA-256 checksum.
+- Backup drills can copy the encrypted backup and manifest to an offsite directory with `--offsite-dir`; copied artifacts are checksum-verified.
+- Production readiness can be checked with:
+  - `python apps/api/scripts/production_preflight.py --backup-dir <dir>`
+- The preflight validates runtime security configuration, database connectivity, encrypted backup presence, backup manifest checksum, Redis health and ClamAV health.
+- Frontend environment readiness can be checked with:
+  - `python tools/web_env_preflight.py --env-file apps/web/.env.local`
+- The release security gate runs secret scanning and the frontend environment preflight before the web build.
+- The release security gate also runs `tools/web_session_security_lint.py` to ensure the web session model keeps `HttpOnly` cookies, proxy-based bearer injection, CSRF validation, protected route redirects, request-size limits, no-store sensitive responses and `connect-src 'self'`.
+- Temporary security record retention cleanup can be reviewed and applied with:
+  - `python apps/api/scripts/retention_cleanup.py --grace-days 30`
+  - `python apps/api/scripts/retention_cleanup.py --grace-days 30 --apply`
+- Retention cleanup purges only expired/revoked signed links, expired/accepted/revoked invitations, used MFA recovery codes, expired/revoked auth sessions, and expired/used email verification/password reset tokens after the grace period; apply runs are recorded as `security_events`.
+- Local release gating can be run with:
+  - `python tools/security_gate.py`
+- `.github/workflows/security-gate.yml` runs the backend security suite and web build for pushes/PRs.
+
+## Next Required Controls
+
+- Continue extending automated tenant isolation tests until every new endpoint is added to the security suite before release.
+- Store `JWT_SECRET`, `VANTDOMUS_MFA_SECRET_KEY`, `VANTDOMUS_BACKUP_ENCRYPTION_KEY` and alert signing secrets in a managed secret store or KMS-backed environment before customer production use.
+- Schedule ClamAV/freshclam monitoring and route `clamav_healthcheck_failed` alerts to the production incident channel.
+- Schedule encrypted offsite backups and restore drills for the production database engine.
+
+## Operational Rule
+
+No customer production data should be copied into local development or demo environments unless it is explicitly approved and anonymized.
+
+## Verification
+
+Run the security isolation test with:
+
+```powershell
+C:\Users\casa\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m pytest tests\security\test_tenant_isolation.py -q --basetemp C:\tmp\pytest -p no:cacheprovider
+```
+
+Current expected result: `51 passed`.

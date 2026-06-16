@@ -1,0 +1,167 @@
+name: Security Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+# Cancel in-progress runs when a new commit arrives for the same ref.
+concurrency:
+  group: security-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------
+  # Backend (Python) lint + tests + secret/CSP gates
+  # ----------------------------------------------------------------------
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r apps/api/requirements.txt
+          python -m pip install -r apps/api/requirements-dev.txt
+
+      - name: Run metadata lint
+        run: python apps/api/scripts/security_event_metadata_lint.py
+
+      - name: Run secret scan
+        run: python tools/secret_scan.py
+
+      - name: Run web session security lint
+        run: python tools/web_session_security_lint.py
+
+      - name: Run web environment preflight
+        run: python tools/web_env_preflight.py --env-file apps/web/.env.example
+
+      - name: Run production readiness report (advisory)
+        # Validates env-example completeness and forbidden-key rules.
+        # `continue-on-error` because the report is advisory until the
+        # legal/infra checklist closes.
+        continue-on-error: true
+        run: python tools/production_readiness_report.py
+
+      - name: Backend tests — tenant isolation (must pass)
+        run: |
+          python -m pytest tests/security/test_tenant_isolation.py -q \
+            --basetemp /tmp/vantdomus-pytest -p no:cacheprovider
+
+      - name: Backend tests — full suite (must pass)
+        run: |
+          python -m pytest tests/ -q \
+            --basetemp /tmp/vantdomus-pytest-full -p no:cacheprovider \
+            --ignore=tests/security/test_tenant_isolation.py
+
+      - name: Python dependency audit (pip-audit)
+        continue-on-error: true
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r apps/api/requirements.txt --strict
+
+  # ----------------------------------------------------------------------
+  # Web (Next.js) typecheck + build + npm audit
+  # ----------------------------------------------------------------------
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Typecheck web
+        working-directory: apps/web
+        run: npx tsc --noEmit
+
+      - name: Build web panel
+        working-directory: apps/web
+        run: npm run build
+
+      - name: npm audit (high & critical)
+        working-directory: apps/web
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+  # ----------------------------------------------------------------------
+  # Mobile (Expo) typecheck + npm audit
+  # ----------------------------------------------------------------------
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      - name: Typecheck mobile
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      - name: npm audit (high & critical)
+        working-directory: apps/mobile
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+  # ----------------------------------------------------------------------
+  # Staging smoke check (informational, runs only on push to main/master).
+  # Skipped on PRs because it would require a reachable staging API.
+  # ----------------------------------------------------------------------
+  staging-smoke:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [backend, web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install staging smoke dependencies
+        run: python -m pip install requests
+
+      - name: Run staging smoke check
+        # Requires the staging API to be reachable from GitHub-hosted runners
+        # and the SMOKE_* secrets to be configured in the repo.
+        env:
+          VANTDOMUS_SMOKE_API_BASE: ${{ secrets.SMOKE_API_BASE }}
+          VANTDOMUS_SMOKE_WEB_BASE: ${{ secrets.SMOKE_WEB_BASE }}
+        run: |
+          if [ -z "$VANTDOMUS_SMOKE_API_BASE" ]; then
+            echo "::warning::SMOKE_API_BASE not configured — skipping staging smoke check."
+            exit 0
+          fi
+          python tools/staging_smoke_check.py

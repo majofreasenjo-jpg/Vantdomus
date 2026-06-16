@@ -1,0 +1,22 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang13322{\fonttbl{\f0\fnil\fcharset0 Calibri;}}
+{\*\generator Riched20 10.0.19041}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\b\f0\fs28 Arquitectura de Expansi\'f3n VantDomus: Bit\'e1cora B2B y Simulador What-If\b0\fs22\par
+\par
+Has identificado dos necesidades cr\'edticas para convertir a VantDomus en una consola de misi\'f3n cr\'edtica completa, al estilo de Palantir o MS Teams para Operaciones EPC. Aqu\'ed presento el plan arquitect\'f3nico para desarrollar ambos m\'f3dulos integrados:\par
+\par
+\b\fs24 1. M\'f3dulo "Bit\'e1cora Colaborativa" (Estilo MS Teams / Slack)\b0\fs22\par
+Actualmente el sistema alerta fallas, pero falta la capa humana donde la jefatura documenta el contexto. Desarrollaremos un hub centralizado (Timeline):\par
+\par
+- Backend (070_logbook.sql): Nueva tabla logbook_entries relacional por Proyecto que soporte tipos de datos: hito, comentario, accidente, implementacion.\par
+- API (routes/logbook.py): Endpoints REST para inyectar y recuperar mensajes en tiempo real.\par
+- Frontend React: A\'f1adido a la vista de Comandos como Bit\'e1cora integrada al Simulador de P&L.\par
+\par
+\b\fs24 2. Generador de Escenarios (Modo "What-If" Simulator)\b0\fs22\par
+El sistema actual es reactivo a la base de datos. Lo volveremos Proactivo mediante Sliders de Control C-Level.\par
+\par
+- React State Injection: Crearemos un Modo Simulador en la vista del CEO.\par
+- Sliders Interactivos: Aparecer\'e1n controles de Relevancia (OSI), Salud y Fatiga HSE, Desempe\'f1o de Tareas, y Eficiencia de Flujo Financiero.\par
+- Rec\'e1lculo P&L en Vivo: Al alterar estas variables, la proyecci\'f3n se computar\'e1 instant\'e1neamente en la sesi\'f3n visual del CEO.\par
+\par
+Este modo se alojar\'e1 de forma encapsulada y local en la web, sin sobreescribir ni da\'f1ar la Auditor\'eda y los registros ver\'eddicos de Bases de Datos.\par
+}

@@ -1,0 +1,53 @@
+graph LR
+    classDef operational fill:#f8f9fa,color:#2c3e50,stroke:#bdc3c7,stroke-width:2px;
+    classDef strategic fill:#2980b9,color:#ffffff,stroke:#2471a3,stroke-width:3px;
+    classDef solomon fill:#27ae60,color:#ffffff,stroke:#1e8449,stroke-width:3px;
+
+    subgraph "Nivel Base - Métricas de Terreno"
+        direction TB
+        O1[Costo Prod]:::operational
+        O2[Caída Prod]:::operational
+        O3[Fallas]:::operational
+        H1[Índices IF/IS]:::operational
+        H2[Cump. P.A.]:::operational
+        A1[Emisiones MP]:::operational
+        C1[Reclamos]:::operational
+        P1[Capacitación]:::operational
+        G1[Auditorías]:::operational
+    end
+
+    subgraph "Nivel Central - Pilares Refinería"
+        direction TB
+        D1([1. Utilidad]):::strategic
+        D2([2. Salud]):::strategic
+        D3([3. Medioambiente]):::strategic
+        D4([4. Comunitario]):::strategic
+        D5([5. Personal]):::strategic
+        D6([6. Legal/Aud.]):::strategic
+    end
+
+    subgraph "Nivel Top - Índices Solomon"
+        direction TB
+        S1{TUP}:::solomon
+        S2{Disp. Operativa}:::solomon
+        S3{Intens. Energ. IIE}:::solomon
+        S4{OPEX}:::solomon
+        S5{Mantención}:::solomon
+        S6{Prod. Laboral}:::solomon
+    end
+
+    O1 & O2 & O3 --> D1
+    H1 & H2 --> D2
+    A1 --> D3
+    C1 --> D4
+    P1 --> D5
+    G1 --> D6
+
+    D1 -.-> S1 & S2 & S3 & S4 & S5 & S6
+    D2 ==> S6
+    D2 -.-> S4
+    D3 -.-> S1 & S2 & S3 & S4 & S5 & S6
+    D4 -.-> S1 & S2 & S4 & S6
+    D5 ==> S6
+    D5 -.-> S4
+    D6 -.-> S1 & S2 & S3 & S4 & S5 & S6

@@ -1,0 +1,59 @@
+﻿# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Build outputs
+.next/
+dist/
+build/
+.expo/
+*.tsbuildinfo
+bundle.js
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+pytest-cache-files-*/
+
+# Local env and secrets
+.env
+.env.*
+!.env.example
+token.txt
+token_resp.json
+household_id.txt
+person_id.txt
+
+# Databases and uploads
+*.db
+uploads/
+
+# Archives and backups
+*.zip
+backups/
+
+# Customer data and legacy bundles — NOT part of the application repo.
+# See data/README.md and legacy/README.md for relocation guidance. The
+# README files themselves are still tracked so the guidance survives.
+data/*
+!data/README.md
+legacy/*
+!legacy/README.md
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# One-off / dangerous scripts that must never be committed
+# (these contained hardcoded production credentials in the past)
+fix_admin_auth.py
+link_demo_user.py
+render_fix.py
+hack_db.js
+hack_*.js
+hack_*.py
+install_error.txt

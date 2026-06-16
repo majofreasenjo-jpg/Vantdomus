@@ -1,0 +1,29 @@
+# ============================================================================
+# VantDomus API runtime dependencies.
+#
+# Versions are pinned with `==` for reproducible builds. The previous file
+# used `>=` only, which let `pip install -r` resolve to whatever happened
+# to be on PyPI that day, breaking deploys when an upstream made a breaking
+# change.
+#
+# To regenerate this file from your local virtualenv with full transitive
+# pinning (recommended for production):
+#
+#     pip install pip-tools
+#     pip-compile --strip-extras --output-file=requirements.txt requirements.in
+#
+# (or use `uv pip compile` if you prefer uv). Until that pipeline is set up,
+# update the pins here by hand and re-run `pip-audit -r requirements.txt`
+# after every change.
+# ============================================================================
+
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==2.8.2
+pydantic-settings==2.3.4
+python-jose==3.3.0
+cryptography==42.0.0
+bcrypt==4.0.0
+python-multipart==0.0.9
+psycopg2-binary==2.9.9
+PyMuPDF==1.24.0
