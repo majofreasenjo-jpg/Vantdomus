@@ -1,9 +1,28 @@
 # VantGuide — Arquitectura del núcleo transversal
 
-> **Estado**: propuesta arquitectónica aceptada — guía la implementación del Sprint VG.
+> **Estado**: arquitectura aceptada + consolidación VG+1 aplicada.
 > **Audiencia**: ingeniería, producto, co-arquitectos.
-> **Versión del documento**: 1.0
+> **Versión del documento**: 1.1 (post Sprint VG+1)
 > **Última actualización**: junio 2026.
+
+## Cambios de la v1.1
+
+Esta versión incorpora las **12 decisiones del Sprint de consolidación VG+1**, evaluadas por el co-arquitecto Codex tras la implementación inicial:
+
+1. **FunctionEvent y EvidenceItem se mantienen separados** (responden a preguntas distintas: ciclo-de-vida vs prueba-concreta). Se agrega cross-link opcional `function_events.primary_evidence_id` ↔ `evidence_items.function_event_id`.
+2. **`consent_scope` y `visible_to_roles` siguen como JSON inline** para permisos internos del hogar/unidad. El acceso externo futuro (médicos, aseguradoras) se modelará en tablas separadas (`resource_access_grants`, `care_share_links`).
+3. **Idempotencia en DB con índice UNIQUE compuesto parcial** (`function_id`, `scheduled_for`, `event_type`) `WHERE scheduled_for IS NOT NULL`. `dedupe_key` se mantiene como fallback nullable.
+4. **`function_category` sigue como enum hardcoded** validado en código. B2B usa `metadata.custom_category` + `custom_category_label` + `domain`. Categorías dinámicas por org se posponen.
+5. **Versionado real**: `unit_functions.version` + tabla `unit_function_versions` con snapshot completo. Cada PATCH crea fila en versiones e incrementa `version`.
+6. **Scheduler como proceso/cron externo**, no embebido. `python -m app.vantguide_scheduler` ejecutado por cron del orquestador (Render cron / systemd / crontab). NO Celery/Redis aún.
+7. **AI confidence + confirmación humana**: medicamentos creados por IA NO activan recordatorios hasta confirmación humana, aunque `ai_confidence > 0.85`. Umbrales: ≥0.85 sugerencia fuerte, 0.60–0.85 requiere confirmación, <0.60 no se crea como función activa.
+8. **Múltiples responsables**: tabla `unit_function_responsibles` con `responsibility_role`, `escalation_order`, `notify`, `can_confirm`, `can_edit`. `responsible_person_id` se mantiene como primario para retrocompat.
+9. **Naming**: el motor técnico se llama VantGuide / UnitFunction. La UI cambia según preset — Guía Familiar (family), Guía Operativa (mining), Guía de Cuidado (healthcare), Guía de Equipo (corporate), Guía de Gestión (technical_office), Guía de Obra (construction).
+10. **Biblioteca como pieza central**: positiva, negativa, cambios de estrategia, mejoras, retrocesos, aprendizajes. **La memoria vive en VantDomus, NO en el modelo de IA**.
+11. **Lenguaje no-clínico**: PersonSupportProfile usa "perfil de apoyo", "herramientas de calma", "supervisión requerida" — nunca diagnósticos clínicos.
+12. **Lock global en scheduler**: `pg_try_advisory_lock` en Postgres / sentinel-row con `lease_until` en `scheduler_runs` para SQLite. Métricas persistidas por ejecución.
+
+Lo **NO implementado todavía** (deliberado): marketplace de voces / acompañantes humanos, integración real con aseguradoras / médicos, wearables reales, WhatsApp real, voz real, Celery/Redis, categorías dinámicas por organización, red social, claims clínicos.
 
 ---
 
@@ -622,6 +641,101 @@ Cuando esos 7 puntos pasen, **VantDomus ya no tiene un SchoolPlanner aislado**. 
 - **Sprint VG+1**: scheduler runtime (APScheduler in-process), email forwarding, voice ingestion para SchoolPlanner.
 - **Sprint VG+2**: progress_snapshots automáticos, resumen de cuidado compartible, integración WhatsApp básica.
 - **Sprint VG+3** y más adelante: vector embeddings para memoria semántica, integraciones HealthKit/Google Fit, marketplace de acompañantes humanos (validación de mercado pendiente), VantCalm como herramienta integrada.
+
+---
+
+## 18. Consolidación VG+1 — runtime hardening
+
+Esta sección documenta el sprint correctivo que sigue al MVP arquitectónico inicial. El objetivo era **dejar bien la columna vertebral** antes de avanzar a UI, integraciones externas o features aspiracionales.
+
+### 18.1 Versionado de UnitFunction
+
+Cada UnitFunction tiene una columna `version` (default 1). En cada PATCH, antes del UPDATE:
+
+1. Se inserta el estado actual en `unit_function_versions` (snapshot completo JSON).
+2. Se incrementa `version` en `unit_functions`.
+
+El endpoint `GET /unit_functions/{id}/versions` devuelve el historial ordenado por `version` DESC con el snapshot parseado.
+
+Esto habilita la Biblioteca de Evolución: "antes Elena tenía Losartán 08:00/20:00, cambiamos a 08:00 solo y la adherencia mejoró 32% en 4 semanas".
+
+### 18.2 Scheduler con lock global
+
+`apps/api/app/vantguide_scheduler.py` ahora hace lock antes de cada `tick()`:
+
+- **Postgres**: `pg_try_advisory_lock(SCHEDULER_LOCK_ID)`. Lock se libera automáticamente al cerrar la conexión.
+- **SQLite**: fila en `scheduler_runs` con `lease_until = now + 5min` actúa como lock. Si está expirado, se considera crasheado y un nuevo proceso puede tomarlo.
+
+Si no obtiene el lock, registra `status=skipped_locked` en `scheduler_runs` y sale con exit code != 0 sin tocar nada.
+
+Cada run registra métricas: `functions_scanned`, `reminder_due_emitted`, `missed_emitted`, `escalations_emitted`, `duplicates_skipped`, `errors`, `error_detail`.
+
+### 18.3 AI confirmation gating
+
+Cuando una función la crea la IA con `created_by_ai=True`:
+
+- Categorías **sensibles** (`medication`, `appointment`, `safety_check`, `operational_protocol`) → `ai_needs_confirmation=true` automático, sin importar la confidence.
+- Otras categorías → `ai_needs_confirmation=true` si `ai_confidence < 0.85`.
+
+El scheduler `tick()` salta funciones con `ai_needs_confirmation=true AND confirmed_at IS NULL`. Quedan en cola hasta confirmación.
+
+Para confirmar: `POST /unit_functions/{id}/confirm` con body `{"confirmed": true|false, "change_reason": "..."}`. Setea `confirmed_by_user_id`, `confirmed_at`, baja `ai_needs_confirmation=0`, y deja audit log. Si `confirmed=false`, status pasa a `cancelled`.
+
+### 18.4 Múltiples responsables
+
+Tabla nueva `unit_function_responsibles`:
+
+- `responsibility_role`: primary_caregiver | secondary_caregiver | parent | guardian | doctor_viewer | supervisor | reviewer | escalation_contact
+- `escalation_order`: para dispatcher (futuro)
+- `notify`, `can_confirm`, `can_edit`: permisos granulares
+
+Endpoints: `POST/GET/DELETE /unit_functions/{id}/responsibles`. UNIQUE compuesto (function, person, role) previene duplicados.
+
+`unit_functions.responsible_person_id` se mantiene como "responsable primario por defecto" para no romper código existente.
+
+### 18.5 Cross-link FunctionEvent ↔ EvidenceItem
+
+Sin unificar las tablas:
+
+- `function_events.primary_evidence_id` nullable: el evento `completed` o `missed` puede apuntar a la evidencia que lo respalda.
+- `evidence_items.function_event_id` nullable (ya existía): la evidencia puede asociarse al evento específico que generó.
+
+Semánticas distintas, relación opcional cruzada cuando aplica.
+
+### 18.6 Naming por preset
+
+| Preset | Nombre UI |
+|---|---|
+| `family` | Guía Familiar |
+| `mining` | Guía Operativa |
+| `healthcare` | Guía de Cuidado |
+| `corporate` | Guía de Equipo |
+| `technical_office` | Guía de Gestión |
+| `construction` | Guía de Obra |
+
+El motor técnico interno se sigue llamando **VantGuide** / **UnitFunction**. El nombre comercial NO se muestra al usuario final.
+
+### 18.7 Resource access grants (skeleton futuro)
+
+NO se implementa en VG+1, pero queda documentado para cuando se active VantHealthLink:
+
+```text
+resource_access_grants {
+  id, resource_type, resource_id,
+  household_id, organization_id,
+  granted_by_user_id, granted_to_person_id, granted_to_email, granted_to_role,
+  purpose, scope JSON,
+  expires_at, revoked_at, created_at
+}
+
+care_share_links {
+  id, household_id, person_id,
+  token_hash, scope JSON,
+  expires_at, revoked_at, accessed_at, created_at
+}
+```
+
+El JSON inline (`consent_scope`, `visible_to_roles`) sirve para permisos internos del hogar. Acceso externo (médicos, aseguradoras, cuidadores no-miembros) requiere estas tablas — se diseñará cuando exista demanda real.
 
 ---
 

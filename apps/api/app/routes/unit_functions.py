@@ -220,6 +220,11 @@ def create_unit_function_internal(
     legacy_task_id: Optional[str] = None,
     legacy_adherence_plan_id: Optional[int] = None,
     dual_write_task: bool = False,
+    # === VG+1.4: AI confidence + confirmation gating ===
+    ai_confidence: Optional[float] = None,
+    ai_needs_confirmation: Optional[bool] = None,
+    ai_extraction_source: Optional[str] = None,
+    ai_explanation: Optional[str] = None,
 ) -> str:
     """
     Crea una UnitFunction internamente (sin Depends de FastAPI).
@@ -260,6 +265,22 @@ def create_unit_function_internal(
             ),
         )
 
+    # === VG+1.4: AI confirmation defaults ===
+    # Si lo creó la IA y NO se pasó ai_needs_confirmation explícito, aplicamos
+    # política conservadora por categoría:
+    #   * medication / appointment / safety_check → confirmación obligatoria
+    #     (la IA puede equivocarse al leer una receta; no activamos
+    #     recordatorios automáticos sin que un humano confirme).
+    #   * Otras categorías → confirmación opcional si confidence < 0.85.
+    SENSITIVE_CATEGORIES = {"medication", "appointment", "safety_check", "operational_protocol"}
+    if created_by_ai and ai_needs_confirmation is None:
+        if category in SENSITIVE_CATEGORIES:
+            ai_needs_confirmation = True
+        elif ai_confidence is not None and ai_confidence < 0.85:
+            ai_needs_confirmation = True
+        else:
+            ai_needs_confirmation = False
+
     db.execute(
         "INSERT INTO unit_functions ("
         "id, household_id, organization_id, person_id, responsible_person_id, "
@@ -267,8 +288,10 @@ def create_unit_function_internal(
         "due_at, schedule, recurrence, status, priority, supervision_level, "
         "support_mode, evidence_required, reward_rule_id, legacy_task_id, "
         "legacy_adherence_plan_id, created_by_user_id, created_by_ai, "
-        "metadata, audit_trail, created_at, updated_at"
-        ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "metadata, audit_trail, created_at, updated_at, "
+        "version, ai_confidence, ai_needs_confirmation, "
+        "ai_extraction_source, ai_explanation"
+        ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             uf_id, household_id, organization_id, person_id, responsible_person_id,
             category, title, description, source_type, source_document_id,
@@ -277,6 +300,8 @@ def create_unit_function_internal(
             support_mode, 1 if evidence_required else 0, reward_rule_id, task_id,
             legacy_adherence_plan_id, created_by_user_id, 1 if created_by_ai else 0,
             json.dumps(meta, ensure_ascii=False), "[]", ts, ts,
+            1, ai_confidence, 1 if ai_needs_confirmation else 0,
+            ai_extraction_source, ai_explanation,
         ),
     )
 
@@ -462,6 +487,45 @@ def get_unit_function(
     return _row_to_response(row)
 
 
+def _snapshot_row_to_dict(row) -> dict:
+    """Convierte una fila de unit_functions a dict serializable JSON."""
+    return {
+        col: row[col] for col in row.keys()
+    } if hasattr(row, "keys") else dict(row)
+
+
+def _record_version_snapshot(
+    db,
+    *,
+    unit_function_id: str,
+    previous_row,
+    changed_by_user_id: Optional[str],
+    changed_by_ai: bool = False,
+    change_reason: Optional[str] = None,
+    change_source: str = "manual",
+) -> None:
+    """
+    Antes de un UPDATE, persistir el estado actual en unit_function_versions.
+    El número de versión es el CURRENT version del row (lo que está siendo
+    reemplazado). El nuevo UPDATE incrementa unit_functions.version a +1.
+    """
+    snapshot = _snapshot_row_to_dict(previous_row)
+    db.execute(
+        "INSERT INTO unit_function_versions ("
+        "id, unit_function_id, version, snapshot_json, "
+        "changed_by_user_id, changed_by_ai, change_reason, change_source, created_at"
+        ") VALUES (?,?,?,?,?,?,?,?,?)",
+        (
+            str(uuid.uuid4()), unit_function_id,
+            int(previous_row["version"] or 1),
+            json.dumps(snapshot, ensure_ascii=False, default=str),
+            changed_by_user_id,
+            1 if changed_by_ai else 0,
+            change_reason, change_source, _now(),
+        ),
+    )
+
+
 @router.patch("/{unit_function_id}")
 def update_unit_function(
     unit_function_id: str,
@@ -514,6 +578,19 @@ def update_unit_function(
     if not sets:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    # === VG+1.2: snapshot del estado anterior + bump de version ANTES del UPDATE ===
+    # Esto permite reconstruir la evolución de cada función:
+    # "Antes Elena tenía Losartán 8:00/20:00, cambiamos a 8:00 solo y mejoró".
+    _record_version_snapshot(
+        db,
+        unit_function_id=unit_function_id,
+        previous_row=row,
+        changed_by_user_id=user["user_id"],
+        changed_by_ai=False,
+        change_source="manual_patch",
+    )
+    sets.append("version=?")
+    params.append(int(row["version"] or 1) + 1)
     sets.append("updated_at=?")
     params.append(_now())
     params.append(unit_function_id)
@@ -569,3 +646,119 @@ def get_function_timeline(
         (unit_function_id, min(limit, 500)),
     ).fetchall()
     return {"items": [dict(r) for r in rows]}
+
+
+@router.get("/{unit_function_id}/versions")
+def get_function_versions(
+    unit_function_id: str,
+    limit: int = 100,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    Historial de cambios de una función. Cada item es un snapshot del estado
+    previo a cada PATCH. Permite reconstruir la Biblioteca de Evolución
+    ("antes Elena tenía X, ahora tiene Y, mejoró Z%").
+    """
+    row = db.execute(
+        "SELECT household_id, version FROM unit_functions WHERE id=?",
+        (unit_function_id,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="UnitFunction not found")
+    require_household_role(db, user["user_id"], row["household_id"], "viewer")
+
+    rows = db.execute(
+        "SELECT * FROM unit_function_versions WHERE unit_function_id=? "
+        "ORDER BY version DESC LIMIT ?",
+        (unit_function_id, min(limit, 500)),
+    ).fetchall()
+    versions = []
+    for r in rows:
+        item = dict(r)
+        # Parsear snapshot_json para que el cliente lo reciba como objeto
+        try:
+            item["snapshot"] = json.loads(item.get("snapshot_json") or "{}")
+        except Exception:
+            item["snapshot"] = {}
+        versions.append(item)
+    return {
+        "current_version": int(row["version"] or 1),
+        "items": versions,
+    }
+
+
+# =============================================================================
+# AI confirmation flow (VG+1.4)
+# =============================================================================
+
+class ConfirmFunctionBody(BaseModel):
+    confirmed: bool = True
+    change_reason: Optional[str] = None
+
+
+@router.post("/{unit_function_id}/confirm")
+def confirm_unit_function(
+    unit_function_id: str,
+    body: ConfirmFunctionBody,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    Confirmación humana para funciones creadas por IA con
+    `ai_needs_confirmation=true`. Hasta que esto pase, el scheduler NO
+    dispara recordatorios para esa función (medicación, citas, etc.).
+
+    Si `confirmed=false`, marcamos `confirmed_at` igual pero status pasa a
+    'cancelled' (la familia rechaza la sugerencia de la IA).
+    """
+    row = db.execute(
+        "SELECT * FROM unit_functions WHERE id=?",
+        (unit_function_id,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="UnitFunction not found")
+    require_household_role(db, user["user_id"], row["household_id"], "member")
+
+    if not row["ai_needs_confirmation"]:
+        raise HTTPException(
+            status_code=400,
+            detail="This function does not require confirmation",
+        )
+
+    # Snapshot del estado previo (para audit de la confirmación)
+    _record_version_snapshot(
+        db,
+        unit_function_id=unit_function_id,
+        previous_row=row,
+        changed_by_user_id=user["user_id"],
+        changed_by_ai=False,
+        change_reason=body.change_reason or ("rejected" if not body.confirmed else "confirmed"),
+        change_source="user_confirmation",
+    )
+
+    ts = _now()
+    new_status = row["status"] if body.confirmed else "cancelled"
+    db.execute(
+        "UPDATE unit_functions SET "
+        "confirmed_by_user_id=?, confirmed_at=?, ai_needs_confirmation=0, "
+        "status=?, version=?, updated_at=? "
+        "WHERE id=?",
+        (
+            user["user_id"], ts, new_status,
+            int(row["version"] or 1) + 1, ts,
+            unit_function_id,
+        ),
+    )
+
+    write_audit_log(
+        db,
+        action="unit_function.confirm" if body.confirmed else "unit_function.reject",
+        resource_type="unit_function",
+        resource_id=unit_function_id,
+        household_id=row["household_id"],
+        user_id=user["user_id"],
+        metadata={"confirmed": body.confirmed, "change_reason": body.change_reason},
+    )
+    db.commit()
+    return {"ok": True, "confirmed": body.confirmed, "status": new_status}
