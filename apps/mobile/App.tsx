@@ -15,6 +15,8 @@ import { FinanceScreen } from "./src/screens/FinanceScreen";
 import { PersonsScreen } from "./src/screens/PersonsScreen";
 import { ChatScreen } from "./src/screens/ChatScreen";
 import { CeoScreen } from "./src/screens/CeoScreen";
+import { GuiaScreen } from "./src/screens/GuiaScreen";
+import { PersonLibraryScreen } from "./src/screens/PersonLibraryScreen";
 import { TaxonomyProvider, useTaxonomy } from "./src/context/TaxonomyContext";
 
 const Stack = createNativeStackNavigator();
@@ -41,6 +43,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: "Resumen" }} />
+      <Tab.Screen name="Guia" component={GuiaScreen} options={{ title: tax?.family_mode ? "Guía" : "Funciones" }} />
       <Tab.Screen name="Tasks" component={TasksScreen} options={{ title: tax?.tasks || "Operaciones" }} />
       <Tab.Screen name="Persons" component={PersonsScreen} options={{ title: tax?.persons || "Cuadrilla" }} />
       <Tab.Screen name="Finance" component={FinanceScreen} options={{ title: tax?.finance || "Presupuesto" }} />
@@ -76,6 +79,7 @@ export default function App() {
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: "Asistente AI", headerStyle: { backgroundColor: "#1f2a3a" }, headerTintColor: "#e9f0ff" }} />
           <Stack.Screen name="Ceo" component={CeoScreen} options={{ headerShown: true, title: "Command Center B2B", headerStyle: { backgroundColor: "#0f172a" }, headerTintColor: "#e9f0ff" }} />
+          <Stack.Screen name="PersonLibrary" component={PersonLibraryScreen} options={{ headerShown: true, title: "Biblioteca", headerStyle: { backgroundColor: "#0f172a" }, headerTintColor: "#e9f0ff" }} />
         </Stack.Navigator>
       </NavigationContainer>
     </TaxonomyProvider>

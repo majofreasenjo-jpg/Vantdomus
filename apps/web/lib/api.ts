@@ -365,3 +365,199 @@ export const synthesizeVoiceSpeech = (hid: string, text: string, voice = "alloy"
 
 export const getVoiceAudioStatus = () =>
   apiFetch("/audio/status", { cache: "no-store" });
+
+
+// =============================================================================
+// VantGuide — Sprint VG+2 client API
+// =============================================================================
+
+export type UnitFunctionRow = {
+  id: string;
+  household_id: string | null;
+  organization_id: string | null;
+  person_id: string;
+  responsible_person_id: string | null;
+  category: string;
+  title: string;
+  description: string | null;
+  source_type: string;
+  source_document_id: string | null;
+  due_at: string | null;
+  schedule: Record<string, any>;
+  recurrence: string | null;
+  status: string;
+  priority: string;
+  supervision_level: string;
+  support_mode: string | null;
+  evidence_required: boolean;
+  reward_rule_id: string | null;
+  legacy_task_id: string | null;
+  created_by_user_id: string;
+  created_by_ai: boolean;
+  ai_confidence?: number | null;
+  ai_needs_confirmation?: boolean | number;
+  ai_extraction_source?: string | null;
+  ai_explanation?: string | null;
+  confirmed_by_user_id?: string | null;
+  confirmed_at?: string | null;
+  version?: number;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+};
+
+export const listUnitFunctions = (params: {
+  household_id: string;
+  person_id?: string;
+  category?: string;
+  status?: string;
+  limit?: number;
+}) => {
+  const qs = new URLSearchParams();
+  qs.set("household_id", params.household_id);
+  if (params.person_id) qs.set("person_id", params.person_id);
+  if (params.category) qs.set("category", params.category);
+  if (params.status) qs.set("status", params.status);
+  if (params.limit) qs.set("limit", String(params.limit));
+  return apiFetch(`/unit_functions?${qs.toString()}`);
+};
+
+export const getUnitFunction = (id: string) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}`);
+
+export const getUnitFunctionTimeline = (id: string, limit = 100) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}/timeline?limit=${limit}`);
+
+export const getUnitFunctionVersions = (id: string) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}/versions`);
+
+export const patchUnitFunction = (id: string, body: Partial<{
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  due_at: string;
+  schedule: Record<string, any>;
+  recurrence: string;
+  supervision_level: string;
+  support_mode: string;
+  evidence_required: boolean;
+  metadata: Record<string, any>;
+}>) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+
+export const confirmUnitFunction = (id: string, confirmed: boolean, changeReason?: string) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ confirmed, change_reason: changeReason }),
+  });
+
+export const createUnitFunction = (body: {
+  household_id: string;
+  person_id: string;
+  category: string;
+  title: string;
+  description?: string;
+  source_type?: string;
+  due_at?: string;
+  schedule?: Record<string, any>;
+  recurrence?: string;
+  priority?: string;
+  supervision_level?: string;
+  support_mode?: string;
+  evidence_required?: boolean;
+}) =>
+  apiFetch(`/unit_functions`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+// ----- Biblioteca: evidencia + memoria + persona library -----
+
+export type EvidenceItem = {
+  id: string;
+  unit_function_id: string | null;
+  person_id: string | null;
+  household_id: string;
+  evidence_type: string;
+  text_content: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  metadata: Record<string, any>;
+  confidence: number | null;
+  created_at: string;
+};
+
+export const listEvidence = (params: {
+  household_id: string;
+  person_id?: string;
+  unit_function_id?: string;
+  evidence_type?: string;
+  limit?: number;
+}) => {
+  const qs = new URLSearchParams();
+  qs.set("household_id", params.household_id);
+  if (params.person_id) qs.set("person_id", params.person_id);
+  if (params.unit_function_id) qs.set("unit_function_id", params.unit_function_id);
+  if (params.evidence_type) qs.set("evidence_type", params.evidence_type);
+  if (params.limit) qs.set("limit", String(params.limit));
+  return apiFetch(`/library/evidence?${qs.toString()}`);
+};
+
+export const createEvidence = (body: {
+  household_id: string;
+  unit_function_id?: string;
+  function_event_id?: string;
+  person_id?: string;
+  evidence_type: string;
+  text_content?: string;
+  metadata?: Record<string, any>;
+  visible_to_roles?: string[];
+}) =>
+  apiFetch(`/library/evidence`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const getPersonLibrary = (personId: string, householdId: string) =>
+  apiFetch(`/library/evidence/library/${encodeURIComponent(personId)}?household_id=${encodeURIComponent(householdId)}`);
+
+export const createMemory = (body: {
+  household_id: string;
+  person_id?: string;
+  memory_type: string;
+  content: string;
+  importance?: number;
+}) =>
+  apiFetch(`/library/memory`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const getPersonSupportProfile = (personId: string, householdId: string) =>
+  apiFetch(`/persons/${encodeURIComponent(personId)}/support_profile?household_id=${encodeURIComponent(householdId)}`);
+
+// ----- Multi-responsibles -----
+
+export const listResponsibles = (unitFunctionId: string) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(unitFunctionId)}/responsibles`);
+
+export const addResponsible = (unitFunctionId: string, body: {
+  person_id: string;
+  responsibility_role: string;
+  escalation_order?: number;
+  notify?: boolean;
+  can_confirm?: boolean;
+  can_edit?: boolean;
+  escalation_delay_minutes?: number;
+}) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(unitFunctionId)}/responsibles`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+// ----- Demo seed (already exists upstream as seedDemo; re-export for clarity) -----
+// `seedDemo` is exported above; no duplicate here.

@@ -52,7 +52,12 @@ export function PersonsScreen({ navigation }: any) {
           <Pressable
             key={p.id}
             style={styles.personBtn}
-            onPress={() => navigation.navigate("Health", { personId: p.id })}
+            // En modo familia, llevamos al Library (biblioteca completa).
+            // En modo B2B legacy, mantenemos el screen Health para no romper UX.
+            onPress={() => navigation.navigate(
+              tax.family_mode ? "PersonLibrary" : "Health",
+              { personId: p.id, personName: p.display_name },
+            )}
           >
             <View>
               <Text style={styles.personName}>{p.display_name}</Text>
@@ -60,7 +65,7 @@ export function PersonsScreen({ navigation }: any) {
                 {p.relation || (tax.family_mode ? "Integrante" : "Sin Cargo Asignado")}
               </Text>
             </View>
-            <Text style={styles.muted}>{tax.family_mode ? "Salud" : "Ver"}</Text>
+            <Text style={styles.muted}>{tax.family_mode ? "Biblioteca →" : "Ver"}</Text>
           </Pressable>
         ))}
 

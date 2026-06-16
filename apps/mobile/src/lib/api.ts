@@ -119,3 +119,40 @@ export const healthCheckin = (hid: string, pid: string, med: string, status: "ta
   const qs = new URLSearchParams({ household_id: hid, person_id: pid, med_name: med, status });
   return apiFetch(`/health/checkin?${qs.toString()}`, { method: "POST" });
 };
+
+// =============================================================================
+// VantGuide — Sprint VG+2 mobile client
+// =============================================================================
+
+export const listUnitFunctions = (hid: string, opts?: { person_id?: string; category?: string; status?: string; limit?: number }) => {
+  const qs = new URLSearchParams({ household_id: hid });
+  if (opts?.person_id) qs.set("person_id", opts.person_id);
+  if (opts?.category) qs.set("category", opts.category);
+  if (opts?.status) qs.set("status", opts.status);
+  if (opts?.limit) qs.set("limit", String(opts.limit));
+  return apiFetch(`/unit_functions?${qs.toString()}`);
+};
+
+export const getUnitFunction = (id: string) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}`);
+
+export const patchUnitFunction = (id: string, body: Partial<{ status: string; title: string; priority: string; due_at: string }>) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+
+export const confirmUnitFunction = (id: string, confirmed: boolean) =>
+  apiFetch(`/unit_functions/${encodeURIComponent(id)}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ confirmed }),
+  });
+
+export const getPersonLibrary = (personId: string, householdId: string) =>
+  apiFetch(`/library/evidence/library/${encodeURIComponent(personId)}?household_id=${encodeURIComponent(householdId)}`);
+
+export const createEvidence = (hid: string, body: { unit_function_id?: string; person_id?: string; evidence_type: string; text_content?: string }) =>
+  apiFetch(`/library/evidence`, {
+    method: "POST",
+    body: JSON.stringify({ household_id: hid, ...body }),
+  });
