@@ -42,9 +42,9 @@ export function PersonsScreen({ navigation }: any) {
   return (
     <ScrollView style={[styles.container, { backgroundColor: tax.theme?.bg || "#0b0f17" }]} contentContainerStyle={{ padding: 16, width: "100%", maxWidth: 640, alignSelf: "center", minHeight: "100%" }}>
       <Text style={styles.h1}>{tax.persons}</Text>
-      <Text style={styles.muted}>{hid}</Text>
+      {!tax.family_mode ? <Text style={styles.muted}>{hid}</Text> : null}
 
-      <Card title="Listado">
+      <Card title={tax.family_mode ? "Tu familia" : "Listado"}>
         {loading ? <ActivityIndicator /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -56,13 +56,21 @@ export function PersonsScreen({ navigation }: any) {
           >
             <View>
               <Text style={styles.personName}>{p.display_name}</Text>
-              <Text style={styles.muted}>{p.relation || "Sin Cargo Asignado"}</Text>
+              <Text style={styles.muted}>
+                {p.relation || (tax.family_mode ? "Integrante" : "Sin Cargo Asignado")}
+              </Text>
             </View>
-            <Text style={styles.muted}>Ver</Text>
+            <Text style={styles.muted}>{tax.family_mode ? "Salud" : "Ver"}</Text>
           </Pressable>
         ))}
 
-        {!loading && persons.length === 0 ? <Text style={styles.muted}>Sin {tax.persons.toLowerCase()} asignado a la unidad.</Text> : null}
+        {!loading && persons.length === 0 ? (
+          <Text style={styles.muted}>
+            {tax.family_mode
+              ? "Agregá a los integrantes de tu familia desde el panel web."
+              : `Sin ${tax.persons.toLowerCase()} asignado a la unidad.`}
+          </Text>
+        ) : null}
       </Card>
     </ScrollView>
   );

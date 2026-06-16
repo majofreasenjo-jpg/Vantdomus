@@ -4,15 +4,21 @@ import { Card } from "../components/Card";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { chatAssistant } from "../lib/api";
-import { useTaxonomy } from "../context/TaxonomyContext";
+import { useTaxonomy, getViewLabel } from "../context/TaxonomyContext";
 
 export function ChatScreen() {
   const { tax } = useTaxonomy();
   const [hid, setHid] = useState<string>("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // Saludo inicial calibrado al preset (familia → cálido, default → operacional).
+  const welcomeMessage = getViewLabel(
+    tax,
+    "chat_welcome",
+    "Hola. Soy VantDomus. Pregúntame por el estado del hogar, alertas, tareas o salud."
+  );
   const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([
-    { role: "assistant", content: "Hola. Soy VantDomus. Pregúntame por el estado del hogar, alertas, tareas o salud." }
+    { role: "assistant", content: welcomeMessage },
   ]);
   const [error, setError] = useState("");
 
@@ -49,10 +55,10 @@ export function ChatScreen() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 80}
       >
         <ScrollView contentContainerStyle={{ padding: 16, width: "100%", maxWidth: 640, alignSelf: "center", minHeight: "100%" }}>
-          <Text style={styles.h1}>Centro de Comando ({tax.ai_role?.split(" ")[0] || "AI"})</Text>
-          <Text style={styles.muted}>{hid} - Escribe comandos a tu supervisor robótico.</Text>
+          <Text style={styles.h1}>{getViewLabel(tax, "chat_title", "Asistente")}</Text>
+          <Text style={styles.muted}>{getViewLabel(tax, "chat_subtitle", "Hacé tu consulta.")}</Text>
 
-          <Card title="Transmisiones">
+          <Card title={tax.family_mode ? "Conversación" : "Transmisiones"}>
             {messages.map((m, idx) => (
               <View key={idx} style={[styles.bubble, m.role === "user" ? [styles.user, { backgroundColor: tax.theme?.primary + "30", borderColor: tax.theme?.primary }] : styles.assistant]}>
                 <Text style={styles.bubbleText}>{m.content}</Text>
@@ -68,7 +74,11 @@ export function ChatScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder={`Orden operativa para ${tax.unit}…`}
+              placeholder={
+                tax.family_mode
+                  ? getViewLabel(tax, "chat_input_placeholder", "¿En qué te ayudo?")
+                  : `Orden operativa para ${tax.unit}…`
+              }
               placeholderTextColor="#6f829b"
               style={styles.input}
               onSubmitEditing={send}

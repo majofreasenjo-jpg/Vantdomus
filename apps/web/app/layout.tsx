@@ -52,6 +52,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
 
+  // Mode familia: oculta secciones B2B (Direccion / Centro Operativo) y
+  // renombra el brand + nav para que el copy sea coherente con el preset
+  // familiar. La detección es por industry_preset (rich preset family lo
+  // marca con family_mode=true).
+  const isFamily = Boolean(tax.family_mode);
+  const familyName: string | undefined = (tax as any).__familyName; // not used now, but reserved
+  const brandSubline = isFamily
+    ? "Tu hogar, organizado con ayuda de IA"
+    : `${tax.product_line || "Planificador de Unidades"} - ${tax.domain_label || "Cliente adaptable"}`;
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body
@@ -63,28 +73,43 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div className="brand">
               <div className="logo" />
               <div>
-                <div className="brandTitle">VantDomus</div>
-                <div className="small">{tax.product_line || "Planificador de Unidades"} - {tax.domain_label || "Cliente adaptable"}</div>
+                <div className="brandTitle">{isFamily ? "VantDomus Hogar" : "VantDomus"}</div>
+                <div className="small">{brandSubline}</div>
               </div>
             </div>
             <div className="navLinks">
-              <a href="/ceo" style={{ color: "var(--good)", fontWeight: "bold" }}>Direccion</a>
-              <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
-              <a href={hid ? `/dashboard/${hid}` : "/"}>Dashboard</a>
-              <a href={hid ? `/health/${hid}` : "/"}>{tax.health}</a>
-              <a href={hid ? `/esg/${hid}` : "/"}>{tax.esg}</a>
-              <a href={hid ? `/tasks/${hid}` : "/"}>{tax.tasks}</a>
-              <a href={hid ? `/finance/${hid}` : "/"}>{tax.finance}</a>
-              <a href={hid ? `/settings/${hid}` : "/"}>Ajustes Cliente</a>
+              {/* Las secciones B2B "Direccion" y "Centro Operativo" SOLO
+                  aparecen cuando NO es modo familia. En familia rompen la
+                  inmersión y revelan la naturaleza B2B del producto. */}
+              {!isFamily ? (
+                <>
+                  <a href="/ceo" style={{ color: "var(--good)", fontWeight: "bold" }}>Direccion</a>
+                  <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
+                </>
+              ) : null}
+              <a href={hid ? `/dashboard/${hid}` : "/"}>{isFamily ? "Inicio" : "Dashboard"}</a>
+              <a href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</a>
+              <a href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</a>
+              <a href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</a>
+              <a href={hid ? `/esg/${hid}` : "/"}>{isFamily ? "Documentos" : tax.esg}</a>
+              <a href="/inbox">{isFamily ? "Buzón" : "Buzón"}</a>
+              <a href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</a>
             </div>
             {hasSession ? (
               <form action={logoutAction}>
-                <button className="btn" type="submit">Salir</button>
+                <button className="btn" type="submit">{isFamily ? "Cerrar sesión" : "Salir"}</button>
               </form>
             ) : (
               <a className="btn" href="/login">Entrar</a>
             )}
-            <div className="badge">{hid ? `${tax.unit.toLowerCase()} ${hid.slice(0, 8)}…` : "sin unidad"}</div>
+            {/* En modo familia, el badge muestra el nombre del hogar (no su UUID). */}
+            <div className="badge">
+              {hid ? (
+                isFamily
+                  ? (tax.unit || "Tu hogar")
+                  : `${tax.unit.toLowerCase()} ${hid.slice(0, 8)}…`
+              ) : "sin unidad"}
+            </div>
           </div>
         </div>
         <div className="container">{children}</div>

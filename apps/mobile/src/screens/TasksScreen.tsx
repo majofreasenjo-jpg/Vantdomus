@@ -1,11 +1,42 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, ActivityIndicator } from "react-native";
 import { Card } from "../components/Card";
 import { Pill } from "../components/Pill";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { createTask, listTasks, markTaskDone } from "../lib/api";
-import { useTaxonomy } from "../context/TaxonomyContext";
+import { useTaxonomy, getViewLabel } from "../context/TaxonomyContext";
+
+// Categorías Kanban en mobile (3 columnas).
+// Mapeo desde los status string del backend hacia la columna visual:
+//   "open" → Por hacer
+//   "in_progress" → En curso
+//   "done" → Hecho
+const KANBAN_COLUMNS = [
+  { key: "open", family_label: "Por hacer", default_label: "Por hacer", emoji: "📌" },
+  { key: "in_progress", family_label: "En curso", default_label: "En curso", emoji: "⏳" },
+  { key: "done", family_label: "Hecho", default_label: "Completado", emoji: "✓" },
+] as const;
+
+function fmtDueDate(iso: string | null | undefined, family: boolean): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = d.getTime() - now.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (family) {
+      if (diffDays === 0) return "Hoy";
+      if (diffDays === 1) return "Mañana";
+      if (diffDays === -1) return "Ayer";
+      if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} días`;
+      if (diffDays < 0 && diffDays >= -7) return `Hace ${-diffDays} días`;
+    }
+    return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+  } catch {
+    return iso;
+  }
+}
 
 export function TasksScreen() {
   const { tax } = useTaxonomy();
@@ -44,14 +75,18 @@ export function TasksScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: tax.theme?.bg || "#0b0f17" }]} contentContainerStyle={{ padding: 16, width: "100%", maxWidth: 640, alignSelf: "center", minHeight: "100%" }}>
       <Text style={styles.h1}>{tax.tasks}</Text>
-      <Text style={styles.muted}>{hid}</Text>
+      {!tax.family_mode ? <Text style={styles.muted}>{hid}</Text> : null}
 
-      <Card title="Crear">
+      <Card title={getViewLabel(tax, "tasks_create", "Crear")}>
         <View style={styles.row}>
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder={`Nueva ${tax.tasks.toLowerCase()}`}
+            placeholder={
+              tax.family_mode
+                ? "Nueva tarea (ej. Comprar pan)"
+                : `Nueva ${tax.tasks.toLowerCase()}`
+            }
             placeholderTextColor="#6f829b"
             style={styles.input}
           />
@@ -64,34 +99,87 @@ export function TasksScreen() {
               await refresh();
             }}
           >
-            <Text style={styles.btnText}>Crear</Text>
+            <Text style={styles.btnText}>{tax.family_mode ? "Agregar" : "Crear"}</Text>
           </Pressable>
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </Card>
 
-      <Card title="Listado">
-        {loading ? <ActivityIndicator /> : null}
-        {items.map((t) => (
-          <View key={t.id} style={styles.item}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemTitle}>{t.title}</Text>
-              <View style={styles.row}>
-                <Pill text={t.priority} tone={t.priority === "high" ? "bad" : t.priority === "medium" ? "warn" : "muted"} />
-                <Text style={styles.muted}>{t.status}</Text>
-              </View>
-            </View>
-            {t.status !== "done" ? (
-              <Pressable style={styles.btn} onPress={async () => { await markTaskDone(hid, t.id); await refresh(); }}>
-                <Text style={styles.btnText}>Done</Text>
-              </Pressable>
-            ) : (
-              <Pill text="done" tone="good" />
-            )}
-          </View>
-        ))}
-        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin {tax.tasks.toLowerCase()} asignadas.</Text> : null}
-      </Card>
+      {/* Kanban-style 3 columnas stacked vertically.
+          Cada columna agrupa tareas por status. Si family_mode,
+          se usa copy y emoji familiar; sino el tono operacional. */}
+      {!loading ? (
+        <>
+          {KANBAN_COLUMNS.map((col) => {
+            const colItems = items.filter((t) => {
+              // "open" agrupa también tareas sin status definido
+              if (col.key === "open") {
+                return !t.status || t.status === "open";
+              }
+              return t.status === col.key;
+            });
+            const colLabel = tax.family_mode ? col.family_label : col.default_label;
+            return (
+              <Card
+                key={col.key}
+                title={`${col.emoji}  ${colLabel}  ·  ${colItems.length}`}
+              >
+                {colItems.length === 0 ? (
+                  <Text style={styles.muted}>
+                    {col.key === "done"
+                      ? (tax.family_mode ? "Aún no marcaron nada como hecho." : "Sin completadas.")
+                      : col.key === "in_progress"
+                      ? (tax.family_mode ? "Nadie está trabajando en algo ahora mismo." : "Sin en curso.")
+                      : (tax.family_mode ? "Todo en orden 🌱" : "Sin pendientes.")}
+                  </Text>
+                ) : null}
+                {colItems.map((t) => (
+                  <View key={t.id} style={styles.item}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.itemTitle}>{t.title}</Text>
+                      <View style={styles.row}>
+                        <Pill
+                          text={tax.family_mode
+                            ? (t.priority === "high" ? "urgente" : t.priority === "medium" ? "normal" : "tranqui")
+                            : t.priority
+                          }
+                          tone={t.priority === "high" ? "bad" : t.priority === "medium" ? "warn" : "muted"}
+                        />
+                        {t.due_at ? (
+                          <Text style={styles.muted}>
+                            {fmtDueDate(t.due_at, tax.family_mode)}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    {col.key !== "done" ? (
+                      <Pressable
+                        style={styles.btn}
+                        onPress={async () => { await markTaskDone(hid, t.id); await refresh(); }}
+                      >
+                        <Text style={styles.btnText}>
+                          {tax.family_mode ? "✓ Hecho" : getViewLabel(tax, "tasks_done_btn", "Done")}
+                        </Text>
+                      </Pressable>
+                    ) : (
+                      <Pill text={tax.family_mode ? "✓" : "done"} tone="good" />
+                    )}
+                  </View>
+                ))}
+              </Card>
+            );
+          })}
+          {items.length === 0 ? (
+            <Card title="">
+              <Text style={styles.muted}>
+                {getViewLabel(tax, "tasks_empty", `Sin ${tax.tasks.toLowerCase()} asignadas.`)}
+              </Text>
+            </Card>
+          ) : null}
+        </>
+      ) : (
+        <ActivityIndicator style={{ marginTop: 24 }} />
+      )}
     </ScrollView>
   );
 }

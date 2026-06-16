@@ -6,7 +6,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { applyAssistant, getAssistant, getDashboard, registerPushToken } from "../lib/api";
 import { registerForPushToken } from "../lib/push";
-import { useTaxonomy } from "../context/TaxonomyContext";
+import { useTaxonomy, getViewLabel } from "../context/TaxonomyContext";
+
+function greetingForHour(): string {
+  const h = new Date().getHours();
+  if (h < 6) return "Hola";
+  if (h < 12) return "Buenos días";
+  if (h < 20) return "Buenas tardes";
+  return "Buenas noches";
+}
 
 function toneForHSI(hsi: number): "good" | "warn" | "bad" {
   if (hsi >= 80) return "good";
@@ -69,38 +77,59 @@ export function DashboardScreen({ navigation }: any) {
 
   if (!hid) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.h1}>Config faltante</Text>
-        <Text style={styles.muted}>Define EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID en .env</Text>
+      <View style={[styles.center, { backgroundColor: tax.theme?.bg || "#0b0f17" }]}>
+        <Text style={styles.h1}>
+          {tax.family_mode ? "Falta configurar tu hogar 🏡" : "Config faltante"}
+        </Text>
+        <Text style={styles.muted}>
+          {tax.family_mode
+            ? "Entrá al panel web, creá tu hogar y volvé acá."
+            : "Define EXPO_PUBLIC_DEFAULT_HOUSEHOLD_ID en .env"}
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, width: "100%", maxWidth: 640, alignSelf: "center", minHeight: "100%" }}>
-      <Text style={styles.h1}>Dashboard</Text>
-      <Text style={styles.muted}>{hid}</Text>
+    <ScrollView style={[styles.container, { backgroundColor: tax.theme?.bg || "#0b0f17" }]} contentContainerStyle={{ padding: 16, width: "100%", maxWidth: 640, alignSelf: "center", minHeight: "100%" }}>
+      <Text style={styles.h1}>
+        {tax.family_mode
+          ? `${greetingForHour()}${dash?.household?.meta?.family_name ? ", " + dash.household.meta.family_name : ""} 🏡`
+          : getViewLabel(tax, "dashboard_title", "Dashboard")
+        }
+      </Text>
+      {/* Solo mostrar UUIDs cuando NO es modo familia. En familia no le pedimos al usuario que vea identificadores técnicos. */}
+      {!tax.family_mode ? <Text style={styles.muted}>{hid}</Text> : null}
 
       {loading ? <ActivityIndicator style={{ marginTop: 12 }} /> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {dash ? (
         <>
-          <Card title="Operational Stability Index (OSI)">
+          <Card title={tax.kpi?.osi || "Operational Stability Index (OSI)"}>
             <View style={styles.rowBetween}>
               <View>
                 <View style={styles.row}>
                   <Text style={styles.big}>{hsi}%</Text>
-                  <Text style={[styles.muted, { marginLeft: 8, alignSelf: "flex-end", marginBottom: 6 }]}>
-                    ±{f?.hsi_margin ?? 0}% (Conf. 95%)
-                  </Text>
+                  {!tax.family_mode ? (
+                    <Text style={[styles.muted, { marginLeft: 8, alignSelf: "flex-end", marginBottom: 6 }]}>
+                      ±{f?.hsi_margin ?? 0}% (Conf. 95%)
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={{ alignSelf: "flex-start", marginTop: 4 }}>
-                  <Pill text={tone === "good" ? "Stable" : tone === "warn" ? "At Risk" : "Critical"} tone={tone} />
+                  <Pill
+                    text={
+                      tax.family_mode
+                        ? (tone === "good" ? "Todo bien" : tone === "warn" ? "Atención" : "Necesita ayuda")
+                        : (tone === "good" ? "Stable" : tone === "warn" ? "At Risk" : "Critical")
+                    }
+                    tone={tone}
+                  />
                 </View>
               </View>
               <Pressable style={[styles.btn, styles.btnPrimary, { alignSelf: "flex-start" }]} onPress={refresh}>
-                <Text style={styles.btnText}>Refresh</Text>
+                <Text style={styles.btnText}>{tax.family_mode ? "Actualizar" : "Refresh"}</Text>
               </Pressable>
             </View>
             <View style={{ marginTop: 14 }}>
@@ -116,7 +145,7 @@ export function DashboardScreen({ navigation }: any) {
             </View>
           </Card>
 
-          <Card title="Planning Assistant">
+          <Card title={tax.family_mode ? "Sugerencias del asistente" : "Planning Assistant"}>
             {asst?.items?.length ? asst.items.slice(0, 5).map((r: any) => (
               <View key={r.id} style={styles.reco}>
                 <View style={styles.row}>
@@ -132,10 +161,16 @@ export function DashboardScreen({ navigation }: any) {
                   <Text style={styles.btnText}>Aplicar</Text>
                 </Pressable>
               </View>
-            )) : <Text style={styles.muted}>No hay recomendaciones abiertas.</Text>}
+            )) : (
+              <Text style={styles.muted}>
+                {tax.family_mode
+                  ? "No hay sugerencias por ahora. Cuando aparezcan oportunidades de ayudarte aparecerán acá."
+                  : "No hay recomendaciones abiertas."}
+              </Text>
+            )}
           </Card>
 
-          <Card title="Navegar">
+          <Card title={tax.family_mode ? "Accesos rápidos" : "Navegar"}>
             <View style={styles.row}>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Tasks")}>
                 <Text style={styles.btnText}>{tax.tasks}</Text>
@@ -149,15 +184,22 @@ export function DashboardScreen({ navigation }: any) {
                 <Text style={styles.btnText}>{tax.persons}</Text>
               </Pressable>
               <Pressable style={styles.btn} onPress={() => navigation.navigate("Chat")}>
-                <Text style={styles.btnText}>Chat AI</Text>
+                <Text style={styles.btnText}>
+                  {tax.family_mode ? "Asistente" : "Chat AI"}
+                </Text>
               </Pressable>
             </View>
 
-            <View style={[styles.row, { marginTop: 12 }]}>
-              <Pressable style={[styles.btn, { width: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.3)" }]} onPress={() => navigation.navigate("Ceo")}>
-                <Text style={[styles.btnText, { color: "#fbbf24" }]}>🌐 Entrar al B2B Command Center</Text>
-              </Pressable>
-            </View>
+            {/* El "Command Center B2B" solo aparece cuando NO es modo familia.
+                Para una familia, ese botón rompe la inmersión y revela la
+                naturaleza B2B del producto. */}
+            {!tax.family_mode ? (
+              <View style={[styles.row, { marginTop: 12 }]}>
+                <Pressable style={[styles.btn, { width: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.3)" }]} onPress={() => navigation.navigate("Ceo")}>
+                  <Text style={[styles.btnText, { color: "#fbbf24" }]}>🌐 Entrar al B2B Command Center</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </Card>
         </>
       ) : null}

@@ -4,7 +4,24 @@ import { Card } from "../components/Card";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "../config";
 import { getPersonHealthTimeline, healthCheckin, setAdherencePlan } from "../lib/api";
-import { useTaxonomy } from "../context/TaxonomyContext";
+import { useTaxonomy, getViewLabel } from "../context/TaxonomyContext";
+
+// Renderiza fechas ISO al formato local del usuario.
+// Ej: "2026-06-10T08:00:00Z" → "10 jun · 08:00"
+function formatEventDate(iso: string): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString("es-CL", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export function HealthScreen({ route }: any) {
   const { tax } = useTaxonomy();
@@ -49,37 +66,75 @@ export function HealthScreen({ route }: any) {
       <Text style={styles.h1}>{tax.health}</Text>
       <Text style={styles.muted}>{name || personId}</Text>
 
-      <Card title="Protocolos Operativos">
+      <Card title={getViewLabel(tax, "health_card", "Protocolos Operativos")}>
         <View style={styles.row}>
-          <TextInput value={med} onChangeText={setMed} style={styles.input} placeholder="Protocolo / Check" placeholderTextColor="#6f829b" />
-          <Pressable style={[styles.btn, styles.btnPrimary]} onPress={async () => { await setAdherencePlan(hid, personId, med, "08:00,20:00", "tap"); await refresh(); }}>
-            <Text style={styles.btnText}>Definir Plan</Text>
+          <TextInput
+            value={med}
+            onChangeText={setMed}
+            style={styles.input}
+            placeholder={getViewLabel(tax, "health_input_placeholder", "Protocolo / Check")}
+            placeholderTextColor="#6f829b"
+          />
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={async () => { await setAdherencePlan(hid, personId, med, "08:00,20:00", "tap"); await refresh(); }}
+          >
+            <Text style={styles.btnText}>{getViewLabel(tax, "health_plan_btn", "Definir Plan")}</Text>
           </Pressable>
         </View>
-        <Text style={styles.muted}>Default: 08:00,20:00 · tap</Text>
+        <Text style={styles.muted}>
+          {tax.family_mode ? "Recordatorios: 08:00 y 20:00" : "Default: 08:00,20:00 · tap"}
+        </Text>
       </Card>
 
-      <Card title="Control en Terreno">
+      <Card title={tax.family_mode
+        ? getViewLabel(tax, "health_checkin_title", "¿Cómo va con la pastilla?")
+        : getViewLabel(tax, "health_checkin", "Control en Terreno")
+      }>
         <View style={styles.row}>
-          <Pressable style={[styles.btn, { borderColor: tax.theme?.primary }]} onPress={async () => { await healthCheckin(hid, personId, med, "taken"); await refresh(); }}>
-            <Text style={[styles.btnText, { color: tax.theme?.primary }]}>Seguro / OK</Text>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary, { borderColor: tax.theme?.primary }]}
+            onPress={async () => { await healthCheckin(hid, personId, med, "taken"); await refresh(); }}
+          >
+            <Text style={[styles.btnText, { color: tax.theme?.primary }]}>
+              {getViewLabel(tax, "health_taken", "Seguro / OK")}
+            </Text>
           </Pressable>
-          <Pressable style={styles.btn} onPress={async () => { await healthCheckin(hid, personId, med, "missed"); await refresh(); }}>
-            <Text style={styles.btnText}>Riesgo / Fallo</Text>
+          <Pressable
+            style={styles.btn}
+            onPress={async () => { await healthCheckin(hid, personId, med, "missed"); await refresh(); }}
+          >
+            <Text style={styles.btnText}>
+              {getViewLabel(tax, "health_missed", "Riesgo / Fallo")}
+            </Text>
           </Pressable>
         </View>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error}>
+            {tax.family_mode
+              ? "No se pudo guardar el registro — probá de nuevo en unos segundos."
+              : error
+            }
+          </Text>
+        ) : null}
       </Card>
 
-      <Card title="Historial de Novedades">
+      <Card title={getViewLabel(tax, "health_log", "Historial de Novedades")}>
         {loading ? <ActivityIndicator /> : null}
         {items.map((it) => (
           <View key={it.id} style={styles.item}>
             <Text style={styles.itemTitle}>{it.summary}</Text>
-            <Text style={styles.muted}>{it.occurred_at}</Text>
+            <Text style={styles.muted}>{formatEventDate(it.occurred_at)}</Text>
           </View>
         ))}
-        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin eventos.</Text> : null}
+        {!loading && items.length === 0 ? (
+          <Text style={styles.muted}>
+            {tax.family_mode
+              ? "Aún no hay registros. Cuando marques una pastilla aparecerá acá."
+              : "Sin eventos."
+            }
+          </Text>
+        ) : null}
       </Card>
     </ScrollView>
   );

@@ -7,6 +7,50 @@ import { STORAGE_KEYS } from "../config";
 import { addExpense, listExpenses } from "../lib/api";
 import { useTaxonomy } from "../context/TaxonomyContext";
 
+// Categorías para el modo familia. Cuando se agregue selector visual queda
+// listo. Por ahora elige una categoría por defecto coherente con el preset.
+const FAMILY_DEFAULT_CATEGORY = "groceries";
+const FAMILY_DEFAULT_CURRENCY = "CLP";
+
+// Formato amigable de moneda (ej. $145.000 CLP, $45 USD).
+function fmtMoney(amount: number, currency: string): string {
+  try {
+    const formatter = new Intl.NumberFormat("es-CL", {
+      style: "currency",
+      currency: currency || "CLP",
+      maximumFractionDigits: currency === "CLP" ? 0 : 2,
+    });
+    return formatter.format(amount);
+  } catch {
+    return `${amount} ${currency || ""}`.trim();
+  }
+}
+
+function fmtDate(iso: string): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("es-CL", {
+      day: "2-digit",
+      month: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// Tags amistosos por categoría (modo familia). Cuando family_mode=false caemos
+// al string crudo del backend.
+const FAMILY_CATEGORY_LABEL: Record<string, string> = {
+  groceries: "Supermercado",
+  health: "Salud",
+  pharmacy: "Farmacia",
+  utilities: "Servicios",
+  school: "Colegio",
+  education: "Educación",
+  senior: "Adulto mayor",
+  general: "Hogar",
+};
+
 export function FinanceScreen() {
   const { tax } = useTaxonomy();
   const [hid, setHid] = useState<string>("");
@@ -44,14 +88,14 @@ export function FinanceScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: tax.theme?.bg || "#0b0f17" }]} contentContainerStyle={{ padding: 16, width: "100%", maxWidth: 640, alignSelf: "center", minHeight: "100%" }}>
       <Text style={styles.h1}>{tax.finance}</Text>
-      <Text style={styles.muted}>{hid}</Text>
+      {!tax.family_mode ? <Text style={styles.muted}>{hid}</Text> : null}
 
-      <Card title="Registrar insumo">
+      <Card title={tax.family_mode ? "Registrar un gasto" : "Registrar insumo"}>
         <View style={styles.row}>
           <TextInput
             value={amount}
             onChangeText={setAmount}
-            placeholder="Costo/Monto (ej 45)"
+            placeholder={tax.family_mode ? "Monto (ej. 12500)" : "Costo/Monto (ej 45)"}
             placeholderTextColor="#6f829b"
             keyboardType="numeric"
             style={styles.input}
@@ -61,7 +105,9 @@ export function FinanceScreen() {
             onPress={async () => {
               const v = Number(amount);
               if (!v || v <= 0) return;
-              await addExpense(hid, { amount: v, currency: "USD", category: "general" });
+              const currency = tax.family_mode ? FAMILY_DEFAULT_CURRENCY : "USD";
+              const category = tax.family_mode ? FAMILY_DEFAULT_CATEGORY : "general";
+              await addExpense(hid, { amount: v, currency, category });
               setAmount("");
               await refresh();
             }}
@@ -69,24 +115,42 @@ export function FinanceScreen() {
             <Text style={styles.btnText}>Agregar</Text>
           </Pressable>
         </View>
+        {tax.family_mode ? (
+          <Text style={styles.muted}>Se registra en {FAMILY_DEFAULT_CURRENCY} bajo "{FAMILY_CATEGORY_LABEL[FAMILY_DEFAULT_CATEGORY]}". Cambiá la categoría desde el panel web.</Text>
+        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </Card>
 
-      <Card title="Últimos movimientos">
+      <Card title={tax.family_mode ? "Últimos gastos" : "Últimos movimientos"}>
         {loading ? <ActivityIndicator /> : null}
-        {items.map((e) => (
-          <View key={e.id} style={styles.item}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemTitle}>{e.merchant || "—"}</Text>
-              <View style={styles.row}>
-                <Pill text={e.category} tone={e.category === "pharmacy" ? "warn" : "muted"} />
-                <Text style={styles.muted}>{e.expense_at}</Text>
+        {items.map((e) => {
+          const categoryLabel = tax.family_mode
+            ? (FAMILY_CATEGORY_LABEL[e.category] || e.category)
+            : e.category;
+          const isHealthRelated = ["pharmacy", "health"].includes(e.category);
+          return (
+            <View key={e.id} style={styles.item}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemTitle}>{e.merchant || (tax.family_mode ? "Sin comercio" : "—")}</Text>
+                <View style={styles.row}>
+                  <Pill text={categoryLabel} tone={isHealthRelated ? "warn" : "muted"} />
+                  <Text style={styles.muted}>{fmtDate(e.expense_at)}</Text>
+                </View>
+                {e.notes ? <Text style={styles.muted}>{e.notes}</Text> : null}
               </View>
+              <Text style={styles.amount}>
+                <Text style={{ fontWeight: "900" }}>{fmtMoney(e.amount, e.currency)}</Text>
+              </Text>
             </View>
-            <Text style={styles.amount}><Text style={{ fontWeight: "900" }}>{e.amount}</Text> <Text style={styles.muted}>{e.currency}</Text></Text>
-          </View>
-        ))}
-        {!loading && items.length === 0 ? <Text style={styles.muted}>Sin movimientos registrados.</Text> : null}
+          );
+        })}
+        {!loading && items.length === 0 ? (
+          <Text style={styles.muted}>
+            {tax.family_mode
+              ? "Sin gastos registrados todavía. Agregá el primero con el botón de arriba."
+              : "Sin movimientos registrados."}
+          </Text>
+        ) : null}
       </Card>
     </ScrollView>
   );

@@ -52,6 +52,96 @@ export default async function Dashboard({
   const presetKey = dash.household.meta?.industry_preset || "default";
   const tax = INDUSTRY_PRESETS_UI[presetKey] || INDUSTRY_PRESETS_UI["default"];
   const isFamily = Boolean(tax.family_mode);
+
+  // === ONBOARDING FAMILIA ===
+  // Cuando es un hogar familia recién creado y NO tiene integrantes ni datos,
+  // mostramos un wizard de bienvenida en vez del dashboard técnico vacío.
+  const isEmptyFamily =
+    isFamily &&
+    (dash.persons?.length ?? 0) === 0 &&
+    (dash.alerts?.length ?? 0) === 0;
+
+  if (isEmptyFamily) {
+    return (
+      <div className="grid" style={{ gap: 18 }}>
+        <div
+          className="card"
+          style={{
+            padding: 32,
+            background: "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04))",
+            border: "1px solid rgba(16,185,129,0.3)",
+          }}
+        >
+          <div className="cardTitle" style={{ fontSize: 32, color: "var(--primary)" }}>
+            🏡 Bienvenido a tu hogar
+          </div>
+          <p style={{ fontSize: 16, lineHeight: 1.6, marginTop: 8, opacity: 0.9 }}>
+            VantDomus va a ayudarte a organizar tareas, recordar medicamentos, agendar el colegio y
+            cuidar de quienes te importan. Para empezar, necesitamos saber un poquito más de tu familia.
+          </p>
+        </div>
+
+        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ fontSize: 24 }}>👥</div>
+            <div className="sectionTitle" style={{ marginTop: 8 }}>1. Agregá integrantes</div>
+            <p className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
+              Mamá, papá, hijos, abuelos. Cualquiera que viva en casa o que cuides desde lejos.
+            </p>
+            <a className="btn btnPrimary" href={`/settings/${hid}/members`} style={{ marginTop: 12, display: "inline-block" }}>
+              Agregar familia →
+            </a>
+          </div>
+
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ fontSize: 24 }}>💊</div>
+            <div className="sectionTitle" style={{ marginTop: 8 }}>2. Medicamentos</div>
+            <p className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
+              Si alguien toma medicación, configurá horarios y vamos a recordarle (y avisarte si la olvida).
+            </p>
+            <a className="btn" href={`/health/${hid}`} style={{ marginTop: 12, display: "inline-block" }}>
+              Salud →
+            </a>
+          </div>
+
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ fontSize: 24 }}>📅</div>
+            <div className="sectionTitle" style={{ marginTop: 8 }}>3. Agenda y colegio</div>
+            <p className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
+              Subí circulares del colegio o pegá fechas de pruebas — generamos recordatorios escalonados.
+            </p>
+            <a className="btn" href={`/tasks/${hid}`} style={{ marginTop: 12, display: "inline-block" }}>
+              Agenda →
+            </a>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: 20, background: "rgba(255,255,255,0.03)" }}>
+          <div className="sectionTitle">¿Querés probar primero con un ejemplo?</div>
+          <p className="small" style={{ marginTop: 6 }}>
+            Cargá la "familia de muestra" — 4 integrantes, medicación de la abuela, prueba escolar del hijo,
+            gastos del mes. Podés borrar todo después.
+          </p>
+          <form
+            action={async (fd: FormData) => {
+              "use server";
+              try {
+                await seedDemo(hid, "home");
+                revalidatePath(`/dashboard/${hid}`);
+              } catch (e) {
+                console.error("Error al Cargar demo familia:", e);
+              }
+            }}
+          >
+            <button className="btn btnPrimary" type="submit" style={{ marginTop: 12 }}>
+              ✨ Cargar familia de muestra
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const viewLabels = isFamily
     ? {
         overview: "Resumen familiar",
