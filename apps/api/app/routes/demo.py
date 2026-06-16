@@ -420,6 +420,104 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
     except Exception:
         appt_uf = None
 
+    # === Pre-VG+2.4: Función IA pendiente confirmación ===
+    # Para mostrar el flujo "la IA propuso esto, falta tu confirmación".
+    # Categoría medication (sensible) → ai_needs_confirmation auto=true.
+    ai_pending_uf = None
+    try:
+        ai_pending_uf = create_unit_function_internal(
+            db,
+            household_id=household_id,
+            organization_id=organization_id,
+            person_id=pid_abuela,
+            responsible_person_id=pid_madre,
+            category="medication",
+            title="Atorvastatina 20mg — detectada en receta (pendiente confirmar)",
+            source_type="prescription",
+            created_by_user_id="assistant",
+            created_by_ai=True,
+            ai_confidence=0.87,
+            ai_extraction_source="ocr_receta_septiembre_2026",
+            ai_explanation=(
+                "La IA leyó la receta más reciente de Elena y detectó una "
+                "estatina adicional. Antes de activar recordatorios, "
+                "necesitamos que un familiar confirme la dosis."
+            ),
+            schedule={"times": ["21:00"], "days": [1, 2, 3, 4, 5, 6, 7], "tz": "America/Santiago"},
+            recurrence="daily",
+            priority="medium",
+            supervision_level="supervised",
+            support_mode="tap",
+            evidence_required=True,
+            metadata={"med_name": "Atorvastatina 20mg", "dosage_per_day": 1},
+            dual_write_task=False,
+        )
+    except Exception:
+        ai_pending_uf = None
+
+    # === Pre-VG+2.4: 2 entradas en unit_function_versions para narrativa ===
+    # Simulamos historia: Losartán empezó como 08:00/13:00/20:00 (3 dosis),
+    # se redujo a 08:00/20:00 (2 dosis) por consejo médico, y la adherencia
+    # mejoró. Esto da material a la "Biblioteca de Evolución" del UI futuro.
+    losartan_uf_row = db.execute(
+        "SELECT id, version FROM unit_functions "
+        "WHERE household_id=? AND person_id=? AND category='medication' "
+        "  AND title LIKE 'Tomar Losart%' LIMIT 1",
+        (household_id, pid_abuela),
+    ).fetchone()
+    if losartan_uf_row:
+        losartan_uf_id = losartan_uf_row["id"]
+        # Snapshot v1: 3 dosis diarias (estado inicial hipotético)
+        try:
+            db.execute(
+                "INSERT INTO unit_function_versions ("
+                "id, unit_function_id, version, snapshot_json, "
+                "changed_by_user_id, changed_by_ai, change_reason, change_source, created_at"
+                ") VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    str(uuid.uuid4()), losartan_uf_id, 1,
+                    json.dumps({
+                        "title": "Tomar Losartán 50mg",
+                        "schedule": {"times": ["08:00", "13:00", "20:00"], "days": [1, 2, 3, 4, 5, 6, 7]},
+                        "recurrence": "daily",
+                        "supervision_level": "supervised",
+                        "support_mode": "tap",
+                        "_demo_note": "Estado inicial: 3 dosis diarias. Adherencia ~60%.",
+                    }, ensure_ascii=False),
+                    "demo-seed-historical", 0,
+                    "ajuste_horario_post_consulta",
+                    "manual_patch", _iso(now_dt - timedelta(days=30)),
+                ),
+            )
+            # Snapshot v2: la familia (post-consulta) lo simplifica a 2 dosis
+            db.execute(
+                "INSERT INTO unit_function_versions ("
+                "id, unit_function_id, version, snapshot_json, "
+                "changed_by_user_id, changed_by_ai, change_reason, change_source, created_at"
+                ") VALUES (?,?,?,?,?,?,?,?,?)",
+                (
+                    str(uuid.uuid4()), losartan_uf_id, 2,
+                    json.dumps({
+                        "title": "Tomar Losartán 50mg",
+                        "schedule": {"times": ["08:00", "20:00"], "days": [1, 2, 3, 4, 5, 6, 7]},
+                        "recurrence": "daily",
+                        "supervision_level": "supervised",
+                        "support_mode": "tap",
+                        "_demo_note": "Tras consulta cardio: pasamos a 2 dosis. Adherencia subió a ~85%.",
+                    }, ensure_ascii=False),
+                    "demo-seed-historical", 0,
+                    "simplificacion_dosis_y_recordatorio_visual",
+                    "manual_patch", _iso(now_dt - timedelta(days=14)),
+                ),
+            )
+            # Bump version del row activo a 3 (porque hay 2 snapshots históricos)
+            db.execute(
+                "UPDATE unit_functions SET version=? WHERE id=?",
+                (3, losartan_uf_id),
+            )
+        except Exception:
+            pass
+
     # 8.c Evidencia: positiva (Diego completó diagnóstico) y NEGATIVA (Elena
     # olvidó pastilla, Diego no se concentró estudiando de noche)
     if school_function_ids:
@@ -503,6 +601,47 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
         except Exception:
             pass
 
+    # === Pre-VG+2.4: evidencia adicional de mejora ("antes vs después") ===
+    if losartan_uf_row:
+        try:
+            log_evidence_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                unit_function_id=losartan_uf_row["id"],
+                person_id=pid_abuela,
+                evidence_type="improvement_detected",
+                text_content=(
+                    "Tras simplificar el horario de Losartán de 3 a 2 dosis y "
+                    "agregar recordatorio visual, la adherencia subió de ~60% "
+                    "a ~85% en 14 días."
+                ),
+                metadata={
+                    "before": {"adherence": 0.60, "dose_count": 3},
+                    "after": {"adherence": 0.85, "dose_count": 2},
+                    "improvement_pct": 41.7,
+                },
+                created_by_user_id=user_id_for_demo,
+            )
+        except Exception:
+            pass
+        try:
+            upsert_memory_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                memory_type="improvement",
+                content=(
+                    "Reducir Losartán de 3 a 2 dosis + recordatorio visual "
+                    "mejoró la adherencia de Elena de 60% a 85%."
+                ),
+                importance=0.85,
+                person_id=pid_abuela,
+                created_by_user_id=user_id_for_demo,
+            )
+        except Exception:
+            pass
+
     return {
         "ok": True,
         "mode": "home",
@@ -524,9 +663,11 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
             "unit_functions_study": len(school_function_ids),
             "unit_functions_medication": 2,
             "unit_functions_appointment": 1 if appt_uf else 0,
-            "evidence_items_positive": 1,
+            "unit_functions_ai_pending_confirmation": 1 if ai_pending_uf else 0,
+            "unit_function_version_history": 2 if losartan_uf_row else 0,
+            "evidence_items_positive": 2,    # diagnóstico + improvement_detected
             "evidence_items_negative": 3,
-            "memory_items": len(memories),
+            "memory_items": len(memories) + (1 if losartan_uf_row else 0),
             "support_profiles": 4,
         },
     }

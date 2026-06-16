@@ -715,7 +715,29 @@ Semánticas distintas, relación opcional cruzada cuando aplica.
 
 El motor técnico interno se sigue llamando **VantGuide** / **UnitFunction**. El nombre comercial NO se muestra al usuario final.
 
-### 18.7 Resource access grants (skeleton futuro)
+### 18.7.bis Micro-ajustes pre-UI (post Codex VG+1)
+
+Cambios pequeños aplicados en migración `271_vantguide_micro_pre_ui.sql` antes de entrar a Sprint VG+2:
+
+1. **`unit_function_responsibles.escalation_delay_minutes` (nullable)**: cada responsable puede override cuánto esperar antes de pasar al siguiente nivel. Si NULL, el dispatcher usa `household.meta.default_escalation_step_minutes` (o 15 min por default global).
+
+2. **`evidence_required` hint suave en PATCH**: si una función se marca `status=done` y tiene `evidence_required=true` pero no hay `evidence_items` asociados (con tipos confirmatorios como `medication_taken`, `study_session_completed`, etc.), la respuesta incluye `warning` para que la UI muestre un nudge tipo "marcaste como hecho pero pide evidencia; ¿adjuntás algo?". **No** se convierte en constraint duro (evita romper UX).
+
+3. **AI confirmation policy explicitada en código** — categorías:
+   - `ALWAYS_CONFIRM_CATEGORIES = {medication, safety_check, operational_protocol}` → confirmación siempre si la creó la IA, sin importar `ai_confidence`.
+   - `CONFIRM_IF_OCR_OR_AI = {appointment}` → confirmación cuando viene de IA/OCR; en el futuro, calendarios conectados confiables (Google/Outlook OAuth) podrán saltar.
+   - Resto → `ai_confidence >= 0.85` auto-activa; `0.60–0.85` requiere confirmación; `< 0.60` la IA no debería crear como función activa.
+
+4. **Demo seed enriquecido**: el `POST /demo/seed?mode=home` ahora también:
+   - Crea una `unit_function(category=medication)` IA con `ai_needs_confirmation=true` (Atorvastatina 20mg detectada vía OCR) para mostrar el flujo de confirmación pendiente.
+   - Genera 2 entradas en `unit_function_versions` simulando narrativa "antes Elena tenía Losartán 3 dosis, lo bajamos a 2 y la adherencia subió de 60% a 85%".
+   - Agrega 1 `evidence_item(improvement_detected)` y 1 `memory_item(improvement)` ligando el cambio a la mejora medida.
+
+Razón de los 4: poder mostrar el demo familia "vivo" sin necesidad de datos reales del usuario. La UI de Sprint VG+2 puede pintar todo el flujo (kanban, biblioteca, evolución, AI confirmation pendiente, warnings) usando solo `/demo/seed?mode=home`.
+
+---
+
+### 18.8 Resource access grants (skeleton futuro)
 
 NO se implementa en VG+1, pero queda documentado para cuando se active VantHealthLink:
 

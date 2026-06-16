@@ -265,16 +265,42 @@ def create_unit_function_internal(
             ),
         )
 
-    # === VG+1.4: AI confirmation defaults ===
-    # Si lo creó la IA y NO se pasó ai_needs_confirmation explícito, aplicamos
-    # política conservadora por categoría:
-    #   * medication / appointment / safety_check → confirmación obligatoria
-    #     (la IA puede equivocarse al leer una receta; no activamos
-    #     recordatorios automáticos sin que un humano confirme).
-    #   * Otras categorías → confirmación opcional si confidence < 0.85.
-    SENSITIVE_CATEGORIES = {"medication", "appointment", "safety_check", "operational_protocol"}
+    # =========================================================================
+    # === VG+1.4: AI confirmation policy ===
+    #
+    # Política explícita post-evaluación de Codex (Pre-VG+2.3):
+    #
+    #   ALWAYS_CONFIRM_CATEGORIES: confirmación humana SIEMPRE si fue creada
+    #     por IA, sin importar el ai_confidence. Estas categorías tienen
+    #     impacto alto y una mala lectura de receta/protocolo puede ser
+    #     riesgosa. NO activar el scheduler hasta que un humano confirme.
+    #       - medication
+    #       - safety_check
+    #       - operational_protocol
+    #
+    #   CONFIRM_IF_OCR_OR_AI: en CITA / appointment confirmamos cuando
+    #     viene de IA/OCR/manual ambiguo. En el futuro, cuando se conecte
+    #     un calendario confiable (Google Calendar / Outlook OAuth), esa
+    #     fuente podrá saltar la confirmación si así se configura.
+    #
+    #   CONFIDENCE_GATED: para todo el resto (study, home_chore, finance,
+    #     social_connection, hygiene, nutrition, etc.), usamos threshold
+    #     por ai_confidence. El umbral 0.85 vino del análisis del cofounder
+    #     y se mantiene para MVP.
+    #       - ai_confidence >= 0.85         → sin confirmación (auto-activa)
+    #       - 0.60 <= ai_confidence < 0.85  → requiere confirmación
+    #       - ai_confidence < 0.60          → la IA NO debería crear esto
+    #                                          como función activa
+    #         (recomendación al caller: pedir revisión humana antes de crear)
+    # =========================================================================
+    ALWAYS_CONFIRM_CATEGORIES = {"medication", "safety_check", "operational_protocol"}
+    CONFIRM_IF_OCR_OR_AI = {"appointment"}
     if created_by_ai and ai_needs_confirmation is None:
-        if category in SENSITIVE_CATEGORIES:
+        if category in ALWAYS_CONFIRM_CATEGORIES:
+            ai_needs_confirmation = True
+        elif category in CONFIRM_IF_OCR_OR_AI:
+            # Calendarios conectados confiables podrían saltar (futuro).
+            # Hoy: si lo creó la IA, confirmar.
             ai_needs_confirmation = True
         elif ai_confidence is not None and ai_confidence < 0.85:
             ai_needs_confirmation = True
@@ -598,6 +624,7 @@ def update_unit_function(
     db.execute(f"UPDATE unit_functions SET {', '.join(sets)} WHERE id=?", tuple(params))
 
     # Si transicionamos a done o cancelled, marcar el evento correspondiente
+    warning: Optional[str] = None
     if body.status == "done":
         _insert_function_event(
             db,
@@ -608,6 +635,25 @@ def update_unit_function(
             triggered_by="user",
             triggered_by_user_id=user["user_id"],
         )
+        # === Pre-VG+2.2: hint suave si la función pedía evidencia ===
+        # NO bloqueamos el PATCH (no convertimos en constraint duro): solo
+        # devolvemos un warning en la response para que la UI muestre un
+        # toast tipo "marcaste esta función como hecha pero pide evidencia.
+        # ¿Querés adjuntar una foto / nota?"
+        if row["evidence_required"]:
+            evidence_check = db.execute(
+                "SELECT 1 FROM evidence_items "
+                "WHERE unit_function_id=? "
+                "  AND evidence_type IN ('checkin_confirmed','voice_confirmation','photo_evidence','caregiver_confirmation','document_uploaded','medication_taken','study_session_completed','assignment_completed','quiz_completed','calm_session_completed','appointment_attended') "
+                "LIMIT 1",
+                (unit_function_id,),
+            ).fetchone()
+            if not evidence_check:
+                warning = (
+                    "Esta función pedía evidencia y no encontramos un registro "
+                    "(foto, nota, voz). Te recomendamos adjuntar algo para "
+                    "que quede en la biblioteca."
+                )
     elif body.status == "cancelled":
         _insert_function_event(
             db,
@@ -621,7 +667,10 @@ def update_unit_function(
 
     db.commit()
     fresh = db.execute("SELECT * FROM unit_functions WHERE id=?", (unit_function_id,)).fetchone()
-    return _row_to_response(fresh)
+    out = _row_to_response(fresh).model_dump() if hasattr(_row_to_response(fresh), "model_dump") else dict(_row_to_response(fresh))
+    if warning:
+        out["warning"] = warning
+    return out
 
 
 @router.get("/{unit_function_id}/timeline")

@@ -61,6 +61,10 @@ class AddResponsibleBody(BaseModel):
     notify: bool = True
     can_confirm: bool = False
     can_edit: bool = False
+    # Override opcional del tiempo de espera antes de pasar al siguiente
+    # escalation_order. Si es None, el dispatcher usa
+    # household.meta.default_escalation_step_minutes (o 15 por default).
+    escalation_delay_minutes: Optional[int] = None
 
 
 def _validate_role(role: str) -> None:
@@ -91,6 +95,7 @@ def add_responsible_internal(
     notify: bool = True,
     can_confirm: bool = False,
     can_edit: bool = False,
+    escalation_delay_minutes: Optional[int] = None,
 ) -> str:
     """Inserta un responsable. Idempotente vía UNIQUE compuesto en la tabla."""
     _validate_role(responsibility_role)
@@ -98,12 +103,14 @@ def add_responsible_internal(
     db.execute(
         "INSERT OR IGNORE INTO unit_function_responsibles ("
         "id, unit_function_id, person_id, responsibility_role, "
-        "escalation_order, notify, can_confirm, can_edit, created_at"
-        ") VALUES (?,?,?,?,?,?,?,?,?)",
+        "escalation_order, notify, can_confirm, can_edit, "
+        "escalation_delay_minutes, created_at"
+        ") VALUES (?,?,?,?,?,?,?,?,?,?)",
         (
             rid, unit_function_id, person_id, responsibility_role,
             escalation_order, 1 if notify else 0,
             1 if can_confirm else 0, 1 if can_edit else 0,
+            escalation_delay_minutes,
             _now(),
         ),
     )
@@ -141,6 +148,7 @@ def add_responsible(
         notify=body.notify,
         can_confirm=body.can_confirm,
         can_edit=body.can_edit,
+        escalation_delay_minutes=body.escalation_delay_minutes,
     )
     write_audit_log(
         db,
