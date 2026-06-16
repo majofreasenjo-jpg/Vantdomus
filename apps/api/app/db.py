@@ -159,7 +159,7 @@ def ensure_schema():
             "160_signed_file_tokens.sql", "170_user_mfa.sql", "180_mfa_recovery_codes.sql",
             "190_security_events.sql", "200_household_invitations.sql", "210_security_event_hash_chain.sql",
             "220_auth_sessions_email_reset.sql", "230_family_presence.sql", "240_agent_hub_events.sql",
-            "250_agent_traceability.sql"
+            "250_agent_traceability.sql", "260_vantguide_core.sql"
         ]
 
         is_pg = isinstance(con, PostgresConnectionWrapper)

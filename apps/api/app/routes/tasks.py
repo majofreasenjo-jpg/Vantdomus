@@ -7,6 +7,11 @@ from ..audit import write_audit_log
 from ..tenancy import get_household_organization_id
 from .forensics import _extract_text, _validate_file
 from .logbook import _copy_upload_with_limit, _private_upload_root, _safe_filename
+# VantGuide: el SchoolPlanner pasa a ser un *adapter* de ingesta académica
+# hacia el motor común UnitFunction (categoría=study, source_type=school_notice).
+# Mantenemos la creación legacy de task_items via dual_write_task=True para
+# que las pantallas viejas (kanban) sigan viendo los ítems.
+from .unit_functions import create_unit_function_internal
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -123,6 +128,7 @@ def create_school_plan(
             "label": evaluation_title.strip() or subject.strip() or "Evaluacion / entrega escolar",
         }]
     created = []
+    unit_function_ids = []
     for item in candidates[:8]:
         due = item["due"]
         label = item["label"]
@@ -136,11 +142,54 @@ def create_school_plan(
             (f"Evaluacion / entrega: {base_subject} - {label}", due, "high", ["evaluacion", base_subject]),
         ]
         for title, task_due, priority, tags in plan:
-            created.append(_insert_task(db, household_id, organization_id, title, max(task_due, datetime.now(timezone.utc)), assigned_person_id, priority, tags))
+            task_due_clamped = max(task_due, datetime.now(timezone.utc))
+
+            # VantGuide: crea la UnitFunction primaria (categoría=study) con
+            # dual_write_task=True para que se inserte ADEMÁS un task_items
+            # atado vía legacy_task_id. Esto mantiene retrocompat con kanban
+            # web/mobile sin tener que tocar esas pantallas.
+            if assigned_person_id:
+                uf_id = create_unit_function_internal(
+                    db,
+                    household_id=household_id,
+                    organization_id=organization_id,
+                    person_id=assigned_person_id,
+                    category="study",
+                    title=title,
+                    source_type="school_notice",
+                    created_by_user_id=user["user_id"],
+                    created_by_ai=False,
+                    description=f"Generado desde planificador escolar — {base_subject}",
+                    due_at=task_due_clamped.isoformat(),
+                    priority=priority,
+                    metadata={
+                        "subject": base_subject,
+                        "evaluation_label": label,
+                        "student_label": student_label,
+                        "step_tags": tags,
+                    },
+                    dual_write_task=True,
+                )
+                unit_function_ids.append(uf_id)
+                # Encontrar el task_id que el dual-write generó
+                row = db.execute(
+                    "SELECT legacy_task_id FROM unit_functions WHERE id=?",
+                    (uf_id,),
+                ).fetchone()
+                if row and row["legacy_task_id"]:
+                    created.append(row["legacy_task_id"])
+            else:
+                # Sin persona asignada → fallback al insert legacy (no se
+                # puede crear UnitFunction sin person_id NOT NULL en schema).
+                created.append(_insert_task(
+                    db, household_id, organization_id, title,
+                    task_due_clamped, assigned_person_id, priority, tags,
+                ))
+
     write_audit_log(
         db,
         action="create_school_plan",
-        resource_type="task",
+        resource_type="unit_function" if unit_function_ids else "task",
         household_id=household_id,
         user_id=user["user_id"],
         metadata={
@@ -150,12 +199,15 @@ def create_school_plan(
             "due_date": due_date,
             "attachment_name": attachment_name,
             "tasks_created": len(created),
+            "unit_functions_created": len(unit_function_ids),
+            "via": "schoolplanner_adapter→UnitFunction",
         },
     )
     db.commit()
     return {
         "ok": True,
         "tasks_created": len(created),
+        "unit_functions_created": len(unit_function_ids),
         "detected_items": len(candidates),
         "attachment_name": attachment_name,
         "message": "Plan de estudio familiar generado con recordatorios y seguimiento.",

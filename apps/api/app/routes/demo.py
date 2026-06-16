@@ -26,6 +26,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from ..deps import get_current_user, get_db, require_household_role, require_operational_feature_enabled
 from ..tenancy import get_household_organization_id
 
+# VantGuide: el seed familiar pobla el modelo nuevo (unit_functions, evidence,
+# memory, person_support_profile). Las tablas legacy (task_items, alerts) se
+# siguen llenando para retrocompat con UI vieja.
+from .unit_functions import create_unit_function_internal
+from .vantguide_library import (
+    log_evidence_internal,
+    upsert_memory_internal,
+    upsert_profile_internal,
+)
+
 router = APIRouter(prefix="/demo", tags=["Demo"])
 
 
@@ -265,6 +275,234 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
              category, merchant, expense_at, notes, person, ts),
         )
 
+    # =========================================================================
+    # 8. ENRIQUECIMIENTO VantGuide
+    #
+    # Crea las entidades del nuevo modelo en paralelo a las legacy. Esto le
+    # permite al inversor/cliente que abre el demo ver:
+    #   - Funciones reales (unit_functions) para estudio/medicación/hogar
+    #   - Perfiles de apoyo con preferencias (no diagnósticos clínicos)
+    #   - Evidencia positiva y NEGATIVA en la biblioteca
+    #   - Memoria estructurada con aprendizajes acumulados
+    # =========================================================================
+
+    user_id_for_demo = "demo-seed"  # marca de origen, no es un user real
+
+    # 8.a Perfiles de apoyo por integrante
+    upsert_profile_internal(
+        db, pid_padre, household_id, organization_id,
+        age_group="adult", role_in_unit="padre",
+        communication_style="direct", supervision_level="autonomous",
+        motivation_style="quiet_completion",
+    )
+    upsert_profile_internal(
+        db, pid_madre, household_id, organization_id,
+        age_group="adult", role_in_unit="madre",
+        communication_style="warm", supervision_level="autonomous",
+        motivation_style="progress_bar",
+        reward_preferences=[{"kind": "shared_goal"}],
+    )
+    upsert_profile_internal(
+        db, pid_hijo, household_id, organization_id,
+        age_group="child", role_in_unit="hijo",
+        communication_style="playful", supervision_level="light_reminder",
+        motivation_style="rewards",
+        reward_preferences=[{"kind": "screen_time"}, {"kind": "symbolic"}],
+        calm_tools=["soft_music", "pomodoro"],
+        study_style="short_bursts",
+        attention_profile="benefits_from_structure",
+    )
+    upsert_profile_internal(
+        db, pid_abuela, household_id, organization_id,
+        age_group="senior", role_in_unit="abuela",
+        communication_style="step_by_step", supervision_level="guided",
+        motivation_style="praise",
+        memory_support_level="light",
+        anxiety_support="gentle",
+        loneliness_risk="medium",
+        health_notes="Hipertensión controlada con Losartán. Cita cardiológica cada 6 meses.",
+    )
+
+    # 8.b UnitFunctions del modelo nuevo, una por cada tarea legacy
+    # Estudio Diego (5 funciones escalonadas, source=school_notice)
+    school_titles = [
+        (-10, "Diego: Diagnóstico inicial — Fracciones", "done"),
+        (-3, "Diego: Resumen del tema con apuntes", "open"),
+        (3, "Diego: Práctica con ejercicios", "open"),
+        (6, "Diego: Repaso final víspera prueba", "open"),
+        (7, "Diego: PRUEBA Matemáticas — Fracciones", "open"),
+    ]
+    school_function_ids: list[str] = []
+    for offset, title, status in school_titles:
+        try:
+            uf_id = create_unit_function_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                person_id=pid_hijo,
+                category="study",
+                title=title,
+                source_type="school_notice",
+                created_by_user_id=user_id_for_demo,
+                due_at=_iso(now_dt + timedelta(days=offset)),
+                priority="high" if "PRUEBA" in title or "Repaso" in title else "medium",
+                supervision_level="light_reminder",
+                support_mode="tap",
+                metadata={"subject": "Matemáticas", "topic": "Fracciones"},
+                dual_write_task=False,  # ya creamos task_items arriba
+            )
+            school_function_ids.append(uf_id)
+            # Si está "done", marcar completed
+            if status == "done":
+                from .unit_functions import _insert_function_event
+                _insert_function_event(
+                    db,
+                    unit_function_id=uf_id,
+                    household_id=household_id,
+                    organization_id=organization_id,
+                    event_type="completed",
+                    triggered_by="user",
+                    triggered_by_user_id=user_id_for_demo,
+                )
+                db.execute(
+                    "UPDATE unit_functions SET status='done', updated_at=? WHERE id=?",
+                    (ts, uf_id),
+                )
+        except Exception:
+            pass  # idempotente: el seed se puede correr 2 veces sin romper
+
+    # Medicación Elena (2 funciones recurrentes diarias)
+    for med_name, schedule_times in [
+        ("Losartán 50mg", ["08:00", "20:00"]),
+        ("Aspirina 100mg", ["09:00"]),
+    ]:
+        try:
+            create_unit_function_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                person_id=pid_abuela,
+                responsible_person_id=pid_madre,
+                category="medication",
+                title=f"Tomar {med_name}",
+                source_type="prescription",
+                created_by_user_id=user_id_for_demo,
+                schedule={"times": schedule_times, "days": [1, 2, 3, 4, 5, 6, 7], "tz": "America/Santiago"},
+                recurrence="daily",
+                priority="high",
+                supervision_level="supervised",
+                support_mode="tap",
+                evidence_required=True,
+                metadata={"med_name": med_name, "dosage": med_name.split()[-1] if " " in med_name else None},
+                dual_write_task=False,
+            )
+        except Exception:
+            pass
+
+    # Función appointment para Elena (cardio)
+    try:
+        appt_uf = create_unit_function_internal(
+            db,
+            household_id=household_id,
+            organization_id=organization_id,
+            person_id=pid_abuela,
+            responsible_person_id=pid_padre,
+            category="appointment",
+            title="Cita Cardiología con Dra. González",
+            source_type="doctor_instruction",
+            created_by_user_id=user_id_for_demo,
+            due_at=_iso(cita_date),
+            priority="high",
+            supervision_level="accompanied",
+            metadata={"specialty": "Cardiología", "doctor": "Dra. María González", "location": "Clínica Las Condes"},
+            dual_write_task=False,
+        )
+    except Exception:
+        appt_uf = None
+
+    # 8.c Evidencia: positiva (Diego completó diagnóstico) y NEGATIVA (Elena
+    # olvidó pastilla, Diego no se concentró estudiando de noche)
+    if school_function_ids:
+        # Positiva: Diego terminó el diagnóstico
+        try:
+            log_evidence_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                unit_function_id=school_function_ids[0],
+                person_id=pid_hijo,
+                evidence_type="study_session_completed",
+                text_content="Diego terminó el diagnóstico inicial en 25 minutos. Identificó 2 conceptos que le cuestan.",
+                created_by_user_id=user_id_for_demo,
+            )
+        except Exception:
+            pass
+        # Negativa: estudiar de noche no funcionó
+        try:
+            log_evidence_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                unit_function_id=school_function_ids[1] if len(school_function_ids) > 1 else school_function_ids[0],
+                person_id=pid_hijo,
+                evidence_type="negative_outcome",
+                text_content="Intentó estudiar a las 22:00 — se durmió, no avanzó. Próxima sesión moverla a la tarde.",
+                created_by_user_id=user_id_for_demo,
+            )
+        except Exception:
+            pass
+
+    # Evidencias medication: las 2 missed que ya creamos arriba como events
+    # también las exponemos en evidence_items para que la biblioteca las muestre
+    try:
+        log_evidence_internal(
+            db,
+            household_id=household_id,
+            organization_id=organization_id,
+            person_id=pid_abuela,
+            evidence_type="medication_missed",
+            text_content="Elena olvidó la dosis de las 20:00 (Losartán)",
+            created_by_user_id=user_id_for_demo,
+        )
+        log_evidence_internal(
+            db,
+            household_id=household_id,
+            organization_id=organization_id,
+            person_id=pid_abuela,
+            evidence_type="medication_missed",
+            text_content="Elena olvidó la dosis del día siguiente — patrón post-cena observado",
+            created_by_user_id=user_id_for_demo,
+        )
+    except Exception:
+        pass
+
+    # 8.d Memoria: aprendizajes acumulados (positivos y negativos)
+    memories = [
+        # (memory_type, content, importance, person_id)
+        ("study_pattern", "A Diego le funciona estudiar en bloques de 20 minutos con descansos cortos.", 0.8, pid_hijo),
+        ("negative_learning", "Diego intentó estudiar tarde — no funciona. Mover sesiones a la tarde.", 0.7, pid_hijo),
+        ("calm_strategy", "Diego se concentra mejor con música suave de fondo (lofi).", 0.7, pid_hijo),
+        ("routine_pattern", "Elena adhiere mejor a la medicación cuando se asocia al desayuno.", 0.8, pid_abuela),
+        ("risk_pattern", "Elena tiende a saltarse la dosis nocturna después de cenar fuera.", 0.7, pid_abuela),
+        ("preference", "Camila prefiere recibir resumen semanal los domingos por la tarde.", 0.5, pid_madre),
+        ("social_connection", "Elena valora mucho las llamadas dominicales con sus nietos.", 0.6, pid_abuela),
+        ("family_story", "Familia Pérez Soto vive en comuna de Las Condes. 4 integrantes activos.", 0.4, None),
+    ]
+    for m_type, content, importance, pers in memories:
+        try:
+            upsert_memory_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                memory_type=m_type,
+                content=content,
+                importance=importance,
+                person_id=pers,
+                created_by_user_id=user_id_for_demo,
+            )
+        except Exception:
+            pass
+
     return {
         "ok": True,
         "mode": "home",
@@ -282,6 +520,14 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
             "medical_appointments": 1,
             "expenses_30d": len(expenses),
             "currency": "CLP",
+            # VantGuide
+            "unit_functions_study": len(school_function_ids),
+            "unit_functions_medication": 2,
+            "unit_functions_appointment": 1 if appt_uf else 0,
+            "evidence_items_positive": 1,
+            "evidence_items_negative": 3,
+            "memory_items": len(memories),
+            "support_profiles": 4,
         },
     }
 

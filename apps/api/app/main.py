@@ -30,6 +30,8 @@ from .routes import (
     persons,
     scores,
     tasks,
+    unit_functions,
+    vantguide_library,
     vision,
 )
 
@@ -142,3 +144,7 @@ app.include_router(forensics.router, prefix="/forensics", tags=["forensics"])
 app.include_router(logbook.router, prefix="/logbook", tags=["logbook"])
 app.include_router(vision.router, prefix="/vision", tags=["vision"])
 app.include_router(coupling.router, prefix="/coupling", tags=["coupling"])
+app.include_router(unit_functions.router)
+app.include_router(vantguide_library.evidence_router)
+app.include_router(vantguide_library.memory_router)
+app.include_router(vantguide_library.profile_router)
