@@ -12,10 +12,12 @@
  */
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import {
   getDashboard,
   getHouseholds,
   listUnitFunctions,
+  scanPrescription,
   type UnitFunctionRow,
 } from "../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../lib/taxonomy";
@@ -218,6 +220,39 @@ export default async function GuiaPage({
           <div className="big" style={{ color: "var(--good)" }}>{stats.done}</div>
         </div>
       </div>
+
+      {/* VG+2.5: Escanear receta / boleta → medicamento pendiente confirmar IA */}
+      {isFamily && persons.length > 0 ? (
+        <form
+          className="card"
+          style={{ marginBottom: 20, padding: 18, borderColor: "rgba(124,160,255,.35)" }}
+          action={async (fd: FormData) => {
+            "use server";
+            const pid = String(fd.get("pid") || "");
+            const file = fd.get("file");
+            if (!pid || !(file instanceof File) || file.size === 0) return;
+            const apiFd = new FormData();
+            apiFd.set("file", file);
+            await scanPrescription(householdId, pid, apiFd);
+            revalidatePath("/guia");
+          }}
+        >
+          <div className="cardTitle">📄 Escanear receta o boleta</div>
+          <div className="small" style={{ marginBottom: 10 }}>
+            Subí una foto o PDF de la receta. La IA propone el medicamento y queda{" "}
+            <strong>pendiente de tu confirmación</strong> antes de activar recordatorios.
+          </div>
+          <div className="formRow" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <select className="input" name="pid" defaultValue={persons[0]?.id} required>
+              {persons.map((p) => (
+                <option key={p.id} value={p.id}>{p.display_name}</option>
+              ))}
+            </select>
+            <input className="input" type="file" name="file" accept=".pdf,image/*" required />
+            <button className="btn btnPrimary" type="submit">Escanear y proponer</button>
+          </div>
+        </form>
+      ) : null}
 
       {/* Filtros simples */}
       <div className="formRow" style={{ marginBottom: 16 }}>

@@ -252,6 +252,13 @@ export const analyzeContractualPackage = (hid: string, formData: FormData) => {
   return apiFetchMultipart("/forensics/contractual_analysis", formData);
 };
 
+// VG+2.5: sube una receta/boleta → crea un medicamento "pendiente confirmar IA".
+export const scanPrescription = (hid: string, pid: string, formData: FormData) => {
+  formData.set("household_id", hid);
+  formData.set("person_id", pid);
+  return apiFetchMultipart("/unit_functions/scan_prescription", formData);
+};
+
 export const createLogbookShareLink = (entryId: string, ttlSeconds = 900) =>
   apiFetch(`/logbook/${encodeURIComponent(entryId)}/share?ttl_seconds=${ttlSeconds}`, { method: "POST" });
 

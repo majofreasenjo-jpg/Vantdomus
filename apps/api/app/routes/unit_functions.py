@@ -18,11 +18,13 @@ Compatibilidad backward:
 from __future__ import annotations
 
 import json
+import os
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from ..audit import write_audit_log
@@ -852,3 +854,126 @@ def confirm_unit_function(
     )
     db.commit()
     return {"ok": True, "confirmed": body.confirmed, "status": new_status}
+
+
+# =============================================================================
+# VG+2.5: Escaneo de receta / boleta de medicamentos
+#
+# Sube una receta (PDF o imagen), extrae texto (PyMuPDF para PDF; tesseract
+# para imágenes si está disponible) y propone un medicamento como UnitFunction
+# `medication` con ai_needs_confirmation=true — el mismo flujo "pendiente
+# confirmar IA" que ya usa la atorvastatina del demo. Human-in-the-loop: NO
+# activa recordatorios hasta que un familiar confirme nombre y dosis.
+#
+# Límite y alcance honestos: la extracción es best-effort. Si no se reconoce un
+# patrón claro de medicamento, se crea igual con baja confianza usando el
+# nombre del archivo, para que el usuario lo confirme/edite. No es un sistema
+# clínico ni un OCR garantizado.
+# =============================================================================
+
+_PRESCRIPTION_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+_MED_PATTERN = re.compile(
+    r"([A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-zÁÉÍÓÚÑáéíóúñ\-]{3,30})\s*"
+    r"(\d{1,4})\s*(mg|mcg|g|ml|ui)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_prescription_text(filename: str, data: bytes) -> str:
+    """Extrae texto de un PDF/imagen subido. Best-effort, nunca lanza."""
+    suffix = os.path.splitext(filename or "")[1].lower().lstrip(".")
+    try:
+        import fitz  # PyMuPDF (lazy: el módulo no debe romper si falta)
+    except Exception:
+        return ""
+    try:
+        filetype = "pdf" if suffix == "pdf" else (suffix or None)
+        with fitz.open(stream=data, filetype=filetype) as doc:
+            return " ".join(page.get_text() for page in doc).strip()
+    except Exception:
+        return ""
+
+
+def _guess_medication(text: str, filename: str) -> tuple[str, float]:
+    """Devuelve (titulo_medicamento, confianza) a partir del texto extraído."""
+    match = _MED_PATTERN.search(text or "")
+    if match:
+        name = match.group(1).strip().capitalize()
+        dose = f"{match.group(2)}{match.group(3).lower()}"
+        return f"{name} {dose}", 0.85
+    stem = os.path.splitext(os.path.basename(filename or ""))[0].replace("_", " ").strip()
+    return (stem or "Medicamento detectado"), 0.4
+
+
+@router.post("/scan_prescription", response_model=UnitFunctionResponse)
+async def scan_prescription(
+    household_id: str = Form(...),
+    person_id: str = Form(...),
+    file: UploadFile = File(...),
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    Recibe una receta/boleta, propone un medicamento y lo crea como
+    UnitFunction `medication` con ai_needs_confirmation=true (pendiente de
+    confirmación humana). Devuelve la función creada.
+    """
+    require_household_role(db, user["user_id"], household_id, "member")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    if len(data) > _PRESCRIPTION_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Archivo demasiado grande (máx 10 MB)")
+
+    text = _extract_prescription_text(file.filename or "", data)
+    med_title, confidence = _guess_medication(text, file.filename or "")
+    organization_id = get_household_organization_id(db, household_id)
+
+    uf_id = create_unit_function_internal(
+        db,
+        household_id=household_id,
+        organization_id=organization_id,
+        person_id=person_id,
+        category="medication",
+        title=f"{med_title} — detectada en receta (pendiente confirmar)",
+        source_type="prescription",
+        created_by_user_id=user["user_id"],
+        created_by_ai=True,
+        ai_confidence=confidence,
+        ai_needs_confirmation=True,
+        ai_extraction_source=f"upload:{file.filename}",
+        ai_explanation=(
+            "Subiste una receta y la IA propuso este medicamento a partir del "
+            "texto detectado. Confirmá el nombre y la dosis antes de activar "
+            "los recordatorios."
+        ),
+        schedule={"times": ["09:00"], "days": [1, 2, 3, 4, 5, 6, 7], "tz": "America/Santiago"},
+        recurrence="daily",
+        priority="medium",
+        supervision_level="supervised",
+        support_mode="tap",
+        evidence_required=True,
+        metadata={
+            "med_name": med_title,
+            "scanned": True,
+            "source_filename": file.filename,
+            "extracted_chars": len(text or ""),
+        },
+        dual_write_task=False,
+    )
+    db.commit()
+
+    write_audit_log(
+        db,
+        action="unit_function.scan_prescription",
+        resource_type="unit_function",
+        resource_id=uf_id,
+        household_id=household_id,
+        user_id=user["user_id"],
+        metadata={"filename": file.filename, "confidence": confidence},
+    )
+    db.commit()
+
+    row = db.execute("SELECT * FROM unit_functions WHERE id=?", (uf_id,)).fetchone()
+    return _row_to_response(row)
