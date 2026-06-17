@@ -78,6 +78,42 @@ def _loads(value) -> dict:
         return {}
 
 
+def _current_person_id(db, user_id: str, household_id: str):
+    """Persona vinculada al usuario logueado en este hogar (o None).
+
+    Habilita la visibilidad por persona: 'self' = lo del propio integrante.
+    """
+    try:
+        row = db.execute(
+            "SELECT id FROM persons WHERE household_id=? AND user_id=?",
+            (household_id, user_id),
+        ).fetchone()
+        return row["id"] if row else None
+    except Exception:
+        # La columna persons.user_id puede no existir en bases muy viejas.
+        return None
+
+
+def _is_visible_to_user(user_role: str, my_person_id, item_person_id, roles_visible) -> bool:
+    """Decide si un item (evidencia/memoria) es visible para el usuario actual.
+
+    - owner/admin: ven todo.
+    - household: compartido con todo el hogar.
+    - self: solo si el item es de la persona del usuario.
+    (responsible se trata como no-visible salvo que sea household; la
+    resolución fina de responsables se hace a nivel de función.)
+    """
+    if user_role in ("owner", "admin"):
+        return True
+    if not roles_visible:
+        roles_visible = ["household"]
+    if "household" in roles_visible:
+        return True
+    if "self" in roles_visible and my_person_id and item_person_id == my_person_id:
+        return True
+    return False
+
+
 # =============================================================================
 # Evidence Library
 # =============================================================================
@@ -228,17 +264,17 @@ def list_evidence(
 
     rows = db.execute(sql, tuple(params)).fetchall()
 
-    # Filtrar por visible_to_roles según el rol del usuario.
-    # El owner/admin ve todo. Otros roles ven solo donde su rol esté incluido.
+    # Visibilidad por persona: owner/admin ven todo; un integrante ve lo
+    # compartido (household) + lo suyo (self). Resolvemos su persona del hogar.
+    my_person_id = _current_person_id(db, user["user_id"], household_id)
     visible_items = []
     for row in rows:
         roles_visible = _loads(row["visible_to_roles"])
-        # Si es un dict-mal-formado o lista vacía, default a "household"
         if isinstance(roles_visible, dict):
             roles_visible = ["household"]
         if not roles_visible:
             roles_visible = ["household"]
-        if user_role in ("owner", "admin") or user_role in roles_visible or "household" in roles_visible:
+        if _is_visible_to_user(user_role, my_person_id, row["person_id"], roles_visible):
             d = dict(row)
             # Hidratar JSON a objetos: el cliente espera metadata como objeto
             # (ej. ev.metadata.improvement_pct).
@@ -275,11 +311,14 @@ def get_person_library(
         (person_id, household_id, 50),
     ).fetchall()
 
+    # Visibilidad por persona (igual criterio que list_evidence).
+    my_person_id = _current_person_id(db, user["user_id"], household_id)
+
     # Filtrar evidencia por visibilidad
     visible_evidence = []
     for row in evidence_rows:
         roles_visible = _loads(row["visible_to_roles"]) or ["household"]
-        if user_role in ("owner", "admin") or user_role in roles_visible or "household" in roles_visible:
+        if _is_visible_to_user(user_role, my_person_id, row["person_id"], roles_visible):
             d = dict(row)
             d["metadata"] = _loads(d.get("metadata"))
             d["visible_to_roles"] = roles_visible
@@ -290,7 +329,7 @@ def get_person_library(
     for row in memory_rows:
         scope = _loads(row["consent_scope"])
         visible_to = scope.get("visible_to", ["household"]) if isinstance(scope, dict) else ["household"]
-        if user_role in ("owner", "admin") or user_role in visible_to or "household" in visible_to:
+        if _is_visible_to_user(user_role, my_person_id, row["person_id"], visible_to):
             d = dict(row)
             if "metadata" in d:
                 d["metadata"] = _loads(d.get("metadata"))

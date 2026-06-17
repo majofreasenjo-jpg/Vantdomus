@@ -1,0 +1,13 @@
+-- VG+2.6: vincular cada persona (integrante) con una cuenta de usuario.
+--
+-- Hasta ahora `persons` no tenía relación con `users`: el sistema sabía el rol
+-- del usuario en el hogar (owner/admin/member/viewer) pero no QUÉ persona era.
+-- Eso impedía resolver la visibilidad `self` ("cada uno ve lo suyo").
+--
+-- Con `user_id` poblado, la lógica de visibilidad puede resolver:
+--   self        -> evidencia/memoria cuyo person_id == la persona del usuario
+--   responsible -> donde el usuario es responsable de la función
+--   household   -> compartido con todo el hogar
+--
+-- Nullable: las personas sin cuenta (ej. un menor sin login) quedan con NULL.
+ALTER TABLE persons ADD COLUMN user_id TEXT;

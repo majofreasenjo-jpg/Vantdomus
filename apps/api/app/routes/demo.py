@@ -18,13 +18,20 @@ recién seedeado y vea una historia familiar completa SIN tocar nada más:
 """
 
 import json
+import re
+import unicodedata
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..deps import get_current_user, get_db, require_household_role, require_operational_feature_enabled
+from ..security import hash_password
 from ..tenancy import get_household_organization_id
+
+# Password compartida para las cuentas de integrantes del demo (todas iguales,
+# es solo para mostrar la visibilidad por persona en el pitch).
+DEMO_MEMBER_PASSWORD = "Demo-Pass-2026!"
 
 # VantGuide: el seed familiar pobla el modelo nuevo (unit_functions, evidence,
 # memory, person_support_profile). Las tablas legacy (task_items, alerts) se
@@ -745,3 +752,84 @@ def seed(household_id: str, mode: str = "home", user=Depends(get_current_user), 
 
     db.commit()
     return result
+
+
+def _email_from_name(display_name: str, fallback_id: str) -> str:
+    first = (display_name or "").strip().split(" ")[0].lower()
+    # quitar acentos y dejar solo a-z0-9
+    first = unicodedata.normalize("NFKD", first).encode("ascii", "ignore").decode("ascii")
+    first = re.sub(r"[^a-z0-9]", "", first)
+    if not first:
+        first = f"persona{fallback_id[:6]}"
+    return f"{first}@vantdomus.local"
+
+
+@router.post("/seed_members")
+def seed_members(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    """
+    VG+2.6: crea (idempotente) una cuenta de usuario por integrante del hogar y
+    la vincula a su persona (persons.user_id). Permite demostrar la visibilidad
+    por persona: cada integrante entra con su cuenta (rol `member`, NO owner) y
+    ve solo lo suyo + lo compartido; el owner sigue viendo todo.
+    """
+    require_operational_feature_enabled("Demo seed", "VANTDOMUS_ALLOW_DEMO_SEED")
+    require_household_role(db, user["user_id"], household_id, "owner")
+
+    persons = db.execute(
+        "SELECT id, display_name FROM persons WHERE household_id=? ORDER BY created_at",
+        (household_id,),
+    ).fetchall()
+
+    members = []
+    for p in persons:
+        email = _email_from_name(p["display_name"], p["id"])
+        urow = db.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if urow:
+            uid = urow["id"]
+        else:
+            uid = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO users (id,email,password_hash,is_active,created_at) VALUES (?,?,?,?,?)",
+                (uid, email, hash_password(DEMO_MEMBER_PASSWORD), 1, now()),
+            )
+        # Rol member (no owner): así NO ve todo, solo self + household.
+        db.execute(
+            "INSERT OR IGNORE INTO household_memberships (household_id,user_id,role,created_at) VALUES (?,?,?,?)",
+            (household_id, uid, "member", now()),
+        )
+        db.execute("UPDATE persons SET user_id=? WHERE id=?", (uid, p["id"]))
+
+        # Nota privada (solo 'self'): demuestra que un integrante ve lo suyo
+        # privado y NO lo privado de los demás (el owner sí ve todo).
+        # Idempotente: una sola por persona (marker demo_private en metadata).
+        existing_private = db.execute(
+            "SELECT id FROM evidence_items WHERE household_id=? AND person_id=? "
+            "AND evidence_type='manual_note' AND metadata LIKE '%\"demo_private\": true%'",
+            (household_id, p["id"]),
+        ).fetchone()
+        if not existing_private:
+            organization_id = get_household_organization_id(db, household_id)
+            log_evidence_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                evidence_type="manual_note",
+                created_by_user_id=uid,
+                person_id=p["id"],
+                text_content=(
+                    f"Nota privada de {p['display_name']}: esto solo lo ve "
+                    f"{p['display_name'].split(' ')[0]} (y un familiar responsable). "
+                    "Los demás integrantes no la ven."
+                ),
+                metadata={"demo_private": True},
+                visible_to_roles=["self"],
+            )
+
+        members.append({"person": p["display_name"], "email": email, "role": "member"})
+
+    db.commit()
+    return {
+        "household_id": household_id,
+        "password": DEMO_MEMBER_PASSWORD,
+        "members": members,
+    }
