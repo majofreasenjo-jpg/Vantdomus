@@ -81,21 +81,33 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
     db.execute("UPDATE households SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), household_id))
 
     # --- 2. Personas (4 integrantes, multi-generacional) ---
-    persons = [
-        # (id, display_name, relation)
-        (str(uuid.uuid4()), "Pedro Pérez", "Padre"),
-        (str(uuid.uuid4()), "Camila Soto", "Madre"),
-        (str(uuid.uuid4()), "Diego Pérez", "Hijo"),
-        (str(uuid.uuid4()), "Elena Soto", "Abuela"),
+    # Idempotente DE VERDAD: reusar por (household_id, display_name). Antes se
+    # generaba un uuid nuevo por corrida → INSERT OR IGNORE igual insertaba y
+    # re-correr "Cargar datos de ejemplo" duplicaba los integrantes.
+    person_defs = [
+        ("Pedro Pérez", "Padre"),
+        ("Camila Soto", "Madre"),
+        ("Diego Pérez", "Hijo"),
+        ("Elena Soto", "Abuela"),
     ]
-    pid_padre, pid_madre, pid_hijo, pid_abuela = [p[0] for p in persons]
-    for pid, name, relation in persons:
-        db.execute(
-            "INSERT OR IGNORE INTO persons "
-            "(id, household_id, organization_id, display_name, relation, created_at) "
-            "VALUES (?,?,?,?,?,?)",
-            (pid, household_id, organization_id, name, relation, ts),
-        )
+    person_ids = []
+    for name, relation in person_defs:
+        existing = db.execute(
+            "SELECT id FROM persons WHERE household_id=? AND display_name=?",
+            (household_id, name),
+        ).fetchone()
+        if existing:
+            pid = existing["id"]
+        else:
+            pid = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO persons "
+                "(id, household_id, organization_id, display_name, relation, created_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (pid, household_id, organization_id, name, relation, ts),
+            )
+        person_ids.append(pid)
+    pid_padre, pid_madre, pid_hijo, pid_abuela = person_ids
 
     # --- 3. Medicación: abuela Elena toma Losartán mañana y noche ---
     losartan_times = ["08:00", "20:00"]
