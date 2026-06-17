@@ -78,8 +78,8 @@ def _bootstrap_household(client: TestClient, token: str, name: str = "Familia Te
     household_id = res.json()["id"]
 
     res = client.post(
-        f"/households/{household_id}/persons",
-        json={"display_name": "Diego Test", "relation": "Hijo"},
+        "/persons",
+        params={"household_id": household_id, "display_name": "Diego Test", "relation": "Hijo"},
         headers=_auth(token),
     )
     assert res.status_code in (200, 201), res.text

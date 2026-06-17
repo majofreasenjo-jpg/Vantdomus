@@ -73,8 +73,8 @@ def _bootstrap(client: TestClient, token: str) -> tuple[str, str]:
     assert res.status_code == 200
     hid = res.json()["id"]
     res = client.post(
-        f"/households/{hid}/persons",
-        json={"display_name": "Diego", "relation": "Hijo"},
+        "/persons",
+        params={"household_id": hid, "display_name": "Diego", "relation": "Hijo"},
         headers=_auth(token),
     )
     assert res.status_code in (200, 201)
@@ -381,14 +381,14 @@ def test_multiple_responsibles_with_distinct_roles(client: TestClient):
 
     # Crear segunda persona (cuidador)
     res = client.post(
-        f"/households/{hid}/persons",
-        json={"display_name": "Camila", "relation": "Madre"},
+        "/persons",
+        params={"household_id": hid, "display_name": "Camila", "relation": "Madre"},
         headers=_auth(token),
     )
     pid_camila = res.json()["id"]
     res = client.post(
-        f"/households/{hid}/persons",
-        json={"display_name": "Pedro", "relation": "Padre"},
+        "/persons",
+        params={"household_id": hid, "display_name": "Pedro", "relation": "Padre"},
         headers=_auth(token),
     )
     pid_pedro = res.json()["id"]
@@ -462,8 +462,8 @@ def test_responsible_person_id_still_works(client: TestClient):
     hid, pid = _bootstrap(client, token)
 
     res = client.post(
-        f"/households/{hid}/persons",
-        json={"display_name": "Cuidadora", "relation": "Cuidadora"},
+        "/persons",
+        params={"household_id": hid, "display_name": "Cuidadora", "relation": "Cuidadora"},
         headers=_auth(token),
     )
     pid_cuid = res.json()["id"]

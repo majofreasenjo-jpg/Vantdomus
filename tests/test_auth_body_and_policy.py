@@ -133,7 +133,7 @@ def test_login_missing_everything_is_400(client: TestClient):
     "weak_password,reason_substring",
     [
         ("Short9!", "at least"),          # too short
-        ("password123", "commonly"),      # common-weak list
+        ("password123", "mix"),           # lowercase+digits = solo 2 clases (regla de complejidad)
         ("aaaaaaaaaaaa", "mix"),          # one class
         ("AAAAAAAAAAAA", "mix"),          # one class
         ("123456789012", "mix"),          # one class
