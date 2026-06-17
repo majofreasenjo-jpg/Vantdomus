@@ -238,10 +238,13 @@ def list_evidence(
             roles_visible = ["household"]
         if not roles_visible:
             roles_visible = ["household"]
-        if user_role in ("owner", "admin"):
-            visible_items.append(dict(row))
-        elif user_role in roles_visible or "household" in roles_visible:
-            visible_items.append(dict(row))
+        if user_role in ("owner", "admin") or user_role in roles_visible or "household" in roles_visible:
+            d = dict(row)
+            # Hidratar JSON a objetos: el cliente espera metadata como objeto
+            # (ej. ev.metadata.improvement_pct).
+            d["metadata"] = _loads(d.get("metadata"))
+            d["visible_to_roles"] = roles_visible
+            visible_items.append(d)
 
     return {"items": visible_items}
 
@@ -277,7 +280,10 @@ def get_person_library(
     for row in evidence_rows:
         roles_visible = _loads(row["visible_to_roles"]) or ["household"]
         if user_role in ("owner", "admin") or user_role in roles_visible or "household" in roles_visible:
-            visible_evidence.append(dict(row))
+            d = dict(row)
+            d["metadata"] = _loads(d.get("metadata"))
+            d["visible_to_roles"] = roles_visible
+            visible_evidence.append(d)
 
     # Filtrar memoria por consent_scope
     visible_memory = []
@@ -285,7 +291,10 @@ def get_person_library(
         scope = _loads(row["consent_scope"])
         visible_to = scope.get("visible_to", ["household"]) if isinstance(scope, dict) else ["household"]
         if user_role in ("owner", "admin") or user_role in visible_to or "household" in visible_to:
-            visible_memory.append(dict(row))
+            d = dict(row)
+            if "metadata" in d:
+                d["metadata"] = _loads(d.get("metadata"))
+            visible_memory.append(d)
 
     return {
         "person_id": person_id,

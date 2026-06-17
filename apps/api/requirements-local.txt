@@ -1,0 +1,33 @@
+# =============================================================================
+# requirements-local.txt — dependencias para correr LOCAL con SQLite.
+#
+# Diferencias vs requirements.txt (que se usa en producción/staging):
+#   - psycopg2-binary EXCLUIDO (local usa SQLite; app.db.connect() ya cae
+#     a sqlite3 cuando DATABASE_URL está vacío).
+#   - Versiones con ">=" para tolerar Python 3.13+ donde algunos paquetes
+#     viejos no tienen wheels prebuilt.
+#
+# NO usar este archivo en producción. Para prod usar requirements.txt
+# (pineado) con Postgres real.
+# =============================================================================
+
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.1
+pydantic>=2.8.2
+pydantic-settings>=2.3.4
+python-jose>=3.3.0
+# cryptography 43.0.3+ tiene wheels para Python 3.13/3.14
+cryptography>=43.0.3
+# bcrypt 4.2+ tiene wheels para 3.13/3.14
+bcrypt>=4.2.1
+python-multipart>=0.0.9
+# PyMuPDF 1.25+ con wheels para 3.13/3.14
+PyMuPDF>=1.25.1
+# psycopg2-binary — DELIBERADAMENTE NO INCLUIDO
+# La app cae a SQLite cuando DATABASE_URL=""
+
+# --- Testing (dev local) ---
+# Necesarios para correr la suite de pytest. httpx es requerido por el
+# starlette.testclient.TestClient.
+pytest>=8.0
+httpx>=0.27

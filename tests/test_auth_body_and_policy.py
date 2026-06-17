@@ -38,6 +38,9 @@ def client(monkeypatch, tmp_path) -> TestClient:
     monkeypatch.setenv("DATABASE_URL", "")
     monkeypatch.setenv("JWT_SECRET", "auth-body-tests-secret-32-chars-min")
     monkeypatch.setenv("VANTDOMUS_MFA_SECRET_KEY", "auth-body-tests-mfa-secret-key-32x")
+    # El TestClient usa el host "testserver"; permitilo explícitamente para no
+    # depender de un .env local (TrustedHostMiddleware lo rechazaría si no).
+    monkeypatch.setenv("VANTDOMUS_ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
     # The default policy is min 10 chars; we don't override it because the
     # whole point of this file is to test the default.
     monkeypatch.delenv("VANTDOMUS_MIN_PASSWORD_LENGTH", raising=False)
@@ -48,7 +51,11 @@ def client(monkeypatch, tmp_path) -> TestClient:
             del sys.modules[name]
 
     main = importlib.import_module("app.main")
-    return TestClient(main.app)
+    # Usar el TestClient como context manager dispara el lifespan
+    # (initialize_app_state → migraciones). Sin esto, la DB temporal
+    # queda sin tablas y todo falla con "no such table".
+    with TestClient(main.app) as test_client:
+        yield test_client
 
 
 GOOD_PASSWORD = "Strong-Operator-Pass-2026!"

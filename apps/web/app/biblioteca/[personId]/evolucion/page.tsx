@@ -145,12 +145,13 @@ export default async function EvolutionPage({
       ) : null}
 
       {fnsWithEvolution.map(({ fn, versions, currentVersion }) => {
-        // Snapshot más reciente del historial = inmediatamente anterior al estado actual
-        const previous = versions[0]; // ya viene ordenado DESC
-        const oldest = versions[versions.length - 1];
+        // ANTES = el estado más antiguo registrado (la línea base original).
+        // AHORA = el estado vigente (fn). La razón mostrada es la del último cambio.
+        const latest = versions[0]; // ya viene ordenado DESC: cambio más reciente
+        const original = versions[versions.length - 1]; // snapshot más antiguo
         const improvements = improvementByFn.get(fn.id) || [];
-        const previousSnapshot = previous?.snapshot || {};
-        const reasonLabel = CHANGE_REASON_LABELS[previous?.change_reason] || previous?.change_reason || "Cambio manual";
+        const previousSnapshot = original?.snapshot || {};
+        const reasonLabel = CHANGE_REASON_LABELS[latest?.change_reason] || latest?.change_reason || "Cambio manual";
 
         return (
           <div key={fn.id} className="card" style={{ marginBottom: 18, padding: 22 }}>
@@ -173,7 +174,7 @@ export default async function EvolutionPage({
                 borderRadius: 14,
                 padding: 16,
               }}>
-                <div className="cardTitle" style={{ color: "var(--bad)" }}>ANTES (v{previous?.version})</div>
+                <div className="cardTitle" style={{ color: "var(--bad)" }}>ANTES (v{original?.version})</div>
                 <div style={{ fontWeight: 700, marginTop: 6 }}>
                   {previousSnapshot.title || fn.title}
                 </div>
@@ -191,7 +192,7 @@ export default async function EvolutionPage({
                   </div>
                 ) : null}
                 <div className="small" style={{ marginTop: 10, color: "var(--muted)" }}>
-                  {fmtDate(previous?.created_at)}
+                  {fmtDate(original?.created_at)}
                 </div>
               </div>
 
@@ -224,9 +225,9 @@ export default async function EvolutionPage({
               <div style={{ flex: 1, minWidth: 260 }}>
                 <div className="cardTitle">¿Por qué cambiamos?</div>
                 <div style={{ fontSize: 14, marginTop: 6 }}>{reasonLabel}</div>
-                {previous?.changed_by_ai ? (
+                {latest?.changed_by_ai ? (
                   <div className="small" style={{ marginTop: 4 }}>Sugerido por el asistente IA</div>
-                ) : previous?.changed_by_user_id ? (
+                ) : latest?.changed_by_user_id ? (
                   <div className="small" style={{ marginTop: 4 }}>Decisión humana</div>
                 ) : null}
               </div>
@@ -239,7 +240,9 @@ export default async function EvolutionPage({
                       <div style={{ fontSize: 14, lineHeight: 1.5 }}>{ev.text_content}</div>
                       {ev.metadata && ev.metadata.improvement_pct ? (
                         <div className="big" style={{ fontSize: 22, color: "var(--good)", marginTop: 6 }}>
-                          +{Math.round(ev.metadata.improvement_pct)}%
+                          +{Number.isInteger(ev.metadata.improvement_pct)
+                            ? ev.metadata.improvement_pct
+                            : ev.metadata.improvement_pct.toFixed(1)}%
                         </div>
                       ) : null}
                     </div>

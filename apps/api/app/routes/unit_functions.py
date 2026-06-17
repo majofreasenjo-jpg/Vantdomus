@@ -494,7 +494,15 @@ def list_unit_functions(
     except Exception:
         rows = db.execute(sql_sqlite, tuple(params)).fetchall()
 
-    return {"items": [dict(r) for r in rows]}
+    # Hidratar columnas JSON a objetos, igual que GET /{id} (_row_to_response).
+    # El cliente espera schedule/metadata como objetos (ej. fn.schedule.times).
+    items = []
+    for r in rows:
+        d = dict(r)
+        d["schedule"] = _loads(d.get("schedule"))
+        d["metadata"] = _loads(d.get("metadata"))
+        items.append(d)
+    return {"items": items}
 
 
 @router.get("/{unit_function_id}")
