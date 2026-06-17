@@ -166,3 +166,7 @@ body[data-theme="family"] .footerNote{ font-size:13.5px; }
 body[data-theme="family"] .cardTitle{ font-size:13px; color:var(--muted); }
 body[data-theme="family"] .small[style*="opacity"]{ opacity:1 !important; }
 body[data-theme="family"]{ font-size:15px; }
+
+/* Nivel de vista: en "simple" se ocultan los elementos marcados .advanced
+   (márgenes ±, sub-KPIs técnicos, jerga). En "completo" se ven. */
+body[data-level="simple"] .advanced{ display:none !important; }

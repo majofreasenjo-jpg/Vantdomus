@@ -228,13 +228,13 @@ export default async function Dashboard({
                   <div className="cardTitle">{tax.kpi.osi}</div>
                   <div className="row" style={{ alignItems: "baseline", gap: 12 }}>
                     <div className="big">{hsi}%</div>
-                    <div className="small" style={{ color: "var(--muted)" }}>± {f?.hsi_margin ?? 0}% (Conf. 95%)</div>
+                    <div className="small advanced" style={{ color: "var(--muted)" }}>± {f?.hsi_margin ?? 0}% (Conf. 95%)</div>
                   </div>
                   <div className={pill.cls} style={{ marginTop: 4 }}>{pill.label}</div>
                 </div>
                 <div className="pill">{f?.mode || (dash.household.meta?.mode ?? "home")}</div>
               </div>
-              <div className="footerNote">
+              <div className="footerNote advanced">
                 <span style={{ fontWeight: "bold", color: "var(--primary)" }}>Sub-KPI: </span>{tax.kpi_sub ? tax.kpi_sub.osi : "Machine Learning Ready"}
               </div>
             </div>
@@ -243,12 +243,12 @@ export default async function Dashboard({
               <div className="cardTitle">{tax.health}</div>
               <div className="row" style={{ alignItems: "baseline", gap: 8 }}>
                 <div className="big">{f?.health_score ?? 0}%</div>
-                <div className="pill" style={{ opacity: 0.8, backgroundColor: "transparent", borderWidth: 1, borderColor: "var(--line)" }}>± {f?.health_margin ?? 0}%</div>
+                <div className="pill advanced" style={{ opacity: 0.8, backgroundColor: "transparent", borderWidth: 1, borderColor: "var(--line)" }}>± {f?.health_margin ?? 0}%</div>
               </div>
               <div className="small" style={{ marginTop: 4 }}>
                 <span style={{ fontWeight: "bold", color: "var(--primary)" }}>[{tax.kpi.health}]</span> {f?.missed_7d ?? 0} fallos · N: {f?.total_meds_7d ?? 0}
               </div>
-              <div className="small" style={{ marginTop: 4, fontStyle: "italic", opacity: 0.8 }}>
+              <div className="small advanced" style={{ marginTop: 4, fontStyle: "italic", opacity: 0.8 }}>
                 ↪ {tax.kpi_sub ? tax.kpi_sub.health : "Métricas de Salud"}
               </div>
             </div>
@@ -257,12 +257,12 @@ export default async function Dashboard({
               <div className="cardTitle">{tax.tasks}</div>
               <div className="row" style={{ alignItems: "baseline", gap: 8 }}>
                 <div className="big">{f?.task_score ?? 0}%</div>
-                <div className="pill" style={{ opacity: 0.8, backgroundColor: "transparent", borderWidth: 1, borderColor: "var(--line)" }}>± {f?.task_margin ?? 0}%</div>
+                <div className="pill advanced" style={{ opacity: 0.8, backgroundColor: "transparent", borderWidth: 1, borderColor: "var(--line)" }}>± {f?.task_margin ?? 0}%</div>
               </div>
               <div className="small" style={{ marginTop: 4 }}>
                 <span style={{ fontWeight: "bold", color: "var(--primary)" }}>[{tax.kpi.tasks}]</span> resueltos: {f?.tasks_done_7d ?? 0} · criticidad: {f?.tasks_overdue ?? 0}
               </div>
-              <div className="small" style={{ marginTop: 4, fontStyle: "italic", opacity: 0.8 }}>
+              <div className="small advanced" style={{ marginTop: 4, fontStyle: "italic", opacity: 0.8 }}>
                 ↪ {tax.kpi_sub ? tax.kpi_sub.tasks : "Rendimiento Operativo"}
               </div>
             </div>
@@ -271,12 +271,12 @@ export default async function Dashboard({
               <div className="cardTitle">{tax.finance}</div>
               <div className="row" style={{ alignItems: "baseline", gap: 8 }}>
                 <div className="big">{f?.finance_score ?? 0}%</div>
-                <div className="pill" style={{ opacity: 0.8, backgroundColor: "transparent", borderWidth: 1, borderColor: "var(--line)" }}>± {f?.finance_margin ?? 0}%</div>
+                <div className="pill advanced" style={{ opacity: 0.8, backgroundColor: "transparent", borderWidth: 1, borderColor: "var(--line)" }}>± {f?.finance_margin ?? 0}%</div>
               </div>
               <div className="small" style={{ marginTop: 4 }}>
                 <span style={{ fontWeight: "bold", color: "var(--primary)" }}>[{tax.kpi.finance}]</span> TTD: {Math.round(((f?.spend_30d_total ?? 0) as number) * 100) / 100}
               </div>
-              <div className="small" style={{ marginTop: 4, fontStyle: "italic", opacity: 0.8 }}>
+              <div className="small advanced" style={{ marginTop: 4, fontStyle: "italic", opacity: 0.8 }}>
                 ↪ {tax.kpi_sub ? tax.kpi_sub.finance : "Flujo OPEX/CAPEX"}
               </div>
             </div>

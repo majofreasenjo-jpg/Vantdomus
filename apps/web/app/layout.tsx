@@ -2,7 +2,7 @@ import "./globals.css";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
 import { cookies } from "next/headers";
-import { logoutAction } from "./login/actions";
+import { logoutAction, setViewLevelAction } from "./login/actions";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let hid = "";
@@ -11,6 +11,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const hasSession = Boolean(store.get("vantdomus_session_id")?.value || store.get("vantdomus_access_token")?.value);
   const cookieHid = store.get("hid")?.value || "";
   const envHid = process.env.NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID || "";
+  const viewLevel = store.get("view_level")?.value === "full" ? "full" : "simple";
 
   // 1. Prefer the active client selected by the app.
   if (cookieHid) {
@@ -67,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body
         suppressHydrationWarning
         data-theme={isFamily ? "family" : undefined}
+        data-level={isFamily ? viewLevel : undefined}
         style={{ '--bg': tax.theme?.bg || '#0b0f17', '--primary': tax.theme?.primary || '#5b7cfa' } as React.CSSProperties}
       >
         <div className="nav">
@@ -100,6 +102,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <a href="/inbox">{isFamily ? "Buzón" : "Buzón"}</a>
               <a href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</a>
             </div>
+            {isFamily ? (
+              <form action={setViewLevelAction}>
+                <input type="hidden" name="level" value={viewLevel === "simple" ? "full" : "simple"} />
+                <button className="btn" type="submit" title="Cambiar nivel de detalle"
+                  style={{ fontSize: 12, padding: "6px 10px" }}>
+                  {viewLevel === "simple" ? "Vista simple" : "Vista completa"}
+                </button>
+              </form>
+            ) : null}
             {hasSession ? (
               <form action={logoutAction}>
                 <button className="btn" type="submit">{isFamily ? "Cerrar sesión" : "Salir"}</button>

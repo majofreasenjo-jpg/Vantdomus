@@ -2,8 +2,27 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { API_BASE, loginWithPassword } from "../../lib/public-api";
 import { CSRF_COOKIE, newCsrfToken } from "../../lib/csrf";
+
+/**
+ * Nivel de vista (densidad de la UI): "simple" oculta KPIs técnicos, márgenes
+ * y jerga; "full" muestra todo (modo experto). Se guarda en cookie y el layout
+ * lo expone como data-level en el body para que el CSS oculte lo avanzado.
+ */
+export async function setViewLevelAction(formData: FormData) {
+  const raw = String(formData.get("level") || "simple");
+  const level = raw === "full" ? "full" : "simple";
+  const store = await cookies();
+  store.set("view_level", level, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/", "layout");
+}
 
 function cookieSecure() {
   const env = (process.env.APP_ENV || process.env.VANTDOMUS_DEPLOY_ENV || "local").toLowerCase();
