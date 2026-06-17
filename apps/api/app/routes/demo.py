@@ -109,6 +109,26 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
         person_ids.append(pid)
     pid_padre, pid_madre, pid_hijo, pid_abuela = person_ids
 
+    # Idempotencia TOTAL: si el hogar ya tiene funciones sembradas, no recrear
+    # la escena (re-clic en "Cargar datos de ejemplo" no debe duplicar nada).
+    # Las personas y el preset family ya quedaron asegurados arriba.
+    already = db.execute(
+        "SELECT COUNT(*) AS n FROM unit_functions WHERE household_id=?",
+        (household_id,),
+    ).fetchone()
+    if already and already["n"] > 0:
+        return {
+            "ok": True,
+            "mode": "home",
+            "industry_preset": "family",
+            "family_name": meta["family_name"],
+            "already_seeded": True,
+            "persons": [
+                {"id": pid, "name": name, "relation": relation}
+                for pid, (name, relation) in zip(person_ids, person_defs)
+            ],
+        }
+
     # --- 3. Medicación: abuela Elena toma Losartán mañana y noche ---
     losartan_times = ["08:00", "20:00"]
     db.execute(
@@ -674,7 +694,7 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
         "family_name": meta["family_name"],
         "persons": [
             {"id": pid, "name": name, "relation": relation}
-            for (pid, name, relation) in persons
+            for pid, (name, relation) in zip(person_ids, person_defs)
         ],
         "summary": {
             "medication_plans": 2,
