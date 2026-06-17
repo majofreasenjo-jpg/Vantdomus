@@ -660,9 +660,13 @@ def update_unit_function(
 
     db.execute(f"UPDATE unit_functions SET {', '.join(sets)} WHERE id=?", tuple(params))
 
-    # Si transicionamos a done o cancelled, marcar el evento correspondiente
+    # Si transicionamos a done o cancelled, marcar el evento correspondiente.
+    # Idempotente: solo emitimos el evento al TRANSICIONAR (status previo
+    # distinto). Re-marcar done no debe duplicar el evento 'completed'
+    # (el dedupe_key incluye un timestamp, así que sin este guard cada PATCH
+    # generaba un evento nuevo).
     warning: Optional[str] = None
-    if body.status == "done":
+    if body.status == "done" and row["status"] != "done":
         _insert_function_event(
             db,
             unit_function_id=unit_function_id,
