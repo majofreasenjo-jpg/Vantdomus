@@ -105,3 +105,54 @@ input::placeholder{color:#6f829b}
   svg text { fill: #000 !important; }
   svg line, svg path { stroke: #888 !important; }
 }
+
+/* =========================================================================
+   Tema HOGAREÑO para el modo familia (data-theme="family").
+   Reemplaza el look oscuro/corporativo por una paleta cálida y clara:
+   fondo crema, tarjetas blancas, texto marrón suave, acento verde cálido.
+   Solo aplica cuando el hogar está en modo familia; el modo B2B/operativo
+   conserva el tema oscuro.
+   ========================================================================= */
+body[data-theme="family"]{
+  --bg:#fbf4ea;          /* crema cálido (coincide con theme.bg del preset) */
+  --primary:#2f8f6b;     /* verde cálido y amable */
+  --card:#ffffff;        /* tarjetas claras */
+  --muted:#867a6b;       /* gris cálido para texto secundario */
+  --text:#3b332b;        /* marrón oscuro suave, buena lectura */
+  --line:#ece0cf;        /* borde cálido tenue */
+  --good:#2e9e6b;
+  --warn:#c98a2e;
+  --bad:#d2544f;
+  color-scheme: light;
+  background: radial-gradient(1200px 800px at 20% 8%, #fffaf2 0%, var(--bg) 55%);
+}
+body[data-theme="family"] .nav{
+  background: rgba(251,244,234,.82);
+  border-bottom:1px solid var(--line);
+}
+body[data-theme="family"] .card{
+  background: linear-gradient(180deg, #ffffff, #fffaf3);
+  border:1px solid var(--line);
+  box-shadow: 0 14px 36px rgba(120,90,50,.10);
+}
+body[data-theme="family"] .input,
+body[data-theme="family"] select{
+  background:#ffffff;
+  border:1px solid var(--line);
+  color:var(--text);
+}
+body[data-theme="family"] select option{ background:#ffffff; color:var(--text); }
+body[data-theme="family"] input::placeholder{ color:#a89a87; }
+body[data-theme="family"] .btn{
+  background:#ffffff;
+  border:1px solid var(--line);
+}
+body[data-theme="family"] .btn:hover{ background:rgba(0,0,0,.035); }
+body[data-theme="family"] .btnPrimary{
+  background:var(--primary); border-color:var(--primary); color:#ffffff;
+}
+body[data-theme="family"] .navLinks a:hover{
+  background:rgba(0,0,0,.04); border-color:var(--line); color:var(--text);
+}
+body[data-theme="family"] .table th,
+body[data-theme="family"] .table td{ border-bottom:1px solid var(--line); }

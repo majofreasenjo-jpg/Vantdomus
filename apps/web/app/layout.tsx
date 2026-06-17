@@ -66,6 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" suppressHydrationWarning>
       <body
         suppressHydrationWarning
+        data-theme={isFamily ? "family" : undefined}
         style={{ '--bg': tax.theme?.bg || '#0b0f17', '--primary': tax.theme?.primary || '#5b7cfa' } as React.CSSProperties}
       >
         <div className="nav">
