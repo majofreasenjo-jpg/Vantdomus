@@ -150,8 +150,11 @@ body[data-theme="family"] .btn{
 }
 body[data-theme="family"] .btn:hover{ background:rgba(0,0,0,.035); }
 body[data-theme="family"] .btnPrimary{
-  background:var(--primary); border-color:var(--primary); color:#ffffff;
+  background:#4A7A6B !important;      /* salvia más profundo: texto blanco legible */
+  border-color:#4A7A6B !important;
+  color:#ffffff !important;
 }
+body[data-theme="family"] .btnPrimary:hover{ background:#3F6B5D !important; }
 body[data-theme="family"] .navLinks a:hover{
   background:rgba(0,0,0,.04); border-color:var(--line); color:var(--text);
 }

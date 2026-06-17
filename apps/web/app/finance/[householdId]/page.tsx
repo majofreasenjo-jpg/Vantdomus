@@ -129,10 +129,10 @@ export default async function Finance({ params }: { params: Promise<{ householdI
             }}
           >
             <input className="input" name="amount" type="number" min="0.01" step="0.01" required placeholder="Monto" style={{ width: 120 }} />
-            <select className="input" name="currency" defaultValue="USD">
+            <select className="input" name="currency" defaultValue={isFamily ? "CLP" : "USD"}>
+              <option value="CLP">CLP</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
-              <option value="CLP">CLP</option>
               <option value="BRL">BRL</option>
             </select>
             <select className="input" name="category" defaultValue={isFamily ? "home" : "general"}>
@@ -171,6 +171,13 @@ export default async function Finance({ params }: { params: Promise<{ householdI
             <input className="input" name="notes" placeholder={isFamily ? "Nota / boleta / vencimiento" : "Notas / factura"} style={{ width: 180 }} />
             <button className="btn btnPrimary" type="submit">{isFamily ? "Guardar movimiento" : "Registrar movimiento"}</button>
           </form>
+          {isFamily ? (
+            <div className="footerNote" style={{ lineHeight: 1.6 }}>
+              Registrá <strong>ingresos</strong> (categoría “Ingreso familiar”) y <strong>gastos</strong> en el mismo lugar.
+              El <strong>integrante responsable</strong> sirve para ver cuánto <strong>aporta o gasta cada persona</strong> del hogar.
+              <br/>📎 En “Nota / boleta” podés anotar el respaldo. <em>Próximamente</em>: escanear la boleta y que el sistema cargue el monto, el comercio y la fecha por vos (sin digitar).
+            </div>
+          ) : null}
         </div>
       </div>
 
