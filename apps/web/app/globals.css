@@ -114,26 +114,27 @@ input::placeholder{color:#6f829b}
    conserva el tema oscuro.
    ========================================================================= */
 body[data-theme="family"]{
-  --bg:#fbf4ea;          /* crema cálido (coincide con theme.bg del preset) */
-  --primary:#2f8f6b;     /* verde cálido y amable */
-  --card:#ffffff;        /* tarjetas claras */
-  --muted:#867a6b;       /* gris cálido para texto secundario */
-  --text:#3b332b;        /* marrón oscuro suave, buena lectura */
-  --line:#ece0cf;        /* borde cálido tenue */
-  --good:#2e9e6b;
-  --warn:#c98a2e;
-  --bad:#d2544f;
+  --bg:#F4EFE6;          /* arena cálida (Pantone warm-neutral) */
+  --primary:#5E8B7E;     /* verde salvia, calmo y natural */
+  --accent:#C97B5A;      /* terracota para acentos cálidos */
+  --card:#FFFFFF;        /* tarjetas claras */
+  --muted:#8A8174;       /* taupe para texto secundario */
+  --text:#33302A;        /* charcoal cálido, buena lectura */
+  --line:#E4DAC9;        /* borde arena tenue */
+  --good:#4F8A6D;        /* salvia-verde */
+  --warn:#C97B5A;        /* terracota */
+  --bad:#B5503C;         /* arcilla profunda */
   color-scheme: light;
-  background: radial-gradient(1200px 800px at 20% 8%, #fffaf2 0%, var(--bg) 55%);
+  background: radial-gradient(1200px 800px at 20% 8%, #FBF7EF 0%, var(--bg) 55%);
 }
 body[data-theme="family"] .nav{
-  background: rgba(251,244,234,.82);
+  background: rgba(244,239,230,.85);
   border-bottom:1px solid var(--line);
 }
 body[data-theme="family"] .card{
-  background: linear-gradient(180deg, #ffffff, #fffaf3);
+  background: #FFFFFF;
   border:1px solid var(--line);
-  box-shadow: 0 14px 36px rgba(120,90,50,.10);
+  box-shadow: 0 12px 30px rgba(120,95,60,.08);
 }
 body[data-theme="family"] .input,
 body[data-theme="family"] select{
