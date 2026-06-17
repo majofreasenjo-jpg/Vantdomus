@@ -346,7 +346,11 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
                 created_by_user_id=user_id_for_demo,
                 due_at=_iso(now_dt + timedelta(days=offset)),
                 priority="high" if "PRUEBA" in title or "Repaso" in title else "medium",
-                supervision_level="light_reminder",
+                # FIX: supervision_level del UnitFunction acepta solo
+                #   autonomous|reminder_only|supervised|co_executed
+                # No confundir con person_support_profile.supervision_level
+                # que acepta autonomous|light_reminder|guided|accompanied.
+                supervision_level="reminder_only",
                 support_mode="tap",
                 metadata={"subject": "Matemáticas", "topic": "Fracciones"},
                 dual_write_task=False,  # ya creamos task_items arriba
@@ -413,7 +417,9 @@ def _seed_family(db, household_id: str, organization_id: str | None) -> dict:
             created_by_user_id=user_id_for_demo,
             due_at=_iso(cita_date),
             priority="high",
-            supervision_level="accompanied",
+            # FIX: ver comentario arriba — supervision_level del UnitFunction
+            # no acepta "accompanied", solo {autonomous|reminder_only|supervised|co_executed}.
+            supervision_level="supervised",
             metadata={"specialty": "Cardiología", "doctor": "Dra. María González", "location": "Clínica Las Condes"},
             dual_write_task=False,
         )
