@@ -1,4 +1,5 @@
 import { getPersonHealthTimeline, setAdherencePlan, healthCheckin, getDashboard } from "../../../../lib/api";
+import { revalidatePath } from "next/cache";
 
 // Renderiza un ISO timestamp en formato local familiar.
 function formatTimestamp(iso: string): string {
@@ -76,6 +77,9 @@ export default async function PersonHealth({
                 String(fd.get("times") || "Rutina diaria"),
                 String(fd.get("mode") || "tap") as any
               );
+              // Refrescar para que el control recién asignado aparezca en el
+              // historial sin tener que recargar a mano.
+              revalidatePath(`/persons/${pid}/health`);
             }}
           >
             <input className="input" name="med" defaultValue="Control preventivo" placeholder="Ej: medicamento, control medico, descanso..." style={{ width: 160 }} />
@@ -104,6 +108,8 @@ export default async function PersonHealth({
                 String(fd.get("med") || "Check-in de bienestar"),
                 String(fd.get("status") || "taken") as any
               );
+              // Refrescar para que el check-in aparezca en el historial.
+              revalidatePath(`/persons/${pid}/health`);
             }}
           >
             <input className="input" name="med" defaultValue="Bienestar OK" placeholder="Reporte de estado, salud, descanso..." style={{ width: 160 }} />
