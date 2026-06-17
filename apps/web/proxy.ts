@@ -39,6 +39,20 @@ function allowLocalDemoFallback() {
   return isLocalEnv() && Boolean(process.env.NEXT_PUBLIC_ACCESS_TOKEN);
 }
 
+// Cuando el usuario visita /dashboard/{householdId}, fija la cookie `hid`
+// (hogar activo) para que la Guía, la Biblioteca y la Evolución usen ese
+// hogar en vez de caer al primero de la lista (getHouseholds().items[0]).
+// El page render (Server Component) no puede setear cookies; el proxy sí.
+const HOUSEHOLD_DASHBOARD = /^\/dashboard\/([0-9a-fA-F-]{36})(?:\/|$)/;
+
+function armActiveHousehold(request: NextRequest, response: NextResponse) {
+  const match = request.nextUrl.pathname.match(HOUSEHOLD_DASHBOARD);
+  if (match && request.cookies.get("hid")?.value !== match[1]) {
+    response.cookies.set("hid", match[1], { path: "/", sameSite: "lax" });
+  }
+  return response;
+}
+
 function withNoStore(response: NextResponse) {
   response.headers.set("Cache-Control", "no-store, max-age=0");
   response.headers.set("Pragma", "no-cache");
@@ -56,7 +70,7 @@ export function proxy(request: NextRequest) {
   }
   const hasSession = Boolean(request.cookies.get("vantdomus_session_id")?.value || request.cookies.get("vantdomus_access_token")?.value);
   if (hasSession || allowLocalDemoFallback()) {
-    return withNoStore(NextResponse.next());
+    return armActiveHousehold(request, withNoStore(NextResponse.next()));
   }
   const loginUrl = request.nextUrl.clone();
   loginUrl.pathname = "/login";
