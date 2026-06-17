@@ -118,7 +118,7 @@ body[data-theme="family"]{
   --primary:#5E8B7E;     /* verde salvia, calmo y natural */
   --accent:#C97B5A;      /* terracota para acentos cálidos */
   --card:#FFFFFF;        /* tarjetas claras */
-  --muted:#8A8174;       /* taupe para texto secundario */
+  --muted:#6E655A;       /* taupe oscuro: mejor contraste/legibilidad */
   --text:#33302A;        /* charcoal cálido, buena lectura */
   --line:#E4DAC9;        /* borde arena tenue */
   --good:#4F8A6D;        /* salvia-verde */
@@ -157,3 +157,12 @@ body[data-theme="family"] .navLinks a:hover{
 }
 body[data-theme="family"] .table th,
 body[data-theme="family"] .table td{ border-bottom:1px solid var(--line); }
+
+/* Legibilidad en modo familia: el texto secundario era chico y tenue.
+   Subimos tamaños y aseguramos opacidad plena (varios componentes usan
+   opacity:.8 inline sobre texto pequeño, que en fondo claro se perdía). */
+body[data-theme="family"] .small,
+body[data-theme="family"] .footerNote{ font-size:13.5px; }
+body[data-theme="family"] .cardTitle{ font-size:13px; color:var(--muted); }
+body[data-theme="family"] .small[style*="opacity"]{ opacity:1 !important; }
+body[data-theme="family"]{ font-size:15px; }

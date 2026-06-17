@@ -23,8 +23,7 @@ export default function SchoolPlannerForm({
     <section
       className="card"
       style={{
-        border: "1px solid rgba(16,185,129,0.45)",
-        background: "linear-gradient(135deg, rgba(6,23,16,0.94), rgba(15,23,42,0.88))",
+        borderColor: "var(--primary)",
       }}
     >
       <div className="row" style={{ alignItems: "flex-start", gap: 18 }}>
