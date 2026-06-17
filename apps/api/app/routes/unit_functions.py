@@ -137,6 +137,16 @@ class UnitFunctionResponse(BaseModel):
     metadata: dict
     created_at: str
     updated_at: str
+    # Versionado + gating de IA. La UI de detalle (/guia/[id]) los usa para
+    # mostrar el bloque "confirmar/rechazar IA" y la explicación/confianza.
+    # Sin esto, ai_needs_confirmation llega undefined y el flujo IA no aparece.
+    version: Optional[int] = None
+    ai_needs_confirmation: Optional[bool] = None
+    ai_confidence: Optional[float] = None
+    ai_explanation: Optional[str] = None
+    ai_extraction_source: Optional[str] = None
+    confirmed_at: Optional[str] = None
+    confirmed_by_user_id: Optional[str] = None
 
 
 # =============================================================================
@@ -171,7 +181,26 @@ def _row_to_response(row) -> UnitFunctionResponse:
         metadata=_loads(row["metadata"]),
         created_at=row["created_at"],
         updated_at=row["updated_at"],
+        version=_row_get(row, "version"),
+        ai_needs_confirmation=(
+            bool(_row_get(row, "ai_needs_confirmation"))
+            if _row_get(row, "ai_needs_confirmation") is not None
+            else None
+        ),
+        ai_confidence=_row_get(row, "ai_confidence"),
+        ai_explanation=_row_get(row, "ai_explanation"),
+        ai_extraction_source=_row_get(row, "ai_extraction_source"),
+        confirmed_at=_row_get(row, "confirmed_at"),
+        confirmed_by_user_id=_row_get(row, "confirmed_by_user_id"),
     )
+
+
+def _row_get(row, key):
+    """Acceso seguro a una columna de sqlite3.Row (None si no está)."""
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return None
 
 
 def _loads(value) -> dict:
