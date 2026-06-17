@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { listLogbookEntries, getDashboard, listHouseholds } from "../../lib/api";
+import { listLogbookEntries, getDashboard, getHouseholds } from "../../lib/api";
 import BuzonClient from "./BuzonClient";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +16,12 @@ export const revalidate = 0;
  * ajenos en el inbox.
  */
 async function resolveActiveHousehold(): Promise<string | null> {
-  // 1. Cookie del panel
+  // 1. Cookie del hogar activo. Usamos `hid` (la misma que setea el proxy al
+  //    visitar /dashboard/{id} y que leen Guía/Biblioteca/Evolución), con
+  //    fallback al nombre legacy `vantdomus_household_id`.
   try {
     const store = await cookies();
-    const fromCookie = store.get("vantdomus_household_id")?.value;
+    const fromCookie = store.get("hid")?.value || store.get("vantdomus_household_id")?.value;
     if (fromCookie) return fromCookie;
   } catch {
     // cookies() no disponible en este contexto, seguimos.
@@ -27,7 +29,7 @@ async function resolveActiveHousehold(): Promise<string | null> {
 
   // 2. Primer household del usuario
   try {
-    const result = await listHouseholds();
+    const result = await getHouseholds();
     const first = result?.items?.[0];
     if (first?.id) return first.id;
   } catch {
