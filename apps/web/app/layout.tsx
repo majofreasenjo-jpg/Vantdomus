@@ -98,7 +98,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <a href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</a>
               <a href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</a>
               <a href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</a>
-              <a href={hid ? `/esg/${hid}` : "/"}>{isFamily ? "Documentos" : tax.esg}</a>
+              <a href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</a>
               <a href="/inbox">{isFamily ? "Buzón" : "Buzón"}</a>
               <a href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</a>
             </div>

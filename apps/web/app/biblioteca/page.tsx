@@ -46,7 +46,7 @@ export default async function BibliotecaIndex() {
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 20 }}>
         <div>
-          <div className="small">VantGuide</div>
+          {!isFamily ? <div className="small">VantGuide</div> : null}
           <div className="big" style={{ fontSize: 32 }}>
             {isFamily ? "Biblioteca Familiar" : "Biblioteca"}
           </div>

@@ -29,10 +29,10 @@ export default function SchoolPlannerForm({
       <div className="row" style={{ alignItems: "flex-start", gap: 18 }}>
         <div style={{ flex: 1, minWidth: 280 }}>
           <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: 900 }}>
-            Planificador escolar IA
+            Guía de estudio y compromisos
           </div>
           <div className="big" style={{ fontSize: 24, marginTop: 4 }}>
-            Calendario de pruebas, ramos y trabajos
+            Pruebas, trabajos y rutinas de estudio
           </div>
           <div className="small" style={{ marginTop: 8, maxWidth: 780, lineHeight: 1.55 }}>
             Sube calendarios, agendas, circulares o pega el detalle del semestre. VantDomus crea hitos de estudio,

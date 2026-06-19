@@ -87,29 +87,29 @@ export default async function EsgDashboard({ params }: { params: Promise<{ house
       </div>
 
       {isFamily && (
-        <div className="card" style={{ gridColumn: "span 4", border: "1px solid rgba(16,185,129,0.35)", background: "linear-gradient(135deg, rgba(6,23,16,0.92), rgba(15,23,42,0.76))" }}>
+        <div className="card" style={{ gridColumn: "span 4", borderColor: "var(--primary)" }}>
           <div className="row" style={{ gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 260px" }}>
-              <div className="cardTitle" style={{ color: "#10b981", fontWeight: 900 }}>Aporte concreto para la familia</div>
+              <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: 900 }}>Aporte concreto para la familia</div>
               <div style={{ fontSize: 24, fontWeight: 900, marginTop: 6 }}>Menos vencimientos, menos gasto perdido, mas respaldo disponible</div>
               <div className="small" style={{ marginTop: 8, lineHeight: 1.55, maxWidth: 720 }}>
                 Este modulo sirve para que la IA recuerde documentos por vencer, encuentre respaldos cuando se necesitan y sugiera beneficios o descuentos antes de pagar.
               </div>
             </div>
             <div className="grid" style={{ gridTemplateColumns: "repeat(3, minmax(150px, 1fr))", gap: 10, flex: "1 1 460px" }}>
-              <div className="card" style={{ padding: 12, background: "rgba(2,6,23,0.45)" }}>
+              <div className="card" style={{ padding: 12, background: "var(--bg)" }}>
                 <div className="small">Faltan por ordenar</div>
-                <div className="big" style={{ fontSize: 28, color: "#fb7185" }}>{criticalDocs}</div>
+                <div className="big" style={{ fontSize: 28, color: "var(--bad)" }}>{criticalDocs}</div>
                 <div className="small">documentos criticos</div>
               </div>
-              <div className="card" style={{ padding: 12, background: "rgba(2,6,23,0.45)" }}>
+              <div className="card" style={{ padding: 12, background: "var(--bg)" }}>
                 <div className="small">Proximos 30 dias</div>
-                <div className="big" style={{ fontSize: 28, color: "#fbbf24" }}>{upcomingDeadlines}</div>
+                <div className="big" style={{ fontSize: 28, color: "var(--warn)" }}>{upcomingDeadlines}</div>
                 <div className="small">vencimientos a revisar</div>
               </div>
-              <div className="card" style={{ padding: 12, background: "rgba(2,6,23,0.45)" }}>
+              <div className="card" style={{ padding: 12, background: "var(--bg)" }}>
                 <div className="small">Ahorro posible</div>
-                <div className="big" style={{ fontSize: 28, color: "#10b981" }}>{availableBenefits}</div>
+                <div className="big" style={{ fontSize: 28, color: "var(--good)" }}>{availableBenefits}</div>
                 <div className="small">beneficios disponibles</div>
               </div>
             </div>

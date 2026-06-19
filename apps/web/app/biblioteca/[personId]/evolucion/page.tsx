@@ -121,7 +121,7 @@ export default async function EvolutionPage({
 
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 24 }}>
         <div>
-          <div className="cardTitle">VantGuide · Biblioteca de Evolución</div>
+          <div className="cardTitle">Biblioteca de Evolución</div>
           <div className="big" style={{ fontSize: 30 }}>
             Cómo cambió y qué aprendimos sobre {person?.display_name || "esta persona"}
           </div>
@@ -138,7 +138,7 @@ export default async function EvolutionPage({
           <div className="cardTitle">Sin evolución registrada todavía</div>
           <div className="small" style={{ marginTop: 8, maxWidth: 500, margin: "8px auto 0" }}>
             {isFamily
-              ? "Cuando ajustes un horario de medicamento, una rutina o una estrategia, VantGuide guarda el antes y el después acá."
+              ? "Cuando ajustes un horario de medicamento, una rutina o una estrategia, VantDomus guarda el antes y el después acá."
               : "Las funciones registradas todavía no tienen cambios versionados."}
           </div>
         </div>
@@ -280,7 +280,7 @@ export default async function EvolutionPage({
 
       <div className="footerNote">
         {isFamily
-          ? "VantGuide aprende de lo que funcionó y de lo que no. Cada cambio que registres ayuda a que las próximas sugerencias sean mejores."
+          ? "VantDomus aprende de lo que funcionó y de lo que no. Cada cambio que registres ayuda a que las próximas sugerencias sean mejores."
           : "Evolución y aprendizaje del sistema con respecto a esta persona."}
       </div>
     </div>

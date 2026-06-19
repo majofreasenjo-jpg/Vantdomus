@@ -94,8 +94,8 @@ export default async function Finance({ params }: { params: Promise<{ householdI
       {/* HEADER FINANCIERO */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 8 }}>
         <div>
-          <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: "bold" }}>{isFamily ? "WEALTH GUARD FAMILIAR" : "FINANZAS DE LA UNIDAD (VANTDOMUS)"}</div>
-          <div className="big" style={{ fontSize: 26, margin: "4px 0" }}>{isFamily ? "Presupuesto, beneficios y vencimientos" : "Control presupuestario y gastos"}</div>
+          <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: "bold" }}>{isFamily ? "Finanzas del hogar" : "FINANZAS DE LA UNIDAD (VANTDOMUS)"}</div>
+          <div className="big" style={{ fontSize: 26, margin: "4px 0" }}>{isFamily ? "Presupuesto familiar y vencimientos" : "Control presupuestario y gastos"}</div>
           <div className="small">{isFamily ? "Organiza ingresos, gastos del hogar, supermercado, salud, colegio, seguros, beneficios y respaldos." : "Registro centralizado de proveedores, contratos, ordenes de compra, facturas y respaldos."}</div>
         </div>
         <div style={{ textAlign: "right", background: "rgba(0,0,0,0.2)", padding: "12px 18px", borderRadius: 8, border: "1px solid var(--line)" }}>

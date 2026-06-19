@@ -63,7 +63,7 @@ export default async function PersonHealth({
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <div className="card">
+        <div className="card" id="plan-cuidado">
           <div className="sectionTitle">Plan de cuidado y seguimiento</div>
 
           <form
@@ -126,31 +126,42 @@ export default async function PersonHealth({
 
       <div className="card">
         <div className="sectionTitle">Historial de bienestar y controles</div>
-        <table className="table">
-          <thead><tr><th>Fecha</th><th>Estado</th><th>Detalle</th></tr></thead>
-          <tbody>
-            {data.items.map((it: any) => (
-              <tr key={it.id}>
-                <td className="small">{formatTimestamp(it.occurred_at)}</td>
-                <td>
-                  <span className={`pill ${it.event_type.includes("missed") ? "bad" : "good"}`}>
-                    {it.event_type.toUpperCase().replace("TAKEN", "OK").replace("MISSED", "ALERTA")}
-                  </span>
-                </td>
-                <td style={{ fontWeight: it.event_type.includes("missed") ? "bold" : "normal" }}>{it.summary}</td>
-              </tr>
-            ))}
-            {data.items.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="small" style={{ textAlign: "center", padding: 20 }}>
-                  {isFamily
-                    ? "Aún no hay registros. Cuando marquen una pastilla o un control aparecerá acá."
-                    : "No hay registros recientes en el historial."}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
+        {data.items.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "26px 16px" }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>
+              {isFamily
+                ? `Sin controles registrados para ${data.person.display_name} todavía.`
+                : "No hay registros recientes en el historial."}
+            </div>
+            <div className="small" style={{ marginBottom: 16, maxWidth: 520, margin: "0 auto 16px" }}>
+              {isFamily
+                ? "Agregá un medicamento o una rutina de salud para empezar el seguimiento. Cada control quedará en este historial."
+                : "Registrá un control para iniciar la trazabilidad."}
+            </div>
+            <div className="formRow" style={{ justifyContent: "center" }}>
+              <a className="btn btnPrimary" href="#plan-cuidado">Agregar medicamento</a>
+              <a className="btn" href="#plan-cuidado">Agregar rutina de salud</a>
+              <a className="btn" href={`/biblioteca/${pid}`}>Configurar perfil de apoyo</a>
+            </div>
+          </div>
+        ) : (
+          <table className="table">
+            <thead><tr><th>Fecha</th><th>Estado</th><th>Detalle</th></tr></thead>
+            <tbody>
+              {data.items.map((it: any) => (
+                <tr key={it.id}>
+                  <td className="small">{formatTimestamp(it.occurred_at)}</td>
+                  <td>
+                    <span className={`pill ${it.event_type.includes("missed") ? "bad" : "good"}`}>
+                      {it.event_type.toUpperCase().replace("TAKEN", "OK").replace("MISSED", "ALERTA")}
+                    </span>
+                  </td>
+                  <td style={{ fontWeight: it.event_type.includes("missed") ? "bold" : "normal" }}>{it.summary}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

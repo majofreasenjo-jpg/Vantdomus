@@ -178,9 +178,11 @@ export default async function Dashboard({
     <div className="grid" style={{ gap: 14 }}>
       <div className="row" style={{ alignItems: "flex-end" }}>
         <div>
-          <a href="/ceo" style={{ color: "var(--warn)", textDecoration: "none", fontSize: 13, marginBottom: 8, display: "inline-block", fontWeight: "bold" }}>
-            ← Volver a Direccion Ejecutiva
-          </a>
+          {!isFamily ? (
+            <a href="/ceo" style={{ color: "var(--warn)", textDecoration: "none", fontSize: 13, marginBottom: 8, display: "inline-block", fontWeight: "bold" }}>
+              ← Volver a Direccion Ejecutiva
+            </a>
+          ) : null}
           <div className="cardTitle">{tax.unit}</div>
           <div className="big" style={{ fontSize: 28 }}>{dash.household.name}</div>
         </div>

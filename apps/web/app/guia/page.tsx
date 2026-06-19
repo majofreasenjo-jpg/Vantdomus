@@ -186,7 +186,7 @@ export default async function GuiaPage({
       {/* Header */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 20 }}>
         <div>
-          <div className="small" style={{ marginBottom: 6 }}>VantGuide</div>
+          {!isFamily ? <div className="small" style={{ marginBottom: 6 }}>VantGuide</div> : null}
           <div className="big" style={{ fontSize: 32 }}>
             {title}
             {familyName ? <span style={{ color: "var(--muted)", fontSize: 18, marginLeft: 12 }}>· {familyName}</span> : null}
@@ -205,10 +205,10 @@ export default async function GuiaPage({
           <div className="big">{stats.total}</div>
         </div>
         <div className="card" style={{ borderColor: stats.pendingAi > 0 ? "rgba(255,204,102,.35)" : undefined }}>
-          <div className="cardTitle">Pendientes confirmar IA</div>
+          <div className="cardTitle">{isFamily ? "Pendientes de revisión" : "Pendientes confirmar IA"}</div>
           <div className="big" style={{ color: stats.pendingAi > 0 ? "var(--warn)" : undefined }}>{stats.pendingAi}</div>
           <div className="small" style={{ marginTop: 4 }}>
-            La IA sugirió esto. Antes de activar, revisar.
+            La IA sugirió esto. Confirma antes de activar recordatorios.
           </div>
         </div>
         <div className="card" style={{ borderColor: stats.overdue > 0 ? "rgba(255,92,122,.35)" : undefined }}>
@@ -352,7 +352,7 @@ export default async function GuiaPage({
 
       <div className="footerNote">
         {isFamily
-          ? "VantGuide adapta su tono al perfil de cada integrante. Funciones, recordatorios y evidencia quedan en tu biblioteca privada."
+          ? "VantDomus adapta su tono al perfil de cada integrante. Funciones, recordatorios y evidencia quedan en tu biblioteca privada."
           : "Cada función registrada deja trazabilidad de cumplimiento, evidencia y aprendizaje."}
       </div>
     </div>

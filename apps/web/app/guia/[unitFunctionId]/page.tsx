@@ -371,7 +371,7 @@ export default async function UnitFunctionDetail({
 
       <div className="footerNote">
         Cada cambio de esta función queda versionado. Cuando algo mejora o algo no funciona,
-        VantGuide lo guarda para sugerir mejor la próxima vez.
+        VantDomus lo guarda para sugerir mejor la próxima vez.
       </div>
     </div>
   );
