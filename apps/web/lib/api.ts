@@ -259,6 +259,25 @@ export const scanPrescription = (hid: string, pid: string, formData: FormData) =
   return apiFetchMultipart("/unit_functions/scan_prescription", formData);
 };
 
+// VG+2.2: Bandeja Inteligente — analizar documento, listar y confirmar/rechazar.
+export const smartInboxAnalyze = (hid: string, pid: string, formData: FormData) => {
+  formData.set("household_id", hid);
+  if (pid) formData.set("person_id", pid);
+  return apiFetchMultipart("/smart_inbox/analyze", formData);
+};
+export const smartInboxList = (hid: string, status = "pending") =>
+  apiFetch(`/smart_inbox/candidates?household_id=${encodeURIComponent(hid)}&status=${encodeURIComponent(status)}`);
+export const smartInboxConfirm = (id: string, overrides: Record<string, any> = {}) =>
+  apiFetch(`/smart_inbox/candidates/${encodeURIComponent(id)}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ overrides }),
+  });
+export const smartInboxReject = (id: string, reason?: string) =>
+  apiFetch(`/smart_inbox/candidates/${encodeURIComponent(id)}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reason, keep_as_learning: true }),
+  });
+
 export const createLogbookShareLink = (entryId: string, ttlSeconds = 900) =>
   apiFetch(`/logbook/${encodeURIComponent(entryId)}/share?ttl_seconds=${ttlSeconds}`, { method: "POST" });
 

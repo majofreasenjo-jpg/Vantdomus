@@ -1,5 +1,6 @@
 import { getDashboard, getScores } from "../../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
+import SmartInboxPanel from "./SmartInboxPanel";
 
 export default async function EsgDashboard({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -71,6 +72,8 @@ export default async function EsgDashboard({ params }: { params: Promise<{ house
         <div className="big" style={{ fontSize: 26 }}>{tax.esg}</div>
         <div className="small">{isFamily ? `Caja fuerte familiar para polizas, seguros, recetas, boletas, garantias, circulares, beneficios y vencimientos de la ${tax.unit}.` : `Desempeno Sostenible y Cumplimiento Normativo de la ${tax.unit}.`}</div>
       </div>
+
+      {isFamily ? <SmartInboxPanel hid={hid} persons={(dash.persons || []).map((p: any) => ({ id: p.id, display_name: p.display_name }))} /> : null}
 
       {/* GLOBAL ESG SCORE */}
       <div className="card" style={{ gridColumn: "span 4", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

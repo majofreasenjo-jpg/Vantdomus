@@ -29,6 +29,7 @@ from .routes import (
     organizations,
     persons,
     scores,
+    smart_inbox,
     tasks,
     unit_functions,
     unit_function_responsibles,
@@ -150,3 +151,4 @@ app.include_router(unit_function_responsibles.router)
 app.include_router(vantguide_library.evidence_router)
 app.include_router(vantguide_library.memory_router)
 app.include_router(vantguide_library.profile_router)
+app.include_router(smart_inbox.router)
