@@ -223,5 +223,50 @@ digitar, con confirmación humana. Respaldo + lectura.
 
 ---
 
+## 10. Actualización post-revisión del co-arquitecto (VG+2.1 y VG+2.2)
+
+El co-arquitecto revisó el avance, lo aprobó y respondió las 6 preguntas. Se
+ejecutaron dos sprints según sus instrucciones (sin tocar arquitectura interna
+ni VantGuide como motor).
+
+### Sprint VG+2.1 — Limpieza familiar visible (commit `f0c12b1`)
+- Dashboard: sin "Volver a Dirección Ejecutiva" en family; `unit` → "Núcleo familiar".
+- Guía: sin breadcrumb "VantGuide"; KPI "Pendientes de revisión" + subtítulo.
+- "VantGuide" visible → "VantDomus" o quitado (sigue como motor interno).
+- Agenda: "Planificador escolar IA" → "Guía de estudio y compromisos".
+- Finanzas: "WEALTH GUARD FAMILIAR" → "Finanzas del hogar".
+- Documentos: ruta `/documents`, pantalla "Documentos familiares", ESG solo B2B,
+  bloque oscuro "Aporte concreto" → paleta clara.
+- Salud: empty state útil con CTAs.
+- DoD verificada por grep sobre el HTML real. Tests 43/43.
+
+### Sprint VG+2.2 — Bandeja Inteligente v1 (commit `c5ff09e`)
+Pipeline: `upload → extract_text (PDF) → classify (reglas) → DocumentRouteCandidate
+→ preview → confirmación humana → crear destino`.
+- Migración 273: tabla `document_route_candidates` (routing explícito + auditoría).
+- Reglas: receta, boleta, circular, doc médico, póliza/seguro, cuenta/vencimiento, general.
+- Endpoints: `/smart_inbox/analyze | /candidates | /candidates/{id}/confirm | /reject`.
+- Destinos: receta→medication (ai_needs_confirmation=true), circular→study,
+  boleta→gasto, cuenta/póliza→document_deadline, médico/general→evidencia;
+  rechazo opcional como negative_learning.
+- UI "Bandeja inteligente" en Documentos familiares (subir/pegar, preview editable).
+- Límites honestos: imagen sin OCR → "revisión manual"; no inventa datos;
+  medication/health siempre requieren confirmación; nada de IA si está apagada.
+- Tests: 9 nuevos (10 casos del DoD). Suite total **52/52 verdes**.
+
+### Smoke de visibilidad pre-deploy (gate decisión #4) — PASA
+- Owner ve todo; integrante (role member) ve menos (11 vs 18 evidencias).
+- Integrante accede a los hogares de los que es miembro.
+- Hogar donde NO es miembro: dashboard / evidencia / smart_inbox → **403**.
+
+### Pendiente / notas
+- **Dato**: el hogar demo `1b79f92b` tiene integrantes duplicados (re-seeds
+  viejos); para el pitch usar el hogar limpio `becba85b` ("Familia Demo VG").
+  En producción (Neon nueva) un solo seed da datos limpios.
+- Próximo (orden A→B→C→D): **C = deploy demo** (Render/Vercel/Neon), luego
+  **D = runtime real** (scheduler, push, email inbound).
+
+---
+
 *Generado por Claude Code. Detalle por commit disponible en el historial de git
 (`git log a096a49..HEAD`).*
