@@ -7,9 +7,15 @@
 > **Tests**: 52/52 verdes. **Gate pre-deploy**: ✅ (main limpio + sincronizado).
 
 ## 0. Reglas de seguridad (leer antes)
+- **Los secretos finales se generan y cargan DIRECTAMENTE en Render/Vercel/Neon.
+  No se comparten por chat, no se imprimen en logs y no se commitean.** Si un
+  secreto pasó por un chat, se considera expuesto y debe regenerarse antes de usarse.
+- Generá cada secreto vos mismo: usá el botón "Generate" de Render para variables,
+  o en tu máquina `python -c "import secrets; print(secrets.token_hex(32))"`, y
+  pegá el valor solo en el panel del servicio.
+- `DATABASE_URL` (Neon) la pega **Manuel directo en Render**, nunca en un chat.
 - No usar credenciales viejas ni el deploy Render antiguo de Codex.
 - No subir `.env`. No exponer secretos en variables `NEXT_PUBLIC_*`.
-- `DATABASE_URL` y los secretos se cargan **directo en Render** (no se pegan en chat ni se commitean).
 - Hogar para pitch: **limpio** (ver §5). No usar `1b79f92b` (tiene integrantes duplicados de re-seeds viejos).
 - `APP_ENV=demo`: relaja los requisitos de infra dura (ClamAV/Redis/SMTP) — válido para demo, NO es producción. En la web, `demo` deja el proxy fail-closed (no activa el token de fallback local).
 
@@ -28,10 +34,10 @@ APP_ENV=demo
 PYTHON_VERSION=3.11.9
 VANTDOMUS_ALLOW_DEMO_SEED=true
 VANTDOMUS_AI_FEATURES_ENABLED=false
-DATABASE_URL=<connection string de tu Neon nuevo — sslmode=require>   # cargar directo en Render
-JWT_SECRET=<secreto fresco>                                           # provisto aparte
-VANTDOMUS_MFA_SECRET_KEY=<secreto fresco>                             # provisto aparte
-VANTDOMUS_BACKUP_ENCRYPTION_KEY=<secreto fresco>                      # provisto aparte
+DATABASE_URL=<Neon, lo pega Manuel directo en Render>                 # nunca por chat
+JWT_SECRET=<generá vos, no compartir por chat>                        # token_hex(32) / Generate de Render
+VANTDOMUS_MFA_SECRET_KEY=<generá vos, no compartir por chat>          # token_hex(32)
+VANTDOMUS_BACKUP_ENCRYPTION_KEY=<generá vos, no compartir por chat>   # token_hex(32)
 CORS_ALLOWED_ORIGINS=<URL de Vercel>                                  # se completa tras §2
 ```
 (Opcional) `VANTDOMUS_APP_PUBLIC_URL=<URL Vercel>`. Con `APP_ENV=demo`,
