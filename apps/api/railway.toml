@@ -1,0 +1,13 @@
+# Railway / Nixpacks config para el backend de VantDomus.
+# Pensado para que el SERVICIO tenga Root Directory = apps/api (configurado en
+# Railway → Settings → Source/Build → Root Directory). Con eso, Nixpacks ve el
+# requirements.txt directamente y autodetecta Python sin necesidad de
+# buildCommand explícito.
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
