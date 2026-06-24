@@ -21,6 +21,7 @@ import {
   type UnitFunctionRow,
 } from "../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../lib/taxonomy";
+import AssistantOrb from "../components/AssistantOrb";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -185,11 +186,14 @@ export default async function GuiaPage({
     <div className="container">
       {/* Header */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 20 }}>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isFamily ? <AssistantOrb state="idle" showLabel={false} /> : null}
+          <div>
           {!isFamily ? <div className="small" style={{ marginBottom: 6 }}>VantGuide</div> : null}
           <div className="big" style={{ fontSize: 32 }}>
             {title}
             {familyName ? <span style={{ color: "var(--muted)", fontSize: 18, marginLeft: 12 }}>· {familyName}</span> : null}
+          </div>
           </div>
         </div>
         <div className="row" style={{ gap: 8 }}>

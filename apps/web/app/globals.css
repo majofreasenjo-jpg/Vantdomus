@@ -173,3 +173,36 @@ body[data-theme="family"]{ font-size:15px; }
 /* Nivel de vista: en "simple" se ocultan los elementos marcados .advanced
    (márgenes ±, sub-KPIs técnicos, jerga). En "completo" se ven. */
 body[data-level="simple"] .advanced{ display:none !important; }
+
+/* =========================================================================
+   AssistantOrb "Domi" — asistente vivo original (sin IP de terceros).
+   Animación CSS liviana; respeta prefers-reduced-motion; fallback estático.
+   El color por estado se controla con --orb. Reemplazable luego por Lottie/Rive.
+   ========================================================================= */
+.assistantOrb{ position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:44px; height:44px; border-radius:50%; flex:0 0 auto;
+  --orb:#5E8B7E;
+  background: radial-gradient(circle at 32% 30%, #ffffff 0%, var(--orb) 62%, var(--orb) 100%);
+  box-shadow: 0 6px 18px rgba(0,0,0,.12), 0 0 0 6px color-mix(in srgb, var(--orb) 16%, transparent);
+}
+.assistantOrb.compact{ width:30px; height:30px; }
+.assistantOrb::before{ content:""; position:absolute; top:24%; left:28%; width:24%; height:24%;
+  border-radius:50%; background:rgba(255,255,255,.85); filter:blur(.3px); }
+.assistantOrb::after{ content:""; position:absolute; inset:-6px; border-radius:50%;
+  border:2px solid color-mix(in srgb, var(--orb) 45%, transparent); opacity:0; }
+.ao-idle{ animation: orbBreathe 4.5s ease-in-out infinite; }
+.ao-calm{ --orb:#6FA3C7; animation: orbBreathe 6.5s ease-in-out infinite; }
+.ao-thinking{ --orb:#7C83D3; animation: orbBreathe 1.6s ease-in-out infinite; }
+.ao-thinking::after{ animation: orbRipple 1.6s ease-out infinite; }
+.ao-listening{ --orb:#3E9B86; }
+.ao-listening::after{ animation: orbRipple 2s ease-out infinite; }
+.ao-success{ --orb:#2E9E6B; animation: orbPop .6s ease-out 1; }
+.ao-alert{ --orb:#C98A2E; animation: orbBreathe 1.8s ease-in-out infinite; }
+@keyframes orbBreathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+@keyframes orbPop{ 0%{ transform:scale(.8); } 60%{ transform:scale(1.12); } 100%{ transform:scale(1); } }
+@keyframes orbRipple{ 0%{ opacity:.5; transform:scale(.9); } 100%{ opacity:0; transform:scale(1.5); } }
+.assistantOrbWrap{ display:inline-flex; align-items:center; gap:10px; }
+.assistantOrbWrap .aoLabel{ font-size:13px; color:var(--muted); line-height:1.35; max-width:320px; }
+@media (prefers-reduced-motion: reduce){
+  .assistantOrb, .assistantOrb::after{ animation:none !important; }
+}
