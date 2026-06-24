@@ -268,5 +268,21 @@ Pipeline: `upload → extract_text (PDF) → classify (reglas) → DocumentRoute
 
 ---
 
+## 11. Regla canónica de continuidad
+
+- **Fuentes de verdad**: Google Drive + GitHub + documentos canónicos + `docs/`.
+  El chat solo coordina; el chat NO es fuente de verdad.
+- Cada **corte importante** debe actualizar `VANTDOMUS_REHIDRATACION_ULTIMO_CORTE`
+  en Drive (cápsula de continuidad).
+- Existen documentos canónicos en **Drive** (carpeta + 4 docs) y en el **repo**
+  (`docs/PROJECT_RULES.md`, `docs/REHYDRATION_INDEX.md`,
+  `docs/VANTDOMUS_CANONICO_PROYECTO.md`, `docs/VANTDOMUS_MANUAL_USO.md`,
+  `docs/VANTDOMUS_MANUAL_PROYECTO_TECNICO.md`).
+- Un asistente nuevo debe empezar por `docs/REHYDRATION_INDEX.md`.
+- Manual de uso y manual técnico son documentos vivos.
+- Todo sprint futuro cierra con cápsula de continuidad (ver `docs/PROJECT_RULES.md`).
+
+---
+
 *Generado por Claude Code. Detalle por commit disponible en el historial de git
 (`git log a096a49..HEAD`).*

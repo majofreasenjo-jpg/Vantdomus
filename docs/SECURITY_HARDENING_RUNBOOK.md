@@ -92,9 +92,11 @@ On Neon's dashboard:
 3. Click **Reset password**. Copy the new value somewhere temporary.
 
 ### 3.2 Update every service that uses it
-The compromised connection string was:
+The compromised connection string was (valor real REMOVIDO del repo por la regla
+de secretos; sigue en el historial de git → rotar/retirar esa DB Neon si aún vive,
+y NO reutilizarla para el deploy demo):
 ```
-postgresql://vantdomus_neon_owner:npg_g0vIfuVdC8bM@ep-divine-violet-a8z26v0u-pooler.eastus2.azure.neon.tech/vantdomus_neon
+postgresql://<USER>:<PASSWORD-COMPROMETIDA-NO-REUSAR>@<HOST-NEON-VIEJO>/<DB>
 ```
 Search for every place it's configured today and replace the password:
 

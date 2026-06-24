@@ -113,6 +113,16 @@ Con ambos vivos y la DB Neon vacía:
 - Fecha de seed: `__________`
 - Problemas encontrados: `__________`
 
+## Rehidratación y respaldo post-deploy
+
+Después de cualquier intento de deploy, registrar (sin secretos):
+- commit deployado · backend URL pública · frontend URL pública · fecha/hora ·
+  resultado del smoke · errores no sensibles · rollback aplicado si hubo.
+- Actualizar `VANTDOMUS_REHIDRATACION_ULTIMO_CORTE` en Drive.
+- Actualizar `docs/REHYDRATION_INDEX.md` si cambió el estado.
+- Refrescar el respaldo ZIP en `G:\Mi unidad\GMATIVE\VantDomus_Backups\<fecha>\`.
+- **No registrar secretos** (DATABASE_URL, JWT_SECRET, etc.).
+
 ---
 
 ## Definition of Done — Deploy C

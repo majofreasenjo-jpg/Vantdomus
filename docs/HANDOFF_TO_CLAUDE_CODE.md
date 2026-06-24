@@ -1,5 +1,26 @@
 # Handoff: Cowork → Claude Code
 
+## Leer antes de ejecutar
+
+Antes de ejecutar cambios:
+
+1. Revisar `docs/PROJECT_RULES.md`.
+2. Revisar `docs/REHYDRATION_INDEX.md`.
+3. Revisar `docs/VANTDOMUS_CANONICO_PROYECTO.md`.
+4. Revisar `docs/VANTDOMUS_MANUAL_PROYECTO_TECNICO.md`.
+5. Revisar `docs/DEPLOY_DEMO_RUNBOOK.md` si el trabajo toca deploy.
+6. Revisar `docs/VANTGUIDE_ARCHITECTURE.md` si el trabajo toca VantGuide.
+7. Revisar en Drive `VANTDOMUS_REHIDRATACION_ULTIMO_CORTE` si hay duda de estado.
+8. No pedir ni imprimir secretos.
+9. No agregar features fuera de alcance.
+10. Al cerrar, actualizar la rehidratación (Drive + `docs/REHYDRATION_INDEX.md`).
+
+> Nota: las secciones siguientes son el handoff histórico (cierre Sprint VG+2).
+> El estado vigente está en `docs/REHYDRATION_INDEX.md` e
+> `docs/INFORME_AVANCE_FAMILIA_VG.md`.
+
+---
+
 > Este documento es un **paquete de transferencia autocontenido** desde
 > "Claude en Cowork mode" (el ambiente conversacional) hacia "Claude Code"
 > (la CLI). Tras un sprint largo de arquitectura + UI implementado en
