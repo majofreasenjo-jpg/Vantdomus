@@ -115,6 +115,16 @@ def connect():
             print(f"DATABASE CONNECTION ERROR: {e}")
             raise e
     
+    # Asegurar que el directorio padre exista (ej. en deploys con DB_PATH
+    # apuntando a un volumen que aún no fue montado). Sin esto, sqlite3.connect
+    # tira "unable to open database file" y la app crashea al arrancar.
+    db_dir = os.path.dirname(settings.DB_PATH)
+    if db_dir and not os.path.isdir(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+        except OSError as exc:
+            print(f"WARN: could not create DB dir {db_dir!r}: {exc}; falling back to /tmp")
+            settings.DB_PATH = "/tmp/vantdomus.db"
     con = sqlite3.connect(settings.DB_PATH, check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
