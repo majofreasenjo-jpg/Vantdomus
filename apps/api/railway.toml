@@ -8,6 +8,9 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+# Importante: envolver en `sh -c` para que la shell expanda $PORT (Railway lo
+# inyecta como env var). Sin sh -c, Nixpacks ejecuta uvicorn directo y pasa
+# "$PORT" como string literal → "Invalid value for '--port'".
+startCommand = "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
