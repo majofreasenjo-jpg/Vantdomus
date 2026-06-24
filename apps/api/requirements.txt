@@ -25,5 +25,5 @@ python-jose==3.3.0
 cryptography==42.0.0
 bcrypt==4.0.0
 python-multipart==0.0.9
-psycopg2-binary==2.9.9
-PyMuPDF==1.24.0
+psycopg2-binary==2.9.10
+PyMuPDF==1.25.5
