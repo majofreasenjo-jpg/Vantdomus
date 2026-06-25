@@ -99,27 +99,51 @@ export default async function ComprasPage({ params }: { params: Promise<{ househ
         }}
       >
         <div className="cardTitle">Agregar a la lista</div>
-        <div className="formRow" style={{ flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-          <input className="input" name="item_name" placeholder="Producto" required style={{ flex: 2, minWidth: 200 }} />
-          <input className="input" name="quantity" placeholder="Cant." type="number" step="0.1" style={{ width: 90 }} />
-          <input className="input" name="unit" placeholder="Unidad" style={{ width: 100 }} />
-          <select className="input" name="category" defaultValue="grocery">
-            {CATEGORIES.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
-          </select>
-          <select className="input" name="store_type" defaultValue="supermarket">
-            {STORE_TYPES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
-          </select>
-          <select className="input" name="priority" defaultValue="normal">
-            <option value="low">Baja</option>
-            <option value="normal">Normal</option>
-            <option value="high">Importante</option>
-            <option value="urgent">Urgente</option>
-          </select>
-          <select className="input" name="assigned_to_person_id" defaultValue="">
-            <option value="">Sin asignar</option>
-            {persons.map((p: any) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
-          </select>
-          <input className="input" name="estimated_price" placeholder="Precio est. (CLP)" type="number" step="100" style={{ width: 160 }} />
+        <div className="formRow" style={{ flexWrap: "wrap", gap: 10, marginTop: 8, alignItems: "flex-end" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3, flex: 2, minWidth: 200 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Producto</span>
+            <input className="input" name="item_name" placeholder="Ej: Leche" required />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3, width: 80 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Cant.</span>
+            <input className="input" name="quantity" placeholder="1" type="number" step="0.1" />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3, width: 100 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Unidad</span>
+            <input className="input" name="unit" placeholder="kg, lt…" />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Categoría</span>
+            <select className="input" name="category" defaultValue="grocery">
+              {CATEGORIES.map((c) => <option key={c.v} value={c.v}>{c.l}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Dónde comprar</span>
+            <select className="input" name="store_type" defaultValue="supermarket">
+              {STORE_TYPES.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Prioridad</span>
+            <select className="input" name="priority" defaultValue="normal">
+              <option value="low">Baja</option>
+              <option value="normal">Normal</option>
+              <option value="high">Importante</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Encargado</span>
+            <select className="input" name="assigned_to_person_id" defaultValue="">
+              <option value="">Sin asignar</option>
+              {persons.map((p: any) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3, width: 150 }}>
+            <span className="small" style={{ color: "var(--muted)" }}>Precio est. (CLP)</span>
+            <input className="input" name="estimated_price" placeholder="0" type="number" step="100" />
+          </label>
           <button className="btn btnPrimary" type="submit">Agregar</button>
         </div>
       </form>
