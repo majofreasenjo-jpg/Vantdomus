@@ -268,6 +268,41 @@ Pipeline: `upload → extract_text (PDF) → classify (reglas) → DocumentRoute
 
 ---
 
+## 12. Decisiones del auditor aplicadas (Sprint C unificado)
+
+ChatGPT respondió las 8 preguntas de
+`docs/AUDIT_HANDOFF_FOR_CHATGPT_2026_06_24.md`. Decisiones consolidadas que
+ahora rigen Sprint C y VG+2.3:
+
+- **DB de demo = SQLite + Disk persistente** (`DB_PATH=/data/vantdomus.db` con
+  Disk 1 GB montado en `/data`). NO Postgres/Neon en este sprint.
+- **NO usar `/tmp`** para demo a clientes (no persiste).
+- **NO arreglar la rama Postgres** antes del pitch (deuda diferida a producción seria).
+- **Vercel nuevo limpio** (`vantdomus-hogar-demo`) — no reusar `vantdomus-panel` viejo.
+- **Domi (AssistantOrb CSS)** alcanza para pitch.
+- **Smoke desplegado (21 puntos) bloquea** la entrega de URL pública a clientes.
+- **No avanzar a Sprint D** (scheduler/push/email inbound) todavía.
+
+Próximo: aplicar §1-§5 del runbook, ejecutar smoke, documentar URL/household
+en §8 del runbook + cápsula Drive. Después de C aprobado, comenzar VG+2.3.
+
+## 13. Próximo bloque: VG+2.3 — Panel del Hogar / VantHome Coordination
+
+Capa diaria de coordinación familiar. Nombre visible: **Panel del Hogar**
+(no "VantHome" en UI). Implementación por fases tras cerrar Sprint C:
+
+- **Fase 1** (bajo riesgo, máximo valor diario): Muro Familiar
+  (`family_board_posts`), Compras del hogar (`household_shopping_items`),
+  Carro tentativo (sin checkout real).
+- **Fase 2**: Actividades del día (`daily_activities`), vinculación opcional a UnitFunction.
+- **Fase 3**: Check-in/ubicación voluntaria (`family_location_checkins`,
+  `person_location_preferences`) — sin tracking continuo, sin background,
+  sin geofencing en v1.
+- **Fase 4 posterior**: integraciones externas / push / geofencing / checkout / precios.
+
+Reglas: no convertir todo en UnitFunction; ubicación solo bajo consentimiento;
+audit log en compartir ubicación exacta; menores en modo estado por defecto.
+
 ## 11. Regla canónica de continuidad
 
 - **Fuentes de verdad**: Google Drive + GitHub + documentos canónicos + `docs/`.

@@ -3,133 +3,180 @@
 > Objetivo: demo pública controlada de **VantDomus Hogar** bajo cuentas/servicios
 > que controla Manuel. Sin runtime real (scheduler/push/email) — eso es Sprint D.
 >
-> **Commit a deployar**: `22766a2` (o el último de `main`).
-> **Tests**: 52/52 verdes. **Gate pre-deploy**: ✅ (main limpio + sincronizado).
+> **Commit base**: último de `main` (ver `git rev-parse HEAD`).
+> **Tests**: 52/52 verdes en el último corte verificado. **Gate pre-deploy** ✅.
+
+## Decisiones consolidadas (auditoría ChatGPT, 2026-06-24)
+
+1. **DB de demo = SQLite + Disk persistente** (no Postgres/Neon en este sprint).
+2. **NO usar `/tmp`** para clientes (no persiste entre redeploys).
+3. **NO arreglar la rama Postgres** del backend antes del pitch (deuda diferida).
+4. **Vercel nuevo limpio** (`vantdomus-hogar-demo`) — **no reusar** `vantdomus-panel` viejo como demo principal.
+5. **Domi CSS** (AssistantOrb) alcanza para el pitch — no Lottie/Rive ahora.
+6. **Smoke desplegado bloquea** la entrega de la URL pública a clientes.
+7. **No pasar a Sprint D** real todavía (scheduler/push/email inbound).
 
 ## 0. Reglas de seguridad (leer antes)
-- **Los secretos finales se generan y cargan DIRECTAMENTE en Render/Vercel/Neon.
-  No se comparten por chat, no se imprimen en logs y no se commitean.** Si un
-  secreto pasó por un chat, se considera expuesto y debe regenerarse antes de usarse.
-- Generá cada secreto vos mismo: usá el botón "Generate" de Render para variables,
-  o en tu máquina `python -c "import secrets; print(secrets.token_hex(32))"`, y
-  pegá el valor solo en el panel del servicio.
-- `DATABASE_URL` (Neon) la pega **Manuel directo en Render**, nunca en un chat.
-- No usar credenciales viejas ni el deploy Render antiguo de Codex.
-- No subir `.env`. No exponer secretos en variables `NEXT_PUBLIC_*`.
-- Hogar para pitch: **limpio** (ver §5). No usar `1b79f92b` (tiene integrantes duplicados de re-seeds viejos).
-- `APP_ENV=demo`: relaja los requisitos de infra dura (ClamAV/Redis/SMTP) — válido para demo, NO es producción. En la web, `demo` deja el proxy fail-closed (no activa el token de fallback local).
+- **Los secretos se generan y cargan DIRECTAMENTE en Render/Vercel.** Nunca por chat, log, doc ni commit. Si un secreto aparece accidentalmente, se considera quemado y debe rotarse.
+- Generá cada secreto vos: botón **Generate** de Render, o en tu PC `python -c "import secrets; print(secrets.token_hex(32))"`. Pegá el valor solo en el panel del proveedor.
+- **NO** cargar `DATABASE_URL` en Render para esta demo (camino SQLite).
+- No usar credenciales viejas (Neon `vantdomus-demo` quedó expuesta por captura → rotar/pausar; Neon `vantdomus_neon` del histórico → quemada).
+- No subir `.env`. No exponer secretos en `NEXT_PUBLIC_*`.
+- `APP_ENV=demo`: relaja requisitos de infra dura (ClamAV/Redis/SMTP), válido para demo, **no producción**. En la web, `demo` deja el proxy fail-closed (sin token de fallback local).
+- Hogar pitch: **limpio**, sembrado una sola vez. Documentar `household_id` final.
 
-## 1. Backend API (Render — cuenta de Manuel)
-New + → **Web Service** desde `github.com/majofreasenjo-jpg/Vantdomus`.
+## 1. Backend API en Render (cuenta de Manuel)
 
-- **Root Directory**: `apps/api`
-- **Runtime**: Python 3 (fijar 3.11 con env `PYTHON_VERSION=3.11.9`)
-- **Build**: `pip install -r requirements.txt`
-- **Start**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- **Plan**: Free
+Servicio web existente: **Vantdomus** (`https://vantdomus.onrender.com`).
+No crear uno nuevo. Aplicar estos cambios:
 
-### Variables de entorno (valores secretos NO van en este doc)
+### 1.1 Settings → Source/Build
+- **Root Directory:** `apps/api` (sin `/` adelante).
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Runtime:** Python (versión via env `PYTHON_VERSION=3.11.9`).
+- **Plan:** el actual (post upgrade del usuario).
+
+### 1.2 Settings → Disk (decisión #1 + #2: persistencia obligatoria)
+- **Add Disk** → Mount Path: `/data` · Size: `1 GB`.
+- Esto hace que `DB_PATH=/data/vantdomus.db` sobreviva a redeploys.
+
+### 1.3 Environment Variables — limpiar y dejar exactamente esto
+
+**Borrar** si están:
+- `DATABASE_URL` ← **crítico** (con valor cargado, la app intenta Postgres y crashea; ver §6).
+- `VANTDOMUS_ALLOWED_HOSTS` ← si dice `127.0.0.1,localhost`, rechaza el host público.
+- Cualquier variable legacy del despliegue antiguo (`NEXT_PUBLIC_ACCESS_TOKEN`, `NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID`).
+
+**Dejar/crear** (no secretas, copiar tal cual):
 ```
 APP_ENV=demo
 PYTHON_VERSION=3.11.9
+DB_PATH=/data/vantdomus.db
 VANTDOMUS_ALLOW_DEMO_SEED=true
 VANTDOMUS_AI_FEATURES_ENABLED=false
-DATABASE_URL=<Neon, lo pega Manuel directo en Render>                 # nunca por chat
-JWT_SECRET=<generá vos, no compartir por chat>                        # token_hex(32) / Generate de Render
-VANTDOMUS_MFA_SECRET_KEY=<generá vos, no compartir por chat>          # token_hex(32)
-VANTDOMUS_BACKUP_ENCRYPTION_KEY=<generá vos, no compartir por chat>   # token_hex(32)
-CORS_ALLOWED_ORIGINS=<URL de Vercel>                                  # se completa tras §2
+CORS_ALLOWED_ORIGINS=<URL del Vercel nuevo + http://localhost:3000>
 ```
-(Opcional) `VANTDOMUS_APP_PUBLIC_URL=<URL Vercel>`. Con `APP_ENV=demo`,
-`VANTDOMUS_ALLOWED_HOSTS` puede quedar sin setear (permite el host de Render).
+**Secretas** (valor generado por Manuel directo en el panel):
+```
+JWT_SECRET
+VANTDOMUS_MFA_SECRET_KEY
+VANTDOMUS_BACKUP_ENCRYPTION_KEY
+```
+Save Changes → Render redeploya solo.
 
-### Posibles problemas
-- `psycopg2-binary==2.9.9` debería compilar con wheels en Python 3.11. Si el
-  build falla, subir a `2.9.10` o migrar a `psycopg[binary]` 3.x.
-- `PyMuPDF==1.24.0`: si pide libs de sistema, es opcional para la demo (solo lo
-  usa la Bandeja para PDF y el escaneo de recetas). No bloquea el resto.
-
-### Verificación backend (cuando esté live)
-- `GET /health` → `{"ok":true,...}`
-- `POST /auth/login` con el owner demo funciona.
-- `POST /demo/seed?mode=home` (una vez) puebla la familia.
+### 1.4 Verificación backend (cuando esté Live)
+- `GET /health` → `{"ok":true,"service":"vantdomus-core","version":"v0.7.0"}`
+- `POST /auth/register` y `/auth/login` con un usuario demo funcionan.
+- `POST /demo/seed?mode=home` (una vez, autenticado como owner) puebla la familia limpia.
 - `GET /unit_functions`, `GET /library/evidence`, `POST /smart_inbox/analyze` responden.
 - CORS permite el origen de Vercel.
-- Logs no muestran secretos.
+- Logs no muestran valores de secretos.
 
-## 2. Frontend Web (Vercel — cuenta de Manuel)
-Add New → Project → mismo repo.
-- **Root Directory**: `apps/web`
-- **Framework**: Next.js (autodetect)
-- **Env**:
-  - `NEXT_PUBLIC_API_BASE=<URL del backend Render>`
-  - `APP_ENV=demo`  (deja el proxy fail-closed)
-- No usar el subproyecto viejo ni la API antigua.
+### Posibles problemas y fixes (ya aplicados al código)
+- `psycopg2-binary 2.9.10` / `PyMuPDF 1.25.5` (wheels OK para Python 3.11.9) — commit `2b2eaf3`.
+- `app/db.py` crea el directorio padre del SQLite si no existe — commit `2bdb6a4`.
 
-### Verificación web
-login · dashboard familia · /guia · /biblioteca · /documents · /tasks · /health ·
-/finance · Bandeja Inteligente · vista simple · logout.
+## 2. Frontend Web en Vercel (cuenta de Manuel)
 
-## 3. Conectar CORS
-En Render, completar `CORS_ALLOWED_ORIGINS` con la URL de Vercel → redeploy del backend.
+**Decisión #4: crear proyecto NUEVO limpio.** No reutilizar `vantdomus-panel` viejo.
 
-## 4. Demo data limpia (seed una sola vez)
-Con ambos vivos y la DB Neon vacía:
-1. `POST /demo/seed?mode=home` **una vez** (autenticado como owner demo).
-2. Verificar que NO duplica personas: el household debe tener **4 integrantes**
-   (Pedro, Camila, Diego, Elena). Si hay duplicados, NO mostrar ese hogar:
-   crear uno nuevo limpio.
-3. (Opcional, para mostrar visibilidad por rol) `POST /demo/seed_members?household_id=<id>`
-   → crea cuentas pedro/camila/diego/elena@vantdomus.local (pass igual al owner).
-4. Registrar el `householdId` final del **Demo Hogar Pitch**.
+### 2.1 Add New → Project
+- Repo: `majofreasenjo-jpg/Vantdomus`
+- **Name:** `vantdomus-hogar-demo` (queda `vantdomus-hogar-demo.vercel.app`)
+- **Framework:** Next.js (autodetect)
+- **Root Directory:** `apps/web`
+- **Build/Install/Output:** defaults
 
-## 5. Smoke test público post-deploy (checklist manual)
-1. Abrir el panel web público. 2. Login owner demo. 3. Verificar/crear demo home.
-4. Dashboard. 5. Guía Familiar. 6. Hay funciones activas. 7. Documentos familiares.
-8. Bandeja: pegar texto de receta. 9. Crea propuesta de medicamento pendiente.
-10. Bandeja: texto de boleta. 11. Crea propuesta financiera. 12. Biblioteca.
-13. Evidencia/memoria. 14. Salud (empty states o registros). 15. Finanzas (gastos demo).
-16. Logout. 17. Login integrante (si hay cuentas). 18. No ve datos ajenos.
-19. Probar URL de hogar ajeno → **403**.
+### 2.2 Environment Variables
+```
+NEXT_PUBLIC_API_BASE=<URL del backend Render>
+APP_ENV=demo
+```
+- **NO** agregar `NEXT_PUBLIC_ACCESS_TOKEN`.
+- **NO** agregar `NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID`.
+- Nada secreto en `NEXT_PUBLIC_*`.
 
-## 6. Seguridad antes de entregar la URL
-- Sin secretos en el frontend (revisar bundle / variables NEXT_PUBLIC).
-- CORS correcto. `APP_ENV=demo`. Logs sin secretos.
+### 2.3 Deploy
+- Deploy desde `main` (último commit).
+- Verificar HTTP 200 en `/login`.
+
+### 2.4 Vercel viejo (`vantdomus-panel`)
+- **No borrar todavía** (puede usarse para landing aspiracional separada).
+- Si se decide retirar, primero eliminar `NEXT_PUBLIC_ACCESS_TOKEN` y `NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID` para cortar el modo demo sin login.
+- No usarlo como demo principal.
+
+## 3. CORS + cierre
+1. En Render, completar `CORS_ALLOWED_ORIGINS=https://vantdomus-hogar-demo.vercel.app,http://localhost:3000` → redeploy backend.
+2. Confirmar que el frontend carga `/login` y que la sesión funciona.
+3. Disparar el seed limpio (§4).
+
+## 4. Demo data limpia (una sola vez)
+1. Crear cuenta owner en `/login`.
+2. Crear un household nuevo (ej. "Familia Demo Pitch").
+3. `POST /demo/seed?mode=home` autenticado como ese owner.
+4. Verificar 4 integrantes (Pedro, Camila, Diego, Elena) — sin duplicados.
+5. (Opcional para visibilidad) `POST /demo/seed_members?household_id=<id>` crea cuentas por integrante (pedro@, camila@, diego@, elena@vantdomus.local, todos con el mismo password del demo).
+6. **Documentar el `household_id` final** en §8 y en la cápsula de rehidratación.
+
+## 5. Smoke test público post-deploy (21 puntos — gate para entregar URL)
+1. Backend `/health` responde. 2. Frontend carga. 3. Login owner funciona.
+4. Dashboard familiar carga. 5. Guía Familiar carga. 6. Biblioteca carga.
+7. Documentos familiares carga. 8. Bandeja Inteligente carga.
+9. Texto de receta genera candidato. 10. Confirmar receta crea medication pendiente.
+11. Texto de boleta genera candidato financiero. 12. Finanzas muestra movimiento/propuesta.
+13. Salud muestra datos o empty state útil. 14. Integrante demo ve solo lo suyo/compartido.
+15. Integrante no accede a household ajeno (403). 16. No se muestran UUIDs innecesarios.
+17. No aparece "Dirección Ejecutiva" en family. 18. No aparece "ESG" en family.
+19. No aparece "Wealth Guard". 20. No aparece "VantGuide" como copy visible.
+21. No hay secrets en logs.
+
+**Si cualquier punto falla, NO entregar la URL pública.**
+
+## 6. Seguridad antes de entregar
+- Sin secretos en frontend (revisar bundle / `NEXT_PUBLIC_*`).
+- CORS correcto. `APP_ENV=demo`. Logs sin valores de secretos.
 - Endpoints protegidos requieren auth. Integrantes no ven hogares ajenos.
 - AI features apagadas.
+- Vercel viejo: variables legacy eliminadas (si se mantiene activo).
+- Neon `vantdomus-demo` (expuesta por captura): rotada/pausada/borrada. No reutilizar en deploy.
+- Neon `vantdomus_neon` histórica: quemada, no reutilizar.
 
 ## 7. Rollback
-- Web: en Vercel, "Promote" un deployment anterior o desconectar el dominio.
-- API: en Render, "Rollback" al deploy previo o suspender el servicio.
-- Datos: la DB es Neon nueva/aislada; si se ensucia, re-crear DB o nuevo household limpio.
-- El código siempre está en GitHub (`main`), no se pierde nada.
+- Web: en Vercel "Promote" deployment anterior o desconectar el dominio.
+- API: en Render "Rollback" al deploy previo o suspender el servicio.
+- Datos: Disk `/data` persiste; para reset limpio borrar el Disk y agregarlo de nuevo, y volver a seedear.
+- Código siempre en GitHub `main`, nada se pierde.
 
 ## 8. Resultado (completar tras el deploy)
 - Backend URL: `__________`
 - Frontend URL: `__________`
-- Commit deployado: `22766a2` (o el real)
-- Demo Hogar Pitch householdId: `__________`
-- Owner demo: `__________`  · Integrantes demo: `__________`
+- Commit deployado: `__________`
+- Demo Hogar Pitch `household_id`: `__________`
+- Owner demo email: `__________` · Integrantes demo: `__________`
 - Fecha de seed: `__________`
+- Smoke 21 puntos: `__________`
 - Problemas encontrados: `__________`
+
+---
 
 ## Rehidratación y respaldo post-deploy
 
 Después de cualquier intento de deploy, registrar (sin secretos):
-- commit deployado · backend URL pública · frontend URL pública · fecha/hora ·
-  resultado del smoke · errores no sensibles · rollback aplicado si hubo.
+- commit deployado · backend URL · frontend URL · fecha/hora · smoke result · errores · rollback aplicado si hubo.
 - Actualizar `VANTDOMUS_REHIDRATACION_ULTIMO_CORTE` en Drive.
 - Actualizar `docs/REHYDRATION_INDEX.md` si cambió el estado.
 - Refrescar el respaldo ZIP en `G:\Mi unidad\GMATIVE\VantDomus_Backups\<fecha>\`.
-- **No registrar secretos** (DATABASE_URL, JWT_SECRET, etc.).
+- **No registrar secretos**.
 
 ---
 
-## Definition of Done — Deploy C
-1. Backend nuevo en cuenta de Manuel. 2. Web en Vercel de Manuel. 3. Web → backend nuevo.
-4. DB Neon de Manuel. 5. Demo familia limpia funciona. 6. Login funciona.
-7. Dashboard/Guía/Biblioteca/Documentos/Bandeja/Salud/Finanzas cargan.
-8. Bandeja v1 funciona con texto/PDF. 9. Smoke de visibilidad pasa en el ambiente desplegado.
-10. Sin credenciales expuestas. 11. No depende del Render antiguo. 12. Documentado (§8).
+## Definition of Done — Sprint C
 
-*Después de C aprobado → Sprint D: runtime real (scheduler cron, push Expo, email inbound, métricas).*
+1. Backend Render live con SQLite + Disk en `/data`. 2. Frontend Vercel **nuevo limpio** apuntando al backend. 3. CORS conecta web ↔ API. 4. Demo familia limpia funciona. 5. Login funciona.
+6. Dashboard/Guía/Biblioteca/Documentos/Bandeja/Salud/Finanzas cargan.
+7. Bandeja v1 funciona con texto y PDF. 8. Smoke 21 puntos pasa en el ambiente desplegado.
+9. Sin credenciales expuestas. 10. No depende del Render/Vercel antiguo. 11. Documentado (§8).
+12. Cápsula de continuidad actualizada en Drive.
+
+*Después de C aprobado → VG+2.3 (Panel del Hogar / VantHome Coordination v1) en fases (Muro Familiar + Compras → Actividades → Check-in voluntario).*

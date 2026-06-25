@@ -39,11 +39,17 @@ Equivalentes canónicos en el repo (si no hay acceso a Drive):
 - Repo `majofreasenjo-jpg/Vantdomus`, branch `main`.
 - **VG+2.1** (limpieza familiar visible) ✅ aprobado.
 - **VG+2.2** (Bandeja Inteligente v1) ✅ aprobado.
-- Smoke de visibilidad por rol ✅ aprobado.
-- Tests: **52/52 verdes**.
-- **Pendiente activo: Sprint C — Deploy demo** (modo guía asistida; sin CLI de
-  Render/Vercel/Neon en el entorno → Manuel crea los servicios, el asistente guía
-  y verifica con URLs públicas).
+- Smoke de visibilidad por rol (local) ✅ aprobado.
+- **AssistantOrb "Domi"** (CSS) integrado en Guía y Bandeja.
+- **Auditoría externa (ChatGPT) respondió las 8 preguntas** → decisiones
+  consolidadas en runbook + informe.
+- Tests: **52/52 verdes** (último corte verificado).
+- **Pendiente activo: Sprint C — Deploy demo unificado**
+  (SQLite + Disk en Render + Vercel **nuevo limpio** `vantdomus-hogar-demo`;
+  NO Postgres/Neon, NO `/tmp`, NO reuso de Vercel viejo como demo principal).
+  Modo guía asistida: sin CLIs en el entorno → Manuel ejecuta clicks; el
+  asistente guía y verifica con URLs públicas. Gate de entrega = smoke 21
+  puntos en deployado.
 
 ## Commits importantes
 
@@ -63,9 +69,13 @@ VG+2.1 limpieza familiar · VG+2.2 Bandeja Inteligente v1 + smoke de visibilidad
 
 ## Próximo paso activo
 
-**Sprint C — Deploy demo** (Render + Vercel + Neon de Manuel). Luego: auditoría
-competitiva/UX, PITCH_DEMO_SCRIPT, AssistantOrb (personaje original), y Sprint D
-(runtime real: scheduler, push, email inbound).
+**Sprint C — Deploy demo unificado**: Render (SQLite + Disk `/data`) + Vercel
+nuevo limpio (`vantdomus-hogar-demo`). Ver `docs/DEPLOY_DEMO_RUNBOOK.md`. Gate
+de entrega de URL pública = smoke 21 puntos en ambiente desplegado.
+
+**Después de Sprint C**: VG+2.3 — Panel del Hogar / VantHome Coordination v1,
+en fases (Muro Familiar + Compras → Actividades → Check-in voluntario).
+Sprint D (runtime real: scheduler, push, email inbound) queda diferido.
 
 ## Reglas de seguridad (resumen)
 

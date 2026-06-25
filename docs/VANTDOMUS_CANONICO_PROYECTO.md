@@ -173,11 +173,22 @@ Medicación/salud siempre requieren confirmación antes de activar recordatorios
 `vantguide_scheduler.tick()` + CLI existen; el runtime real (cron/worker, push
 Expo, email inbound) es **Sprint D**, aún no desplegado. No meter Celery/Redis todavía.
 
-## 24. Deploy pendiente
+## 24. Deploy pendiente (decisiones del auditor, 2026-06-24)
 
-Sprint C: backend a Render (apps/api, Python 3.11, `APP_ENV=demo`, AI off),
-frontend a Vercel (apps/web, `NEXT_PUBLIC_API_BASE`), DB Neon de Manuel. Ver
-`docs/DEPLOY_DEMO_RUNBOOK.md`.
+Sprint C unificado tras respuestas del auditor externo (ChatGPT):
+
+- Backend en **Render** (`apps/api`, Python 3.11.9, `APP_ENV=demo`, AI off).
+- **DB de demo = SQLite + Disk persistente** (`DB_PATH=/data/vantdomus.db`,
+  Disk 1 GB en `/data`). **NO Postgres/Neon** en este sprint.
+- **NO `/tmp`** para clientes. **NO arreglar la rama Postgres** ahora (deuda
+  diferida).
+- Frontend en **Vercel nuevo limpio** (`vantdomus-hogar-demo`, root `apps/web`).
+  **NO reusar** `vantdomus-panel` viejo como demo principal.
+- Domi CSS alcanza para el pitch.
+- Gate de entrega de URL pública = **smoke 21 puntos en deployado**.
+- No Sprint D (scheduler/push/email inbound) hasta cerrar C.
+
+Detalle operativo en `docs/DEPLOY_DEMO_RUNBOOK.md`.
 
 ## 25. Vercel viejo y Render viejo
 
