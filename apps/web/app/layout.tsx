@@ -90,7 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
                 </>
               ) : null}
-              <a href={hid ? `/dashboard/${hid}` : "/"}>{isFamily ? "Inicio" : "Dashboard"}</a>
+              <a href={hid ? (isFamily ? `/hogar/${hid}` : `/dashboard/${hid}`) : "/"}>{isFamily ? "Inicio" : "Dashboard"}</a>
               {/* Sprint VG+2: "Guía" + "Biblioteca" como pilares del producto VantGuide.
                   Codex 5.5: nav genérico "Guía", título contextual por preset. */}
               <a href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</a>

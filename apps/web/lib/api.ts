@@ -587,3 +587,45 @@ export const addResponsible = (unitFunctionId: string, body: {
 
 // ----- Demo seed (already exists upstream as seedDemo; re-export for clarity) -----
 // `seedDemo` is exported above; no duplicate here.
+
+// =============================================================================
+// U1-LOCAL — Panel del Hogar
+// =============================================================================
+
+// Avisos del Hogar
+export const familyBoardList = (hid: string, includeArchived = false) =>
+  apiFetch(`/family_board/${encodeURIComponent(hid)}?include_archived=${includeArchived ? 'true' : 'false'}`);
+export const familyBoardCreate = (hid: string, body: Record<string, any>) =>
+  apiFetch(`/family_board/${encodeURIComponent(hid)}`, { method: "POST", body: JSON.stringify(body) });
+export const familyBoardResolve = (hid: string, postId: string) =>
+  apiFetch(`/family_board/${encodeURIComponent(hid)}/${encodeURIComponent(postId)}/resolve`, { method: "POST", body: "{}" });
+export const familyBoardArchive = (hid: string, postId: string) =>
+  apiFetch(`/family_board/${encodeURIComponent(hid)}/${encodeURIComponent(postId)}/archive`, { method: "POST", body: "{}" });
+
+// Compras del Hogar
+export const shoppingList = (hid: string, status?: string) =>
+  apiFetch(`/household_shopping/${encodeURIComponent(hid)}/items${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+export const shoppingCreate = (hid: string, body: Record<string, any>) =>
+  apiFetch(`/household_shopping/${encodeURIComponent(hid)}/items`, { method: "POST", body: JSON.stringify(body) });
+export const shoppingMarkInCart = (hid: string, itemId: string) =>
+  apiFetch(`/household_shopping/${encodeURIComponent(hid)}/items/${encodeURIComponent(itemId)}/mark-in-cart`, { method: "POST", body: "{}" });
+export const shoppingMarkPurchased = (hid: string, itemId: string) =>
+  apiFetch(`/household_shopping/${encodeURIComponent(hid)}/items/${encodeURIComponent(itemId)}/mark-purchased`, { method: "POST", body: "{}" });
+export const shoppingCancel = (hid: string, itemId: string) =>
+  apiFetch(`/household_shopping/${encodeURIComponent(hid)}/items/${encodeURIComponent(itemId)}/cancel`, { method: "POST", body: "{}" });
+export const shoppingCart = (hid: string) =>
+  apiFetch(`/household_shopping/${encodeURIComponent(hid)}/cart`);
+
+// Actividades del Día
+export const dailyActivitiesList = (hid: string, date?: string) =>
+  apiFetch(`/daily_activities/${encodeURIComponent(hid)}${date ? `?date=${encodeURIComponent(date)}` : ''}`);
+export const dailyActivityCreate = (hid: string, body: Record<string, any>) =>
+  apiFetch(`/daily_activities/${encodeURIComponent(hid)}`, { method: "POST", body: JSON.stringify(body) });
+export const dailyActivityComplete = (hid: string, activityId: string) =>
+  apiFetch(`/daily_activities/${encodeURIComponent(hid)}/${encodeURIComponent(activityId)}/complete`, { method: "POST", body: "{}" });
+export const dailyActivityCancel = (hid: string, activityId: string) =>
+  apiFetch(`/daily_activities/${encodeURIComponent(hid)}/${encodeURIComponent(activityId)}/cancel`, { method: "POST", body: "{}" });
+
+// Seed v2 (Familia Demo VantDomus)
+export const seedDemoHomeV2 = (hid: string) =>
+  apiFetch(`/demo/seed?household_id=${encodeURIComponent(hid)}&mode=home_v2`, { method: "POST", body: "{}" });
