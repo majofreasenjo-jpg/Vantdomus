@@ -767,18 +767,191 @@ def _seed_team(db, household_id: str, organization_id: str | None) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# U1-LOCAL — Family seed v2 ("Familia Demo VantDomus")
+# Familia curada Camila/Pedro/Diego/Sofía/Elena para Sprint U1-LOCAL. Incluye
+# datos para los 3 módulos nuevos (Avisos, Compras, Actividades). Idempotente.
+# ---------------------------------------------------------------------------
+def _seed_family_v2(db, household_id: str, organization_id: str | None) -> dict:
+    ts = now()
+    today = datetime.now(timezone.utc).date().isoformat()
+    tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).date().isoformat()
+    in3 = (datetime.now(timezone.utc) + timedelta(days=3)).date().isoformat()
+
+    # Meta del hogar → preset family + nombre curado
+    row = db.execute("SELECT meta FROM households WHERE id=?", (household_id,)).fetchone()
+    meta = {}
+    if row and row["meta"]:
+        try: meta = json.loads(row["meta"])
+        except Exception: meta = {}
+    meta["mode"] = "home_v2"
+    meta["industry_preset"] = "family"
+    meta.setdefault("monthly_budget", 900000)
+    meta.setdefault("currency_default", "CLP")
+    meta["family_name"] = "Familia Demo VantDomus"
+    meta.setdefault("tz", "America/Santiago")
+    db.execute("UPDATE households SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), household_id))
+
+    # Personas (idempotente por display_name)
+    person_defs = [
+        ("Camila", "Madre / coordinadora"),
+        ("Pedro", "Padre"),
+        ("Diego", "Hijo / estudiante"),
+        ("Sofía", "Hija / estudiante"),
+        ("Elena", "Abuela"),
+    ]
+    person_ids: dict[str, str] = {}
+    for name, relation in person_defs:
+        existing = db.execute(
+            "SELECT id FROM persons WHERE household_id=? AND display_name=?",
+            (household_id, name),
+        ).fetchone()
+        if existing:
+            pid = existing["id"]
+        else:
+            pid = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO persons (id, household_id, organization_id, display_name, relation, created_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (pid, household_id, organization_id, name, relation, ts),
+            )
+        person_ids[name] = pid
+
+    # Idempotencia total: si ya hay avisos/compras/actividades sembradas, no recrear.
+    already = db.execute(
+        "SELECT COUNT(*) AS n FROM family_board_posts WHERE household_id=?",
+        (household_id,),
+    ).fetchone()
+    if already and already["n"] > 0:
+        return {
+            "ok": True, "mode": "home_v2", "industry_preset": "family",
+            "family_name": meta["family_name"], "already_seeded": True,
+            "persons": [{"id": person_ids[n], "name": n, "relation": r} for n, r in person_defs],
+        }
+
+    pid_camila = person_ids["Camila"]
+    pid_pedro = person_ids["Pedro"]
+    pid_diego = person_ids["Diego"]
+    pid_sofia = person_ids["Sofía"]
+    pid_elena = person_ids["Elena"]
+
+    # Avisos del Hogar
+    board_seed = [
+        ("alert", "Elena tiene control médico el viernes", "Llevar carnet y exámenes anteriores. Confirmar transporte.", "high", True, pid_camila),
+        ("school", "Diego tiene prueba de matemáticas el lunes", "Repasar fracciones y porcentajes. Pedirle que estudie en bloques de 30 min.", "high", True, pid_camila),
+        ("shopping", "Faltan pañales y paracetamol", "Pasar por farmacia hoy o mañana.", "normal", False, pid_pedro),
+        ("school", "Circular escolar de Sofía", "Recordar autorización para salida pedagógica. Vence jueves.", "normal", False, pid_camila),
+        ("logistics", "Pedro llega tarde el jueves", "Reunión hasta las 20:00.", "low", False, pid_pedro),
+        ("finance", "Cuenta de luz vence el viernes", "Pago automático activo. Revisar monto.", "normal", False, pid_camila),
+    ]
+    for ptype, title, body_text, prio, pinned, author_pid in board_seed:
+        db.execute(
+            "INSERT INTO family_board_posts ("
+            "id, household_id, organization_id, author_user_id, author_person_id, "
+            "post_type, title, body, priority, pinned, created_at, updated_at"
+            ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), household_id, organization_id, "demo-seed", author_pid,
+             ptype, title, body_text, prio, 1 if pinned else 0, ts, ts),
+        )
+
+    # Compras del Hogar (con algunos en carro tentativo)
+    shopping_seed = [
+        ("Leche entera", 2, "L", "grocery", "supermarket", "normal", "needed", pid_camila, None, 1290.0),
+        ("Pan integral", 1, "kg", "grocery", "supermarket", "normal", "needed", pid_camila, pid_pedro, 2300.0),
+        ("Paracetamol 500mg", 1, "caja", "pharmacy", "pharmacy", "high", "in_cart", pid_camila, pid_pedro, 3490.0),
+        ("Pañales talla M", 1, "paquete", "baby", "supermarket", "high", "in_cart", pid_camila, pid_pedro, 8990.0),
+        ("Cartulina roja", 2, "u", "school", "convenience", "normal", "needed", pid_camila, pid_sofia, 590.0),
+        ("Detergente líquido", 1, "L", "cleaning", "supermarket", "low", "needed", pid_pedro, None, 4990.0),
+        ("Comida perro", 1, "kg", "pet", "supermarket", "normal", "in_cart", pid_pedro, pid_pedro, 5990.0),
+        ("Manzanas", 1, "kg", "grocery", "supermarket", "normal", "purchased", pid_camila, pid_pedro, 1990.0),
+    ]
+    for name, qty, unit, cat, store, prio, status, req_pid, asg_pid, price in shopping_seed:
+        db.execute(
+            "INSERT INTO household_shopping_items ("
+            "id, household_id, organization_id, requested_by_user_id, requested_by_person_id, "
+            "assigned_to_person_id, item_name, quantity, unit, category, priority, "
+            "store_type, currency, status, created_at, updated_at, estimated_price"
+            ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), household_id, organization_id, "demo-seed", req_pid,
+             asg_pid, name, qty, unit, cat, prio, store, "CLP", status, ts, ts, price),
+        )
+
+    # Actividades del Día
+    def _at(d: str, h: str) -> str:
+        return f"{d}T{h}:00+00:00"
+
+    activities_seed = [
+        # Camila
+        (pid_camila, "Revisar receta de Elena", "errand", _at(today, "09:30"), "Casa", "planned"),
+        (pid_camila, "Confirmar medicamentos noche", "health", _at(today, "20:00"), "Casa", "planned"),
+        # Pedro
+        (pid_pedro, "Pasar por farmacia", "errand", _at(today, "18:00"), "Farmacia Cruz Verde", "planned"),
+        (pid_pedro, "Pagar cuenta de luz", "errand", _at(in3, "10:00"), "Online", "planned"),
+        # Diego
+        (pid_diego, "Estudiar matemáticas (1h)", "school", _at(today, "17:00"), "Casa", "planned"),
+        (pid_diego, "Entrenamiento de fútbol", "sport", _at(today, "19:30"), "Cancha barrio", "planned"),
+        (pid_diego, "Prueba de matemáticas", "school", _at(tomorrow, "10:00"), "Colegio", "planned"),
+        # Sofía
+        (pid_sofia, "Llevar autorización al colegio", "school", _at(today, "08:00"), "Colegio", "done"),
+        (pid_sofia, "Preparar materiales arte", "school", _at(today, "16:00"), "Casa", "planned"),
+        # Elena
+        (pid_elena, "Tomar Losartán mañana", "health", _at(today, "08:00"), "Casa", "done"),
+        (pid_elena, "Tomar Losartán noche", "health", _at(today, "20:00"), "Casa", "planned"),
+        (pid_elena, "Control médico", "health", _at(in3, "10:00"), "Clínica Las Condes", "planned"),
+    ]
+    for pid, title, atype, starts, loc, status in activities_seed:
+        db.execute(
+            "INSERT INTO daily_activities ("
+            "id, household_id, organization_id, person_id, created_by_user_id, "
+            "title, activity_type, starts_at, location_label, visibility, status, "
+            "created_at, updated_at"
+            ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (str(uuid.uuid4()), household_id, organization_id, pid, "demo-seed",
+             title, atype, starts, loc, "family", status, ts, ts),
+        )
+
+    # Una UnitFunction de medicación para Elena (mantiene continuidad con VG+2)
+    try:
+        create_unit_function_internal(
+            db, household_id=household_id, organization_id=organization_id,
+            person_id=pid_elena, category="medication",
+            title="Losartán 50mg",
+            source_type="manual_entry", created_by_user_id="demo-seed",
+            schedule={"times": ["08:00", "20:00"], "days": [1,2,3,4,5,6,7], "tz": "America/Santiago"},
+            recurrence="daily", priority="high", supervision_level="supervised",
+            support_mode="tap", evidence_required=True,
+            metadata={"med_name": "Losartán 50mg", "from_seed": "v2"},
+            dual_write_task=False,
+        )
+    except Exception:
+        pass  # idempotencia best-effort
+
+    return {
+        "ok": True, "mode": "home_v2", "industry_preset": "family",
+        "family_name": meta["family_name"],
+        "persons": [{"id": person_ids[n], "name": n, "relation": r} for n, r in person_defs],
+        "seeded": {
+            "board_posts": len(board_seed),
+            "shopping_items": len(shopping_seed),
+            "daily_activities": len(activities_seed),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
 @router.post("/seed")
 def seed(household_id: str, mode: str = "home", user=Depends(get_current_user), db=Depends(get_db)):
     require_operational_feature_enabled("Demo seed", "VANTDOMUS_ALLOW_DEMO_SEED")
-    if mode not in ("home", "team"):
-        raise HTTPException(status_code=400, detail="mode must be home|team")
+    if mode not in ("home", "home_v2", "team"):
+        raise HTTPException(status_code=400, detail="mode must be home|home_v2|team")
     require_household_role(db, user["user_id"], household_id, "owner")
     organization_id = get_household_organization_id(db, household_id)
 
     if mode == "home":
         result = _seed_family(db, household_id, organization_id)
+    elif mode == "home_v2":
+        result = _seed_family_v2(db, household_id, organization_id)
     else:
         result = _seed_team(db, household_id, organization_id)
 

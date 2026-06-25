@@ -30,6 +30,9 @@ from .routes import (
     persons,
     scores,
     smart_inbox,
+    family_board,
+    household_shopping,
+    daily_activities,
     tasks,
     unit_functions,
     unit_function_responsibles,
@@ -152,3 +155,6 @@ app.include_router(vantguide_library.evidence_router)
 app.include_router(vantguide_library.memory_router)
 app.include_router(vantguide_library.profile_router)
 app.include_router(smart_inbox.router)
+app.include_router(family_board.router)
+app.include_router(household_shopping.router)
+app.include_router(daily_activities.router)
