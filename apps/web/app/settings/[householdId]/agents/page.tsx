@@ -316,15 +316,16 @@ export default function AgentsPage({ params }: { params: Promise<{ householdId: 
       <div className="bg-slate-950 border border-slate-800 rounded-xl p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="text-emerald-300 text-sm font-bold uppercase tracking-wide">Ajustes Cliente</div>
-            <h1 className="text-3xl font-black mt-2">Agentes IA VantDomus</h1>
+            <div className="text-emerald-300 text-sm font-bold uppercase tracking-wide">{isFamily ? 'Ajustes del Hogar' : 'Ajustes Cliente'}</div>
+            <h1 className="text-3xl font-black mt-2">{isFamily ? 'Asistente Domi — Ajustes' : 'Agentes IA VantDomus'}</h1>
             <p className="text-slate-400 mt-3 max-w-3xl">
-              Configura un workspace tipo Codex, Claude Code, Cursor o Antigravity, pero limitado a lo que VantDomus
-              ofrece: familia, oficina tecnica, documentos, presupuesto, tareas, evidencia, integraciones y trazabilidad.
+              {isFamily
+                ? 'Domi es la cara visible de tu Guía Familiar. Aquí podés ajustar qué tan autónomo es y qué agentes especializados acompañan al hogar (estudio, salud, presupuesto, documentos). La IA real ordena y propone, pero las decisiones importantes siempre pasan por una persona.'
+                : 'Configura un workspace tipo Codex, Claude Code, Cursor o Antigravity, pero limitado a lo que VantDomus ofrece: familia, oficina tecnica, documentos, presupuesto, tareas, evidencia, integraciones y trazabilidad.'}
             </p>
           </div>
           <div className="border border-emerald-500/40 rounded-full px-4 py-2 text-emerald-200 text-sm font-bold">
-            {isFamily ? 'VantDomus Familiar' : 'VantDomus Operativo'}
+            {isFamily ? 'Modo Familiar' : 'VantDomus Operativo'}
           </div>
         </div>
       </div>
@@ -519,8 +520,9 @@ export default function AgentsPage({ params }: { params: Promise<{ householdId: 
             <h2 className="text-xl font-black">Memoria importada del agente</h2>
           </div>
           <p className="text-sm text-slate-400 mb-4">
-            Pega aqui instrucciones de ChatGPT, Codex, Claude Projects, Cursor Rules, Gemini Gems o procedimientos internos.
-            VantDomus no copia memoria privada externa; replica la configuracion explicita dentro de este ambiente.
+            {isFamily
+              ? 'Pegá aquí instrucciones, recordatorios o reglas que querés que Domi tenga presentes en este hogar. La memoria sensible vive en VantDomus, no en el modelo.'
+              : 'Pega aqui instrucciones de ChatGPT, Codex, Claude Projects, Cursor Rules, Gemini Gems o procedimientos internos. VantDomus no copia memoria privada externa; replica la configuracion explicita dentro de este ambiente.'}
           </p>
           <textarea
             value={settings.imported_context || ''}

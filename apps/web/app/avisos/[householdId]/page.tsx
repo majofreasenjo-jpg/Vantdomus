@@ -6,7 +6,7 @@
  */
 
 import { revalidatePath } from "next/cache";
-import { familyBoardList, familyBoardCreate, familyBoardResolve, familyBoardArchive, getDashboard } from "../../../lib/api";
+import { familyBoardList, familyBoardCreate, familyBoardResolve, familyBoardArchive, getDashboard, shoppingCreate, dailyActivityCreate } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
 
 export const dynamic = "force-dynamic";
@@ -152,8 +152,13 @@ function PostCard({ hid, p }: { hid: string; p: any }) {
       </div>
       <div style={{ fontWeight: 700, textDecoration: p.resolved_at ? "line-through" : "none" }}>{p.title}</div>
       {p.body ? <div className="small" style={{ marginTop: 4 }}>{p.body}</div> : null}
+      {(p.post_type === "health" || p.post_type === "alert") && !p.resolved_at ? (
+        <div className="small" style={{ marginTop: 6, color: "#9a6a00" }}>
+          🛡️ Confirmación humana requerida antes de activar recordatorios automáticos.
+        </div>
+      ) : null}
       {!p.resolved_at ? (
-        <div className="formRow" style={{ marginTop: 8 }}>
+        <div className="formRow" style={{ marginTop: 8, flexWrap: "wrap", gap: 6 }}>
           <form action={async () => {
             "use server";
             await familyBoardResolve(hid, p.id);
@@ -167,6 +172,38 @@ function PostCard({ hid, p }: { hid: string; p: any }) {
             revalidatePath(`/avisos/${hid}`); revalidatePath(`/hogar/${hid}`);
           }}>
             <button className="btn" type="submit">Archivar</button>
+          </form>
+          {/* Canon §15: convertir aviso en compra o actividad. */}
+          <form action={async () => {
+            "use server";
+            await shoppingCreate(hid, {
+              item_name: p.title,
+              category: p.post_type === "health" ? "pharmacy" : (p.post_type === "school" ? "school" : "other"),
+              store_type: p.post_type === "health" ? "pharmacy" : "other",
+              priority: p.priority === "urgent" || p.priority === "high" ? "high" : "normal",
+              notes: p.body || `Generado desde aviso: ${p.title}`,
+            });
+            revalidatePath(`/compras/${hid}`); revalidatePath(`/avisos/${hid}`); revalidatePath(`/hogar/${hid}`);
+          }}>
+            <button className="btn" type="submit" title="Convierte este aviso en un ítem de compras">→ Compra</button>
+          </form>
+          <form action={async () => {
+            "use server";
+            // Convertir en actividad de hoy para el primer integrante del hogar.
+            const dash = await getDashboard(hid).catch(() => null);
+            const personId = dash?.persons?.[0]?.id;
+            if (!personId) return;
+            await dailyActivityCreate(hid, {
+              person_id: personId,
+              title: p.title,
+              activity_type: p.post_type === "school" ? "school" : (p.post_type === "health" ? "health" : "other"),
+              visibility: "family",
+              date_iso: new Date().toISOString().slice(0, 10),
+              notes: p.body || `Generado desde aviso: ${p.title}`,
+            });
+            revalidatePath(`/actividades/${hid}`); revalidatePath(`/avisos/${hid}`); revalidatePath(`/hogar/${hid}`);
+          }}>
+            <button className="btn" type="submit" title="Convierte este aviso en una actividad del día">→ Actividad</button>
           </form>
         </div>
       ) : null}

@@ -80,28 +80,40 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <div className="small">{brandSubline}</div>
               </div>
             </div>
-            <div className="navLinks">
-              {/* Las secciones B2B "Direccion" y "Centro Operativo" SOLO
-                  aparecen cuando NO es modo familia. En familia rompen la
-                  inmersión y revelan la naturaleza B2B del producto. */}
-              {!isFamily ? (
-                <>
-                  <a href="/ceo" style={{ color: "var(--good)", fontWeight: "bold" }}>Direccion</a>
-                  <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
-                </>
-              ) : null}
-              <a href={hid ? (isFamily ? `/hogar/${hid}` : `/dashboard/${hid}`) : "/"}>{isFamily ? "Inicio" : "Dashboard"}</a>
-              {/* Sprint VG+2: "Guía" + "Biblioteca" como pilares del producto VantGuide.
-                  Codex 5.5: nav genérico "Guía", título contextual por preset. */}
-              <a href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</a>
-              <a href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</a>
-              <a href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</a>
-              <a href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</a>
-              <a href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</a>
-              <a href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</a>
-              <a href="/inbox">{isFamily ? "Buzón" : "Buzón"}</a>
-              <a href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</a>
-            </div>
+            {hasSession ? (
+              <div className="navLinks">
+                {/* Las secciones B2B "Direccion" y "Centro Operativo" SOLO
+                    aparecen cuando NO es modo familia. En familia rompen la
+                    inmersión y revelan la naturaleza B2B del producto. */}
+                {!isFamily ? (
+                  <>
+                    <a href="/ceo" style={{ color: "var(--good)", fontWeight: "bold" }}>Direccion</a>
+                    <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
+                  </>
+                ) : null}
+                <a href={hid ? (isFamily ? `/hogar/${hid}` : `/dashboard/${hid}`) : "/"}>{isFamily ? "Inicio" : "Dashboard"}</a>
+                {/* Sprint U1-FIX F2: en family, el "Mural del Hogar" (canon §15) y
+                    "Compras" (canon §18) son entradas de primer nivel del navbar. */}
+                {isFamily && hid ? (
+                  <>
+                    <a href={`/avisos/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Mural</a>
+                    <a href={`/compras/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Compras</a>
+                  </>
+                ) : null}
+                {/* Sprint VG+2: "Guía" + "Biblioteca" como pilares del producto VantGuide.
+                    Codex 5.5: nav genérico "Guía", título contextual por preset. */}
+                <a href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</a>
+                <a href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</a>
+                <a href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</a>
+                <a href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</a>
+                <a href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</a>
+                <a href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</a>
+                {/* En family, la bandeja vive dentro de Documentos; "Buzón" sigue
+                    siendo accesible en B2B. */}
+                {!isFamily ? <a href="/inbox">Buzón</a> : null}
+                <a href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</a>
+              </div>
+            ) : null}
             {isFamily ? (
               <form action={setViewLevelAction}>
                 <input type="hidden" name="level" value={viewLevel === "simple" ? "full" : "simple"} />

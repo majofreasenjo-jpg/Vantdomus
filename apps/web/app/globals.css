@@ -161,6 +161,17 @@ body[data-theme="family"] .navLinks a:hover{
 body[data-theme="family"] .table th,
 body[data-theme="family"] .table td{ border-bottom:1px solid var(--line); }
 
+/* Sprint U1-FIX F3: tarjetas de acceso rápido del Panel del Hogar con
+   tonos cálidos coherentes (sin neón saturado). Cuatro variantes leves
+   en cycle por nth-child para que no sean monótonas. */
+body[data-theme="family"] .warmAccess{ background:#FFF8EE; border:1px solid #E8DEC9; transition: transform .15s ease, box-shadow .15s ease; }
+body[data-theme="family"] .warmAccess:hover{ transform: translateY(-1px); box-shadow: 0 16px 32px rgba(120,95,60,.12); }
+body[data-theme="family"] .warmAccess:nth-child(2){ background:#F3F7F1; border-color:#D9E5D4; }
+body[data-theme="family"] .warmAccess:nth-child(3){ background:#F1F4F9; border-color:#D5DCE7; }
+body[data-theme="family"] .warmAccess:nth-child(4){ background:#FBF3F0; border-color:#EDDAD2; }
+body[data-theme="family"] .warmAccess:nth-child(5){ background:#F6F1F8; border-color:#E2D6E6; }
+body[data-theme="family"] .warmAccess .cardTitle{ color:#5b4a36; font-size:14px; font-weight:700; }
+
 /* Legibilidad en modo familia: el texto secundario era chico y tenue.
    Subimos tamaños y aseguramos opacidad plena (varios componentes usan
    opacity:.8 inline sobre texto pequeño, que en fondo claro se perdía). */

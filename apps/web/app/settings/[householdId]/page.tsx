@@ -5,8 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
-export default async function SettingsPage({ params }: { params: Promise<{ householdId: string }> }) {
+export default async function SettingsPage({ params, searchParams }: {
+    params: Promise<{ householdId: string }>;
+    searchParams?: Promise<{ advanced?: string }>;
+}) {
     const { householdId: hid } = await params;
+    const sp = searchParams ? await searchParams : {};
+    const advanced = sp?.advanced === "1";
     let dash;
     try {
         dash = await getDashboard(hid);
@@ -14,6 +19,79 @@ export default async function SettingsPage({ params }: { params: Promise<{ house
         redirect(`/login?next=/settings/${hid}`);
     }
     const currentIndustry = dash.household.meta?.industry_preset || "default";
+    const isFamily = currentIndustry === "family";
+
+    if (isFamily && !advanced) {
+        return <FamilySettings hid={hid} dash={dash} />;
+    }
+    return <AdvancedSettings hid={hid} dash={dash} currentIndustry={currentIndustry} isFamily={isFamily} />;
+}
+
+function FamilySettings({ hid, dash }: { hid: string; dash: any }) {
+    const familyName: string = dash?.household?.meta?.family_name || dash?.household?.name || "Tu hogar";
+    return (
+        <div className="container">
+            <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
+                <div>
+                    <div className="small">{familyName}</div>
+                    <div className="big" style={{ fontSize: 28 }}>Ajustes del Hogar</div>
+                </div>
+                <a className="btn" href={`/hogar/${hid}`}>← Panel del Hogar</a>
+            </div>
+
+            <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+                <div className="cardTitle">Quiénes son parte del hogar</div>
+                <p className="small" style={{ marginTop: 6, marginBottom: 12 }}>
+                    Integrantes, roles y permisos de la familia. La IA solo accede a lo que cada
+                    integrante autoriza.
+                </p>
+                <a className="btn btnPrimary" href={`/settings/${hid}/members`}>Gestionar integrantes</a>
+            </div>
+
+            <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+                <div className="cardTitle">Seguridad y registro</div>
+                <p className="small" style={{ marginTop: 6, marginBottom: 12 }}>
+                    Cambios sensibles del hogar quedan registrados: quién agregó qué, cuándo se
+                    confirmó un medicamento, qué propuso la IA y qué confirmó una persona.
+                </p>
+                <div className="formRow">
+                    <a className="btn" href={`/settings/${hid}/audit`}>Ver historial</a>
+                    <a className="btn" href={`/settings/${hid}/security`}>MFA y acceso</a>
+                </div>
+            </div>
+
+            <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+                <div className="cardTitle">Asistente Domi — ajustes</div>
+                <p className="small" style={{ marginTop: 6 }}>
+                    Domi es la cara visible de tu Guía Familiar. La IA real ordena, propone y
+                    resume, pero <strong>no decide cosas importantes sin tu confirmación</strong>:
+                    medicamentos, salud, finanzas y permisos siempre pasan por una persona.
+                </p>
+                <a className="btn" style={{ marginTop: 10 }} href={`/settings/${hid}/agents`}>Configurar Domi</a>
+            </div>
+
+            <div className="card" style={{ padding: 16, marginBottom: 14, opacity: 0.85 }}>
+                <div className="row" style={{ marginBottom: 4 }}>
+                    <div className="cardTitle">Avisos por WhatsApp, correo y otros canales</div>
+                    <span className="pill warn">Próximamente</span>
+                </div>
+                <p className="small" style={{ marginTop: 6 }}>
+                    Estamos preparando la conexión con WhatsApp, correo y otras vías para que tu
+                    familia reciba avisos donde ya conversa. Aún no está activo; te avisamos cuando
+                    lo abramos.
+                </p>
+            </div>
+
+            <div className="small" style={{ marginTop: 16, color: "var(--muted)" }}>
+                ¿Necesitás opciones técnicas? <a href={`/settings/${hid}?advanced=1`}>Abrir modo avanzado</a>.
+            </div>
+        </div>
+    );
+}
+
+function AdvancedSettings({ hid, dash, currentIndustry, isFamily }: {
+    hid: string; dash: any; currentIndustry: string; isFamily: boolean;
+}) {
     const profiles = [
         {
             key: "technical_office",
@@ -46,7 +124,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ house
             <div className="card">
                 <div className="cardTitle">Configuracion de la Unidad</div>
                 <div className="big">{dash.household.name}</div>
-                <div className="small" style={{ marginBottom: 20 }}>Personaliza el tipo de VantDomus, su jerga, modulos y datos base para el cliente activo.</div>
+                <div className="small" style={{ marginBottom: 12 }}>Personaliza el tipo de VantDomus, su jerga, modulos y datos base para el cliente activo.</div>
+                {isFamily && (
+                    <div className="small" style={{ marginBottom: 16, padding: 8, borderRadius: 6, background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245,158,11,0.35)" }}>
+                        Modo avanzado activo. Las opciones técnicas debajo no son visibles para el hogar normalmente.
+                        <a href={`/settings/${hid}`} style={{ marginLeft: 8 }}>← Volver al modo familiar</a>
+                    </div>
+                )}
 
                 <section style={{ marginBottom: 28 }}>
                     <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Tipo de VantDomus</div>
@@ -149,7 +233,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ house
                         Guardar perfil avanzado
                     </button>
                 </form>
-                
+
                 <div style={{ marginTop: 40, paddingTop: 30, borderTop: "1px solid #e2e8f0" }}>
                     <h2 style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: 10, color: "#0f172a" }}>Blindaje y Auditoria</h2>
                     <p className="small" style={{ marginBottom: 15, color: "#64748b" }}>
@@ -168,21 +252,23 @@ export default async function SettingsPage({ params }: { params: Promise<{ house
                         </a>
                     </div>
 
-                    <h2 style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: 10, color: "#0f172a" }}>Agentes IA</h2>
+                    <h2 style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: 10, color: "#0f172a" }}>Asistente Domi (avanzado)</h2>
                     <p className="small" style={{ marginBottom: 15, color: "#64748b" }}>
-                        Define el nivel del usuario, modo de autonomia, agentes especializados y memoria importada desde Codex, Claude, Cursor, Gemini u otros espacios.
+                        Nivel de autonomía, agentes especializados y memoria importada. Cambios aquí afectan
+                        cómo Domi propone y cuándo pide confirmación humana.
                     </p>
                     <a href={`/settings/${hid}/agents`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#4c1d95', color: '#fff', padding: '10px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px', marginBottom: 28, marginRight: 12 }}>
-                        Configurar Agentes IA
+                        Configurar Domi (avanzado)
                     </a>
 
                     <h2 style={{ fontSize: "1.2rem", fontWeight: "bold", marginBottom: 10, color: "#0f172a" }}>Integraciones y canales</h2>
                     <p className="small" style={{ marginBottom: 15, color: "#64748b" }}>
-                        Conecta WhatsApp, Teams, Google Drive, correo y fuentes externas para que VantIA reciba informacion, clasifique eventos y proponga acciones trazables.
+                        Próximamente: avisos por WhatsApp, correo y otras vías. Aún no está activo; cuando se
+                        habilite cada conexión, vivirá aquí.
                     </p>
                     <a href={`/settings/${hid}/coupling`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#0f172a', color: '#fff', padding: '10px 16px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '14px' }}>
                         <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                        Configurar conectores
+                        Ver integraciones (vacío)
                     </a>
                 </div>
 

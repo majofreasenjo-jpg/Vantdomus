@@ -166,7 +166,9 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
       {/* HEADER + DOMI */}
       <div className="card" style={{ marginBottom: 18, padding: 22 }}>
         <div className="row" style={{ alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-          <AssistantOrb state={alerts.length > 0 ? "alert" : "idle"} showLabel={false} />
+          <div title="Domi es la cara visible de tu Guía Familiar. La IA real ordena y propone, pero tú confirmás lo importante.">
+            <AssistantOrb state={alerts.length > 0 ? "alert" : "idle"} showLabel={false} />
+          </div>
           <div style={{ flex: 1, minWidth: 260 }}>
             <div className="small" style={{ color: "var(--muted)" }}>Hoy en tu hogar</div>
             <div className="big" style={{ fontSize: 28, lineHeight: 1.2, marginTop: 2 }}>{familyName}</div>
@@ -174,6 +176,9 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
             <ul style={{ margin: "10px 0 0 0", paddingLeft: 20, color: "var(--muted)", lineHeight: 1.7 }}>
               {domi.lines.map((l, i) => <li key={i}>{l}</li>)}
             </ul>
+            <div className="small" style={{ marginTop: 8, color: "var(--muted)", fontStyle: "italic" }}>
+              Domi propone y resume. Las decisiones importantes (salud, medicamentos, finanzas) las confirmás vos.
+            </div>
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             <a className="btn" href={`/guia`}>Guía Familiar</a>
@@ -197,6 +202,7 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
             <div className="grid" style={{ gap: 10 }}>
               {boardItems.slice(0, 5).map((p) => {
                 const pill = priorityPill(p.priority);
+                const needsHuman = p.post_type === "health" || p.post_type === "alert";
                 return (
                   <div key={p.id} className="card" style={{ padding: 12, background: "var(--bg)" }}>
                     <div className="row" style={{ marginBottom: 6 }}>
@@ -208,6 +214,11 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
                     </div>
                     <div style={{ fontWeight: 700 }}>{p.title}</div>
                     {p.body ? <div className="small" style={{ marginTop: 4 }}>{p.body}</div> : null}
+                    {needsHuman ? (
+                      <div className="small" style={{ marginTop: 6, color: "#9a6a00" }}>
+                        🛡️ Confirmación humana requerida
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -300,23 +311,27 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
         </div>
       </div>
 
-      {/* ACCESOS RÁPIDOS */}
-      <div className="grid cols4" style={{ gap: 12 }}>
-        <a className="card" href={`/health/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
+      {/* ACCESOS RÁPIDOS — paleta cálida coherente (sin neón saturado). */}
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+        <a className="card warmAccess" href={`/actividades/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
+          <div className="cardTitle">🌞 Actividades del día</div>
+          <div className="small" style={{ marginTop: 6 }}>{acts.length > 0 ? `${acts.length} eventos hoy` : "Planifica el día"}</div>
+        </a>
+        <a className="card warmAccess" href={`/health/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
           <div className="cardTitle">💊 Salud y cuidado</div>
           <div className="small" style={{ marginTop: 6 }}>
             {tonightMeds.length > 0 ? `${tonightMeds.length} medicamento(s) esta noche` : "Sin pendientes urgentes"}
           </div>
         </a>
-        <a className="card" href={`/documents/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
+        <a className="card warmAccess" href={`/documents/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
           <div className="cardTitle">📄 Documentos</div>
           <div className="small" style={{ marginTop: 6 }}>Bandeja inteligente · recetas, boletas, circulares</div>
         </a>
-        <a className="card" href={`/finance/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
+        <a className="card warmAccess" href={`/finance/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
           <div className="cardTitle">💰 Presupuesto</div>
           <div className="small" style={{ marginTop: 6 }}>Ingresos, gastos y vencimientos del hogar</div>
         </a>
-        <a className="card" href={`/biblioteca`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
+        <a className="card warmAccess" href={`/biblioteca`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
           <div className="cardTitle">📚 Biblioteca</div>
           <div className="small" style={{ marginTop: 6 }}>Memoria, evidencia y evolución por integrante</div>
         </a>

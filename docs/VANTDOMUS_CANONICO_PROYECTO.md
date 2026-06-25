@@ -1,17 +1,38 @@
-# VantDomus — Documento Canónico del Proyecto
+# VantDomus — Documento Canónico del Proyecto (v2)
 
 > Documento canónico completo dentro del repo, equivalente al documento maestro
-> de Drive (`VANTDOMUS_CANONICO_PROYECTO_v1`). Fuente de verdad para consultas
+> de Drive (`VANTDOMUS_CANONICO_PROYECTO_v2`). Fuente de verdad para consultas
 > futuras. No contiene secretos.
+>
+> **v2 (2026-06-25):** consolidación con el "UNIVERSO VANTDOMUS" del owner.
+> Cambios: definición integral en §1; Sprint U1-LOCAL + U1-FIX registrados;
+> nuevos capítulos 36-46 (Canon v2 — Capas, Operación IA, Onboarding, Roles
+> ampliados, Privacidad/menores/ubicación, Modelo comercial, Roadmap por
+> dominios, Qué existe / qué no, Riesgos críticos, Checklist beta).
 
-## 1. Resumen ejecutivo
+## 1. Resumen ejecutivo (definición consolidada v2)
 
-VantDomus **no es solo una agenda**, ni solo recordatorios, ni solo una app de
-medicamentos. Es una **guía familiar inteligente** con funciones, memoria,
-evidencia, documentos, salud, estudio, presupuesto, roles y acciones auditables.
-El motor técnico interno se llama **VantGuide** y su entidad central es
-`unit_function`. En modo familia se presenta como **VantDomus Hogar**; el mismo
-motor escala a B2B (minería, oficina técnica, clínica, etc.) cambiando el preset.
+VantDomus es una **plataforma SaaS de coordinación, cuidado y memoria familiar
+asistida por IA**. Su producto principal, **VantDomus Hogar**, organiza a los
+integrantes del hogar mediante una **Guía Familiar** que convierte documentos,
+rutinas, medicamentos, estudio, compras, avisos, ubicación voluntaria, finanzas,
+tareas y compromisos en **funciones trazables**.
+
+Cada función puede tener responsables, eventos, evidencia, memoria, alertas,
+**confirmación humana** y evolución. La IA actúa como **asistente-orquestador**:
+interpreta entradas, resume, propone acciones y usa herramientas auditables, pero
+la memoria, los permisos, los documentos y las decisiones sensibles viven en
+VantDomus, **no en el modelo**.
+
+La misma arquitectura escala a B2B como **Guía Operativa**, **Guía de Cuidado**
+o **Guía de Equipo** para residencias, clínicas, colegios, faenas, oficinas
+técnicas y otros contextos, cambiando el `industry_preset`. El motor interno se
+llama **VantGuide** y su entidad central es `unit_function`.
+
+**VantDomus no es** solo una agenda, ni solo recordatorios, ni solo una app de
+medicamentos, ni un chat familiar. Lo que la diferencia es la combinación de
+**función + evidencia + memoria + confirmación humana + alertas + evolución** sobre
+un mismo modelo multi-tenant.
 
 ## 2. Identidad del proyecto
 
@@ -274,3 +295,247 @@ hacer si el chat se corta).
 
 GitHub · Google Drive (carpeta + docs canónicos) · `docs/` del repo · runbooks ·
 commits · tests · respaldos. El chat NO es fuente de verdad.
+
+---
+
+# Canon v2 — capítulos integrales (consolidación 2026-06-25)
+
+> Esta sección consolida lo que el documento "UNIVERSO VANTDOMUS" del owner
+> identificó como faltante en `v1`. No reemplaza los capítulos 1-35; los
+> extiende. **Sin claims aspiracionales** (SLA 99.99%, PCI/HIPAA/HL7, 140 APIs,
+> core bancario, OCR de fotos en producción, IA plena, scheduler runtime, etc.):
+> esos siguen como roadmap, no como producto.
+
+## 36. Mapa de capas
+
+VantDomus se entiende mejor por capas. Cada una es transversal y se compone
+con las siguientes; cambiar una no debe romper las otras.
+
+1. **Identidad** — VantDomus Hogar / Guía Familiar (marca visible y narrativa).
+2. **Personas y permisos** — hogar, integrantes, roles, cuidadores, consentimientos.
+3. **Funciones** — `unit_function`, responsables, estados, vencimientos.
+4. **Evidencia** — check-ins, documentos, eventos, omisiones; `evidence_items`.
+5. **Memoria** — `memory_items`, aprendizajes, preferencias, patrones (no vive en el modelo).
+6. **Documentos** — Bandeja Inteligente, clasificación, archivo, acciones.
+7. **Coordinación diaria** — Panel del Hogar: avisos/mural, actividades, ubicación voluntaria, compras + carro tentativo.
+8. **IA** — asistente-orquestador, herramientas, confirmación humana.
+9. **Alertas y runtime** — scheduler, push, email, WhatsApp (pendientes en este orden).
+10. **Masificación** — multi-tenant, Postgres gestionado, storage, billing, admin, observabilidad.
+11. **Extensión B2B** — presets de cuidado, operación, colegios, clínicas, empresas.
+
+## 37. VantHome Coordination / Panel del Hogar
+
+Implementado en Sprint U1-LOCAL (commit `724af80`) y reforzado en Sprint
+U1-FIX (commit posterior). Es la **capa diaria** que convierte VantDomus de
+"demo interesante" en "producto usable a diario".
+
+Componentes:
+
+- **Mural del Hogar** (`/avisos/[hid]`) — muro familiar (canon UNIVERSO §15):
+  publicar avisos, alertas, recordatorios, mensajes logísticos/colegio/finanzas/
+  salud. Cada aviso puede convertirse en **compra** o **actividad** (botones
+  "→ Compra" / "→ Actividad").
+- **Actividades del Día** (`/actividades/[hid]`) — agenda por integrante con
+  visibilidad family/caregivers/private. Vista "Hoy en la familia".
+- **Compras + Carro Tentativo** (`/compras/[hid]`) — lista colaborativa con
+  estado needed/in_cart/purchased/cancelled; carro agrupado por tipo de tienda
+  con total estimado. **Sin checkout, sin precios reales, sin scraping.**
+- **Ubicación voluntaria / check-in** — DIFERIDO a fase 3 de VG+2.3. Diseño
+  obligatorio: opt-in, frases tipo "Estoy en casa / Llegué / Necesito ayuda",
+  sin tracking continuo, sin geofencing v1.
+
+Panel del Hogar (`/hogar/[hid]`) compone los tres en una sola pantalla, con
+**Domi narrador server-side** (frases por reglas a partir de datos reales, sin
+LLM). Reemplaza al `/dashboard/[hid]` como home en modo familia.
+
+## 38. Operación de la IA (asistente-orquestador)
+
+Qué **puede** hacer la IA:
+
+- Interpretar entradas (chat, documento subido, texto pegado).
+- Proponer una clasificación, una función, una memoria o un movimiento.
+- Resumir estado del hogar a partir de datos ya cargados.
+- Llamar herramientas auditables del backend con permisos del usuario.
+
+Qué **no** puede hacer:
+
+- Activar medicamentos, instrucciones médicas, safety checks o protocolos
+  operativos sin **confirmación humana**.
+- Acceder a datos de otra familia, persona o categoría sin que el usuario
+  tenga permiso.
+- Guardar memoria propia: la memoria vive en `memory_items` de VantDomus, no
+  en el modelo.
+- Modificar permisos, finanzas sensibles, o documentos privados sin que un
+  humano confirme.
+
+Cuándo **debe** pedir confirmación: medicamentos, salud, menores, ubicación,
+finanzas, compras sensibles, documentos privados, alertas críticas, permisos.
+
+Tools auditables actuales: clasificar documento (Bandeja Inteligente),
+proponer medicación/movimiento/función, marcar evidencia, narrar resumen.
+Cada llamada queda en `audit_log`.
+
+Control de costo: AI features apagadas por defecto
+(`VANTDOMUS_AI_FEATURES_ENABLED=false`). Por hogar, plan y volumen mensual
+(definición pendiente en §41). Anti-fuga entre hogares: la IA solo recibe
+contexto recuperado del `household_id` activo del usuario.
+
+## 39. Onboarding familiar (objetivo)
+
+Flujo objetivo (no necesariamente implementado al 100%):
+
+1. Crear cuenta (email + password, MFA opcional).
+2. Crear hogar (nombre familiar, no UUID visible).
+3. Invitar integrantes (email o link de invitación).
+4. Crear perfiles/personas (incluyendo menores y adultos mayores).
+5. Asignar roles (ver §40).
+6. Configurar **3 cosas mínimas** para que el hogar sienta valor:
+   - una receta o medicamento de un integrante,
+   - un documento (boleta o circular) en la Bandeja,
+   - un aviso en el Mural.
+7. Activar la Guía Familiar.
+
+Onboarding **NO debe** pedir todos los integrantes de golpe ni exigir
+configuración avanzada antes del primer "wow". El primer aviso de Domi debe
+basarse en datos reales del paso 6.
+
+## 40. Roles y permisos ampliados
+
+Roles actuales: owner / admin / member / viewer.
+
+Roles objetivo (canon UNIVERSO §13/§89):
+
+| Rol | Alcance |
+|---|---|
+| owner | Configura hogar, integrantes, datos, revisa evidencia, confirma IA |
+| admin | Mismas capacidades que owner excepto eliminar el hogar |
+| integrante adulto | Ve sus funciones y lo compartido con su rol |
+| menor / restringido | Ve solo lo que el owner habilite (sin finanzas) |
+| cuidador familiar | Ve salud asignada + alertas |
+| cuidador externo | Acceso temporal scoped a salud/medicación |
+| solo lectura | Ve sin modificar |
+| profesional externo (futuro) | Acceso por consentimiento granular |
+
+Permisos por: hogar · persona · categoría · documento · función · salud ·
+ubicación · finanzas · compras · evidencia. **Default deny.**
+
+## 41. Modelo comercial (borrador, sin compromiso comercial)
+
+Borradores (no son precios, no son SKUs):
+
+- **Gratis limitado** — 1 hogar, hasta N integrantes, sin IA, almacenamiento
+  básico, sin push productivo.
+- **Familiar básico** — Mural, Compras, Actividades, Bandeja con clasificación
+  por reglas, sin IA generativa.
+- **Familiar plus** — IA propone (no decide), recordatorios push, almacenamiento
+  ampliado.
+- **Cuidado adulto mayor** — Add-on: alertas a cuidador, evidencia de
+  medicación, panel de cuidador externo.
+- **Familia extendida** — Multi-hogar bajo un mismo owner (abuelos +
+  hijos/padres).
+- **B2B2C** — empresa/colegio/residencia ofrece VantDomus a sus familias /
+  pacientes / alumnos / colaboradores.
+
+Pendiente de validación con clientes reales. **NO compromete precios hasta
+después del pitch.**
+
+## 42. Privacidad, menores, salud, ubicación
+
+Regla raíz: **el dato sensible no sale de VantDomus** salvo consentimiento
+explícito del owner del dato (o de su tutor en caso de menores).
+
+- **Salud y medicamentos:** sin diagnóstico, sin reemplazo médico. Disclaimer
+  visible. Confirmación humana obligatoria.
+- **Menores:** sin compartir documentos médicos con externos sin consentimiento.
+- **Ubicación:** opt-in puntual. Sin tracking continuo. Sin geofencing v1.
+  Compartir solo cuando el integrante envía el check-in.
+- **Documentos:** scoped por household y por integrante. Cuidador externo solo
+  ve lo asignado.
+- **IA:** el modelo recibe solo el contexto del household activo del usuario.
+- **Borrado/exportación:** roadmap (pendiente, ver §44).
+
+## 43. Roadmap por dominios (separado, no mezclado)
+
+| Dominio | Próximo |
+|---|---|
+| Uso diario (Coordinación) | Polish del Mural + Actividades + Compras tras revisión del owner; Check-in voluntario (fase 3 VG+2.3). |
+| IA | Mantener AI off por defecto; subir confirmación humana visible (hecho en U1-FIX); estructurar outputs en tools auditables. |
+| Salud y cuidado | Sumar perfiles de apoyo más finos; cuidador externo scoped. |
+| Documentos | OCR de fotos diferido; entrada por texto pegado y PDF estable. |
+| Compras | Mantener carro tentativo. Integraciones externas (supermercado/farmacia) DIFERIDO. |
+| Infraestructura | Sprint C deploy (SQLite+Disk Render + Vercel nuevo). Para masificación: Postgres gestionado, storage, scheduler/workers, observabilidad, backups. |
+| B2B | No distraer ahora. La arquitectura ya lo permite (industry_preset). |
+| Comercial | Validar con familias reales antes de cerrar planes. |
+
+## 44. Qué existe vs qué NO existe (al cierre v2)
+
+**Existe (verificado):** API FastAPI, Web Next.js 16, Mobile Expo, motor
+VantGuide, UnitFunction/Event/Evidence/Memory/ProgressSnapshot,
+PersonSupportProfile, RewardRule, Bandeja Inteligente v1 (texto+PDF),
+Family Board + Compras + Carro + Actividades del Día (Sprint U1-LOCAL),
+Panel del Hogar `/hogar/[hid]`, Mural `/avisos/[hid]`, Compras
+`/compras/[hid]`, Actividades `/actividades/[hid]`, Domi narrador
+server-side, AssistantOrb CSS, settings familiares limpios (Sprint
+U1-FIX), navbar coherente Mural+Compras, badge "Confirmación humana"
+en avisos de salud, botones "→ Compra" / "→ Actividad" en cada aviso,
+tests 63/63 verdes locales.
+
+**NO existe todavía:** deploy público final · Postgres producción ·
+scheduler runtime · push notifications productivas · email inbound real ·
+WhatsApp real · OCR robusto de fotos · IA generativa plena con
+structured output · ubicación/check-in implementada (fase 3) · billing ·
+onboarding masivo guiado · invitaciones familiares completas · panel admin
+SaaS · observabilidad producción · backups restaurables probados ·
+política de retención · Términos/Privacidad finales · mobile polish
+completo · App Store/Play Store · integraciones supermercado/farmacia ·
+integraciones clínicas/colegios · borrado/exportación de datos por owner.
+
+## 45. Riesgos críticos (a manejar antes de beta real)
+
+1. **Promesas que no se pueden cumplir** — claims B2B aspiracionales
+   (WhatsApp, Teams, Drive, SLA, IA "que decide"). Mitigación: copy
+   "Próximamente", deshabilitar selectores muertos, no usar logos
+   externos sin acuerdo.
+2. **Datos sensibles en demo** — un cliente sube boleta/receta real y
+   queda en SQLite local. Mitigación: `APP_ENV=demo` visible,
+   disclaimer, sin datos reales de terceros sin consentimiento.
+3. **Confianza familiar** — si Domi alguna vez "decide" algo importante
+   sin confirmar, la familia pierde la confianza para siempre.
+   Mitigación: badge "Confirmación humana requerida" en salud/alertas
+   (implementado en U1-FIX); ninguna acción sensible automática.
+4. **Fuga entre hogares** — error en scoping de queries. Mitigación:
+   `require_household_role` en todos los endpoints + tests 403
+   cross-household (existentes).
+5. **Falsa sensación de cobertura** — si el navbar promete "Operaciones"
+   o "Seguridad/Fatiga" en family, el usuario asume que existen.
+   Mitigación: navbar y settings condicionados por preset (U1-FIX).
+6. **Ubicación** — riesgo legal y emocional alto si se implementa mal.
+   Mitigación: opt-in puntual, sin background tracking, fase 3 separada.
+7. **Costo IA descontrolado** — sin control de tokens por hogar.
+   Mitigación: AI off por defecto; cuando se prenda, contar por hogar
+   con tope mensual.
+
+## 46. Checklist antes de beta real (criterios mínimos)
+
+- [ ] Sprint C cerrado: deploy demo SQLite+Disk + Vercel limpio + URL
+  pública estable + smoke 21 puntos verde.
+- [ ] Migración a Postgres gestionado decidida y probada en staging.
+- [ ] Scheduler runtime (cron externo) con al menos 1 recordatorio que
+  llega a un canal real (email transaccional mínimo).
+- [ ] Borrado/exportación de datos por owner implementado.
+- [ ] Términos y Privacidad legibles, con dueño legal claro.
+- [ ] Onboarding guiado (5-7 pasos) que termina en un "wow" real (no
+  con la pantalla vacía).
+- [ ] Pruebas de visibilidad por rol en cada módulo (owner, member,
+  viewer, menor) cubiertas.
+- [ ] Disclaimers claros en salud y finanzas.
+- [ ] 0 claims aspiracionales en copy visible (auditoría de copy).
+- [ ] Smoke en mobile (Expo) mínimo.
+- [ ] Plan de soporte y respuesta a incidentes.
+- [ ] Política de retención y de respuesta a borrado por usuario.
+- [ ] Estrategia de datos reales: qué se permite y qué no, en demo /
+  beta / producción.
+
+Sólo cuando esta checklist esté verde se abre **beta real** con familias
+externas. Hasta entonces: demo local + revisión con co-arquitecto + pitch
+controlado.
