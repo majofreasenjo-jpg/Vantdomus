@@ -173,6 +173,28 @@ Medicación/salud siempre requieren confirmación antes de activar recordatorios
 `vantguide_scheduler.tick()` + CLI existen; el runtime real (cron/worker, push
 Expo, email inbound) es **Sprint D**, aún no desplegado. No meter Celery/Redis todavía.
 
+## 23-bis. Sprint U1-LOCAL — VantDomus Hogar Universe Preview (cerrado, commit `724af80`)
+
+Decisión de Manuel (jun 2026): antes de exponer demo pública, validar
+experiencia local con un universo cohesivo. Implementado:
+
+- **Panel del Hogar** (`/hogar/[householdId]`) como home principal en family.
+  Compone Domi narrador (server-side por reglas), Avisos, Actividades del día,
+  Compras + Carro Tentativo, accesos rápidos a Salud/Documentos/Presupuesto/
+  Biblioteca. `layout.tsx` redirige "Inicio" a `/hogar/{hid}` en family.
+- **3 módulos nuevos** con tabla, endpoints CRUD y scoping por household:
+  - `family_board_posts` (migración 274) — muro familiar.
+  - `household_shopping_items` (275) — lista + carro tentativo (sin checkout).
+  - `daily_activities` (276) — actividades del día con visibilidad.
+- **Pantallas dedicadas** `/avisos/[hid]` y `/compras/[hid]` con creación inline
+  y acciones vía server actions.
+- **Seed v2** (`mode=home_v2`) con familia curada "Familia Demo VantDomus"
+  (Camila, Pedro, Diego, Sofía, Elena). Sin duplicados. Idempotente. Convive
+  con seed v1 (`mode=home`).
+- **Tests:** 11 nuevos (`tests/test_u1_local.py`) + 52 previos = **63/63 verdes**.
+
+Detalle de uso en `docs/DEMO_LOCAL_VANTDOMUS_HOGAR.md`.
+
 ## 24. Deploy pendiente (decisiones del auditor, 2026-06-24)
 
 Sprint C unificado tras respuestas del auditor externo (ChatGPT):

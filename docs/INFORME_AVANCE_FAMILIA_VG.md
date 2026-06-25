@@ -286,6 +286,57 @@ ahora rigen Sprint C y VG+2.3:
 Próximo: aplicar §1-§5 del runbook, ejecutar smoke, documentar URL/household
 en §8 del runbook + cápsula Drive. Después de C aprobado, comenzar VG+2.3.
 
+## 14. Sprint U1-LOCAL — VantDomus Hogar Universe Preview (cerrado)
+
+**Commit:** `724af80` (último de `main` al cierre). **Tests:** 63/63 verdes
+(52 anteriores + 11 nuevos en `tests/test_u1_local.py`).
+
+Manuel decidió pausar Sprint C (deploy) y priorizar la **experiencia local de
+alta fidelidad** del producto familiar antes de exponer a clientes. Este sprint
+construye esa experiencia.
+
+### Backend (Checkpoint 1)
+- Migraciones `274_family_board` · `275_household_shopping` · `276_daily_activities`.
+- Routers: `/family_board`, `/household_shopping` (con `/cart`), `/daily_activities`
+  con CRUD mínimo, scoping `require_household_role`, filtrado por persona
+  (member), auditoría en transiciones. Sin checkout, sin APIs externas, sin
+  precios reales.
+- `demo.py`: nuevo modo `home_v2` → `_seed_family_v2` con **"Familia Demo
+  VantDomus"** (Camila, Pedro, Diego, Sofía, Elena — sin duplicados) + 6 avisos,
+  8 compras (algunos en carro), 12 actividades y un UnitFunction de medicación
+  para Elena. Idempotente.
+
+### Frontend (Checkpoint 2 y 3)
+- **`/hogar/[householdId]`** — Panel del Hogar como home principal de familia.
+  Server component que compone Domi narrador (frases server-side por reglas,
+  sin IA), Avisos, Actividades por integrante, Compras + Carro tentativo,
+  accesos rápidos a Salud/Documentos/Presupuesto/Biblioteca. Saludo según hora;
+  AssistantOrb en estado dinámico.
+- **`/avisos/[householdId]`** — muro familiar con creación + acciones
+  (resolver/archivar) vía server actions.
+- **`/compras/[householdId]`** — lista + carro tentativo agrupado por tipo de
+  tienda con total estimado. Disclaimer "compra fuera de VantDomus".
+- `layout.tsx`: en family el link "Inicio" apunta a `/hogar/{hid}` (B2B sigue
+  yendo a `/dashboard/{hid}`). **`/dashboard/[id]` no se rompió.**
+
+### Domi narrador (sin IA)
+Genera frases server-side a partir de los datos reales: "Hoy hay N cosas
+importantes", "Elena tiene un medicamento pendiente esta noche", "Faltan N
+productos por comprar", "Pedro está encargado de: …". No promete IA plena.
+
+### Real vs preview (honestidad)
+**Real:** los 3 módulos nuevos completos, Domi narrador, seed v2 idempotente.
+**Preview/fuera de alcance:** push real, OCR de fotos, voz, checkout, integraciones
+externas, ubicación/check-in (Fase 3 de VG+2.3), Lottie/Rive (Domi sigue CSS).
+
+### Verificación
+Render HTTP confirmado en las 3 rutas (Panel/Avisos/Compras) con el seed v2:
+HTTP 200, sin Build Error, contenidos clave presentes ("Familia Demo VantDomus",
+integrantes, avisos del seed, productos del seed, disclaimer, narrativa de Domi).
+
+### Próximo paso
+Manuel revisa la experiencia local. Cuando apruebe, retomar Sprint C (deploy).
+
 ## 13. Próximo bloque: VG+2.3 — Panel del Hogar / VantHome Coordination
 
 Capa diaria de coordinación familiar. Nombre visible: **Panel del Hogar**

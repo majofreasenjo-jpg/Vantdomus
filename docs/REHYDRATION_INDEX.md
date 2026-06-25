@@ -43,13 +43,16 @@ Equivalentes canónicos en el repo (si no hay acceso a Drive):
 - **AssistantOrb "Domi"** (CSS) integrado en Guía y Bandeja.
 - **Auditoría externa (ChatGPT) respondió las 8 preguntas** → decisiones
   consolidadas en runbook + informe.
-- Tests: **52/52 verdes** (último corte verificado).
-- **Pendiente activo: Sprint C — Deploy demo unificado**
-  (SQLite + Disk en Render + Vercel **nuevo limpio** `vantdomus-hogar-demo`;
-  NO Postgres/Neon, NO `/tmp`, NO reuso de Vercel viejo como demo principal).
-  Modo guía asistida: sin CLIs en el entorno → Manuel ejecuta clicks; el
-  asistente guía y verifica con URLs públicas. Gate de entrega = smoke 21
-  puntos en deployado.
+- **Sprint U1-LOCAL completo** (commit `724af80`): Panel del Hogar
+  `/hogar/[hid]`, Domi narrador server-side, 3 módulos nuevos (Avisos /
+  Compras + Carro Tentativo / Actividades del Día), seed v2 con Familia Demo
+  VantDomus (Camila/Pedro/Diego/Sofía/Elena, sin duplicados). Ver
+  `docs/DEMO_LOCAL_VANTDOMUS_HOGAR.md`.
+- Tests: **63/63 verdes** (52 previos + 11 nuevos U1).
+- **Pendiente activo (cuando Manuel apruebe la pasada local):** retomar
+  **Sprint C — Deploy demo unificado** (SQLite + Disk en Render + Vercel
+  **nuevo limpio** `vantdomus-hogar-demo`). Modo guía asistida; gate de
+  entrega = smoke 21 puntos en deployado.
 
 ## Commits importantes
 
