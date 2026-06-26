@@ -24,6 +24,15 @@ Comportamientos: idle=respiración del núcleo · pensando=órbitas giran ·
 alert=chip relevante se ilumina · logro=halo se expande y destella ·
 cariñoso=coral + pulso · protector=violeta/azul + escudo · organizando=chips se alinean.
 
+**DECISIÓN (Opción B):** para que Domi se vea como el render se usará un **asset
+Lottie** (`.json`) por estado. Enchufe implementado: `lib/domiAssets.ts`
+(manifiesto), `DomiLottie` (player, ssr:false, fallback a CSS), `DomiOrbAuto`
+(elige Lottie si hay asset, si no CSS). Assets van en
+`apps/web/public/assistant/domi/` (ver README ahí). Mientras no haya asset, Domi
+usa la versión CSS. El owner/diseñador provee el `.json` (LottieFiles o export
+After Effects/Bodymovin con la infografía como brief); Rive (.riv) queda como
+alternativa interactiva futura. WebGL/three se descartó (conflicto Next 16).
+
 **Implementado (U4, commit 2f5eaeb)** en React/CSS/SVG sin Lottie/Rive:
 `DomiOrb` · `DomiPanel` · `DomiStateBadge` · `DomiContextChip`. AssistantOrb pasó
 a ser wrapper de compatibilidad sobre DomiOrb. Integrado en Panel del Hogar

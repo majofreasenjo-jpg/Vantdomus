@@ -4,7 +4,8 @@
  * Server Component (sin hooks).
  */
 import React from "react";
-import DomiOrb, { DomiState, DomiChip } from "./DomiOrb";
+import { DomiState, DomiChip } from "./DomiOrb";
+import DomiOrbAuto from "./DomiOrbAuto";
 import DomiStateBadge from "./DomiStateBadge";
 import DomiContextChip from "./DomiContextChip";
 
@@ -31,7 +32,7 @@ export default function DomiPanel({
         {/* Ancho reservado mayor que el orbe (150) para que los chips de la
             constelación no queden pegados al texto. */}
         <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", minWidth: 196 }}>
-          <DomiOrb state={state} size={150} chips={orbitChips} />
+          <DomiOrbAuto state={state} size={150} chips={orbitChips} />
         </div>
         <div style={{ flex: 1, minWidth: 280 }}>
           <div className="row" style={{ justifyContent: "flex-start", gap: 10, marginBottom: 4 }}>
