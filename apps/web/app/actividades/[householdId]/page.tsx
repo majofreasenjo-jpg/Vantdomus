@@ -11,6 +11,7 @@ import {
   getDashboard,
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
+import MemberChip from "../../components/MemberChip";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -150,7 +151,7 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
             return (
               <div key={p.id} className="card" style={{ padding: 14 }}>
                 <div className="row" style={{ marginBottom: 6 }}>
-                  <div style={{ fontWeight: 800 }}>{p.display_name}</div>
+                  <MemberChip name={p.display_name} personId={p.id} bold />
                   <span className="small" style={{ color: "var(--muted)" }}>{p.relation || ""}</span>
                 </div>
                 {acts.length === 0 ? (

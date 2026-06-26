@@ -13,6 +13,7 @@ import {
   getDashboard,
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
+import MemberChip from "../../components/MemberChip";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -214,10 +215,13 @@ function ItemRow({ hid, it, personById, done = false }: { hid: string; it: any; 
             {it.item_name}
             {it.quantity ? <span style={{ fontWeight: 400, color: "var(--muted)" }}> · {it.quantity}{it.unit ? " " + it.unit : ""}</span> : null}
           </div>
-          <div className="small" style={{ color: "var(--muted)" }}>
-            {CAT_LABEL[it.category] || it.category} · {STORE_LABEL[it.store_type] || it.store_type}
-            {who ? ` · para ${who.display_name}` : ""}
-            {it.estimated_price ? ` · ~${clp(it.estimated_price)}` : ""}
+          <div className="small" style={{ color: "var(--muted)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span>{CAT_LABEL[it.category] || it.category} · {STORE_LABEL[it.store_type] || it.store_type}{it.estimated_price ? ` · ~${clp(it.estimated_price)}` : ""}</span>
+            {who ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                · <MemberChip name={who.display_name} personId={who.id} size={18} />
+              </span>
+            ) : null}
           </div>
         </div>
         {!isDone ? (

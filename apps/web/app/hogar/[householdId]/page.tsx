@@ -19,6 +19,7 @@ import {
   listUnitFunctions,
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
+import MemberChip from "../../components/MemberChip";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -239,7 +240,7 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
                 const personActs = (actsByPerson.get(p.id) || []).slice(0, 3);
                 return (
                   <div key={p.id} className="card" style={{ padding: 12, background: "var(--bg)" }}>
-                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{p.display_name}</div>
+                    <div style={{ marginBottom: 6 }}><MemberChip name={p.display_name} personId={p.id} bold /></div>
                     {personActs.length === 0 ? (
                       <div className="small" style={{ color: "var(--muted)" }}>Sin actividades hoy.</div>
                     ) : (
