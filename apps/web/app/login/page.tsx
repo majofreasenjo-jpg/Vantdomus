@@ -10,6 +10,7 @@ export default async function LoginPage({
   const error = params.error || "";
   const email = params.email || "";
   const next = params.next || "/dashboard";
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
 
   return (
     <main className="grid" style={{ maxWidth: 680, margin: "48px auto" }}>
@@ -32,6 +33,20 @@ export default async function LoginPage({
             <a className="btn" href="/reset-password">Recuperar acceso</a>
           </div>
         </form>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 12px", color: "var(--muted)" }}>
+          <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+          <span className="small">o</span>
+          <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        </div>
+        <div className="formRow">
+          <a className="btn" href={`${apiBase}/auth/oauth/google/start`} style={{ flex: 1, justifyContent: "center" }}>
+            Continuar con Google
+          </a>
+          <a className="btn" href={`${apiBase}/auth/oauth/facebook/start`} style={{ flex: 1, justifyContent: "center" }}>
+            Continuar con Facebook
+          </a>
+        </div>
       </section>
     </main>
   );

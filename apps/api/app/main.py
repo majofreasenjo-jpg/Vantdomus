@@ -16,6 +16,7 @@ from .routes import (
     audit,
     audio,
     auth,
+    auth_oauth,
     ceo,
     coupling,
     demo,
@@ -130,6 +131,7 @@ def healthcheck():
 
 
 app.include_router(auth.router)
+app.include_router(auth_oauth.router)
 app.include_router(households.router)
 app.include_router(persons.router)
 app.include_router(health.router)
