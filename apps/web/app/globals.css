@@ -29,6 +29,7 @@ a{color:inherit}
 .navLinks{display:flex;gap:10px;flex-wrap:wrap}
 .navLinks a{font-size:13px;color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:10px;border:1px solid transparent}
 .navLinks a:hover{border-color:var(--line);color:var(--text);background:rgba(255,255,255,.03)}
+.navLinks a.navActive{color:#fff !important;background:var(--primary);border-color:var(--primary);font-weight:800}
 .grid{display:grid;gap:14px}
 .cols4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
 .kpiGrid{grid-template-columns: repeat(12, 1fr)}
@@ -157,6 +158,10 @@ body[data-theme="family"] .btnPrimary{
 body[data-theme="family"] .btnPrimary:hover{ background:#3F6B5D !important; }
 body[data-theme="family"] .navLinks a:hover{
   background:rgba(0,0,0,.04); border-color:var(--line); color:var(--text);
+}
+/* Item activo del navbar en modo familia: salvia profundo, texto blanco. */
+body[data-theme="family"] .navLinks a.navActive{
+  background:#4A7A6B !important; border-color:#4A7A6B !important; color:#fff !important; font-weight:800;
 }
 body[data-theme="family"] .table th,
 body[data-theme="family"] .table td{ border-bottom:1px solid var(--line); }

@@ -3,6 +3,7 @@ import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
 import { cookies } from "next/headers";
 import { logoutAction, setViewLevelAction } from "./login/actions";
+import NavLink from "./components/NavLink";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let hid = "";
@@ -91,27 +92,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
                   </>
                 ) : null}
-                <a href={hid ? (isFamily ? `/hogar/${hid}` : `/dashboard/${hid}`) : "/"}>{isFamily ? "Inicio" : "Dashboard"}</a>
+                <NavLink href={hid ? (isFamily ? `/hogar/${hid}` : `/dashboard/${hid}`) : "/"}>{isFamily ? "Inicio" : "Dashboard"}</NavLink>
                 {/* Sprint U1-FIX F2: en family, el "Mural del Hogar" (canon §15) y
                     "Compras" (canon §18) son entradas de primer nivel del navbar. */}
                 {isFamily && hid ? (
                   <>
-                    <a href={`/avisos/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Mural</a>
-                    <a href={`/compras/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Compras</a>
+                    <NavLink href={`/avisos/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Mural</NavLink>
+                    <NavLink href={`/compras/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Compras</NavLink>
                   </>
                 ) : null}
                 {/* Sprint VG+2: "Guía" + "Biblioteca" como pilares del producto VantGuide.
                     Codex 5.5: nav genérico "Guía", título contextual por preset. */}
-                <a href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</a>
-                <a href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</a>
-                <a href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</a>
-                <a href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</a>
-                <a href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</a>
-                <a href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</a>
+                <NavLink href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</NavLink>
+                <NavLink href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</NavLink>
+                <NavLink href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</NavLink>
+                <NavLink href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</NavLink>
+                <NavLink href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</NavLink>
+                <NavLink href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</NavLink>
                 {/* En family, la bandeja vive dentro de Documentos; "Buzón" sigue
                     siendo accesible en B2B. */}
-                {!isFamily ? <a href="/inbox">Buzón</a> : null}
-                <a href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</a>
+                {!isFamily ? <NavLink href="/inbox">Buzón</NavLink> : null}
+                <NavLink href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</NavLink>
               </div>
             ) : null}
             {isFamily ? (
