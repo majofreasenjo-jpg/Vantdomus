@@ -11,9 +11,11 @@
 
 import { useState } from "react";
 import DomiOrb from "./DomiOrb";
+import DomiChat from "./DomiChat";
 
 export default function DomiFloating({ hid }: { hid: string }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"chat" | "accesos">("chat");
 
   const actions = [
     { icon: "🏠", label: "Inicio", href: `/hogar/${hid}` },
@@ -26,24 +28,30 @@ export default function DomiFloating({ hid }: { hid: string }) {
   return (
     <div className="domiFloat" aria-live="polite">
       {open ? (
-        <div className="domiFloatCard" role="dialog" aria-label="Domi — accesos rápidos">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <DomiOrb state="cariñoso" size={40} showChips={false} />
-            <div>
-              <div style={{ fontWeight: 800 }}>Hola, soy Domi 👋</div>
-              <div className="small" style={{ color: "var(--muted)" }}>¿A dónde vamos?</div>
-            </div>
+        <div className="domiFloatCard" role="dialog" aria-label="Domi">
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            <button className="pill" style={{ cursor: "pointer", borderColor: tab === "chat" ? "var(--primary,#4A7A6B)" : "var(--line)", fontWeight: tab === "chat" ? 700 : 500 }} onClick={() => setTab("chat")}>💬 Chat</button>
+            <button className="pill" style={{ cursor: "pointer", borderColor: tab === "accesos" ? "var(--primary,#4A7A6B)" : "var(--line)", fontWeight: tab === "accesos" ? 700 : 500 }} onClick={() => setTab("accesos")}>⚡ Accesos</button>
+            <span style={{ flex: 1 }} />
+            <button className="pill" style={{ cursor: "pointer" }} onClick={() => setOpen(false)} aria-label="Cerrar">✕</button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {actions.map((a) => (
-              <a key={a.label} href={a.href} className="btn" style={{ justifyContent: "flex-start", gap: 8 }} onClick={() => setOpen(false)}>
-                <span aria-hidden="true">{a.icon}</span> {a.label}
-              </a>
-            ))}
-          </div>
-          <div className="small" style={{ marginTop: 10, color: "var(--muted)", fontStyle: "italic" }}>
-            Estoy contigo en todo el hogar. Las decisiones importantes las confirmas tú.
-          </div>
+
+          {tab === "chat" ? (
+            <DomiChat hid={hid} />
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {actions.map((a) => (
+                  <a key={a.label} href={a.href} className="btn" style={{ justifyContent: "flex-start", gap: 8 }} onClick={() => setOpen(false)}>
+                    <span aria-hidden="true">{a.icon}</span> {a.label}
+                  </a>
+                ))}
+              </div>
+              <div className="small" style={{ marginTop: 10, color: "var(--muted)", fontStyle: "italic" }}>
+                Estoy contigo en todo el hogar. Las decisiones importantes las confirmas tú.
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 

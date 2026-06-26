@@ -76,8 +76,13 @@ def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db
                 user_id=user["user_id"],
             )
             return {"ok": True, "provider": "openai", "model": model, "reply": reply}
-        except Exception as exc:
-            return {"ok": True, "provider": "fallback", "model": None, "reply": fallback_reply, "note": f"OpenAI error: {exc}"}
+        except Exception:
+            # Sin LLM (o error): Domi responde por reglas sobre los datos reales
+            # del hogar, en vez de volcar contexto. Honesto y útil localmente.
+            from app.assistant.domi_rules import answer_domi
+            last_user = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
+            reply = answer_domi(last_user, db, payload.household_id)
+            return {"ok": True, "provider": "domi_rules", "model": None, "reply": reply}
     except HTTPException:
         raise
     except Exception as exc:
