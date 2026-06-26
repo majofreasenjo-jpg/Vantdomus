@@ -11,6 +11,7 @@
  */
 import React from "react";
 import DomiIcon, { ModuleKey, MODULE_COLOR, MODULE_LABEL } from "./domiIcons";
+import DomiCoreImage from "./DomiCoreImage";
 
 export type DomiState =
   | "sereno" | "motivado" | "atento" | "cariñoso" | "protector"
@@ -77,6 +78,8 @@ export default function DomiOrb({
           <path className="domiCeye" d="M33 19 Q37 14 41 19" />
           <path className="domiCmouth" d="M24 26 Q30 31 36 26" />
         </svg>
+        {/* Si existe el PNG del render en /public/assistant/domi/, lo usa como núcleo */}
+        <DomiCoreImage state={state} />
       </span>
 
       {/* chips modulares orbitando, con vidrio + icono SVG */}

@@ -482,6 +482,8 @@ body[data-level="simple"] .advanced{ display:none !important; }
   content:""; position:absolute; top:12%; left:20%; width:38%; height:30%; border-radius:50%; z-index:3;
   background:radial-gradient(circle at 40% 35%, rgba(255,255,255,.92), rgba(255,255,255,0) 70%); filter:blur(.4px);
 }
+/* Imagen del render (si existe) como núcleo, sobre todo lo CSS */
+.domiCimg{ position:absolute; inset:-4%; width:108%; height:108%; object-fit:contain; border-radius:50%; z-index:6; pointer-events:none; }
 /* Rostro sutil (interfaz viva, no caricatura) */
 .domiCface{ position:relative; z-index:2; opacity:.55; }
 .domiCeye, .domiCmouth{ fill:none; stroke:#7a4a16; stroke-width:3.4; stroke-linecap:round; }

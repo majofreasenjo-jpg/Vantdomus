@@ -1,26 +1,36 @@
-# Assets de Domi (Lottie) — Opción B
+# Assets de Domi (núcleo "Constelación inteligente del hogar")
 
-Dejá aquí las animaciones de Domi para que se vea como el render. Formato: Lottie JSON.
+Domi funciona **sin ningún archivo aquí** (usa la versión CSS/SVG). Para que el
+núcleo se vea **idéntico a tu render** de la infografía, deja una imagen PNG aquí
+y aparece automáticamente (sin tocar código).
 
-Archivos esperados (uno por estado; no son todos obligatorios):
-- sereno.json      (idle / por defecto — el más importante)
-- atento.json      (escucha)
-- pensando.json    (procesando)
-- carinoso.json    (acompaña / cuidado)
-- protector.json   (protege — violeta)
-- logro.json       (celebra)
+## Opción A — Imagen del render (RECOMENDADO, lo más fiel)
 
-Luego registrá las rutas en `apps/web/lib/domiAssets.ts`. Si falta un estado,
-cae a `sereno`; si tampoco existe, usa la versión CSS (DomiOrb). No hay que tocar
-las pantallas: el Panel toma el asset automáticamente.
+Deja un PNG con **fondo transparente** del orbe. Nombres que Domi busca, en orden:
 
-## Cómo obtener el asset (calidad render dorado glossy)
-- LottieFiles.com: buscar "glowing orb / AI assistant / sphere" (hay gratis y de pago).
-- Encargar a un diseñador: brief = la infografía "Constelación inteligente del
-  hogar" (núcleo dorado glossy + halo + órbitas con destellos + rostro amable);
-  6 estados. Exportar desde After Effects con el plugin Bodymovin → Lottie JSON.
-- Alternativa interactiva: Rive (.riv) — se puede integrar después con
-  @rive-app/react-canvas (no instalado aún) si se quiere máquina de estados.
+1. Por estado (ideal, 5 variantes — se ven los acentos correctos):
+   - `sereno.png`  (dorado)
+   - `motivado.png` (dorado)
+   - `atento.png`  (azul)
+   - `cariñoso.png` (coral)
+   - `protector.png` (violeta)
+   - opcionales: `pensando.png`, `logro.png`, `organizando.png`
+2. Si falta el del estado, usa `domi.png` (un solo orbe dorado para todos).
 
-## Peso recomendado
-< 200 KB por archivo. Evitar imágenes embebidas pesadas; preferir vectores.
+> En tu infografía, la fila **"Modos emocionales adaptativos"** (arriba a la
+> derecha) tiene justo esos 5 orbes limpios: recórtalos (cuadrado, orbe centrado,
+> fondo transparente si puedes) y guárdalos con esos nombres.
+
+Tamaño sugerido: 512×512 px, PNG con transparencia. La imagen se recorta en
+círculo y queda como núcleo; los **chips de módulo + órbitas + halo** siguen
+animándose alrededor.
+
+## Opción B — Lottie (animación vectorial)
+
+Si tienes el orbe como `.json` (Lottie), déjalo aquí y regístralo en
+`apps/web/lib/domiAssets.ts`. Tiene prioridad sobre el CSS pero no sobre el PNG.
+
+## Estado actual
+
+Carpeta sin imágenes → Domi usa el núcleo CSS (ámbar + cristal + estrellas +
+chips). En cuanto dejes un PNG con los nombres de arriba, se activa solo.
