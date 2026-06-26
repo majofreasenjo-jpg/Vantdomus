@@ -20,6 +20,7 @@ import {
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
+import TrustFooter from "../../components/TrustFooter";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -337,6 +338,8 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
           <div className="small" style={{ marginTop: 6 }}>Memoria, evidencia y evolución por integrante</div>
         </a>
       </div>
+
+      <TrustFooter hid={hid} />
 
       <div className="footerNote">
         Vista del Panel del Hogar. La compra se realiza fuera de VantDomus por ahora. Los recordatorios automáticos
