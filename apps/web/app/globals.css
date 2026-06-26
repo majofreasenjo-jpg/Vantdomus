@@ -184,7 +184,14 @@ body[data-theme="family"] .small,
 body[data-theme="family"] .footerNote{ font-size:13.5px; }
 body[data-theme="family"] .cardTitle{ font-size:13px; color:var(--muted); }
 body[data-theme="family"] .small[style*="opacity"]{ opacity:1 !important; }
-body[data-theme="family"]{ font-size:15px; }
+/* Tipografía humanista redondeada (Nunito) en modo familia: más cálida y
+   amable que la system stack. Titulares con más peso para sensación premium. */
+body[data-theme="family"]{
+  font-size:15px;
+  font-family: var(--font-nunito), ui-rounded, "Segoe UI Rounded", system-ui, sans-serif;
+}
+body[data-theme="family"] .big,
+body[data-theme="family"] .brandTitle{ letter-spacing:-.2px; }
 
 /* Nivel de vista: en "simple" se ocultan los elementos marcados .advanced
    (márgenes ±, sub-KPIs técnicos, jerga). En "completo" se ven. */
@@ -246,4 +253,17 @@ body[data-level="simple"] .advanced{ display:none !important; }
 
 @media (prefers-reduced-motion: reduce){
   .assistantOrb, .assistantOrb::after, .aoEye{ animation:none !important; }
+}
+
+/* ---- Confetti de celebración de Domi (componente Celebrate) ---- */
+.celebrateLayer{ position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden; }
+.confettiPiece{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;
+  opacity:.95; animation-name:confettiFall; animation-timing-function:cubic-bezier(.3,.6,.4,1);
+  animation-fill-mode:forwards; }
+@keyframes confettiFall{
+  0%{ transform:translateY(-10px) rotate(0deg); opacity:1; }
+  100%{ transform:translateY(102vh) rotate(540deg); opacity:.85; }
+}
+@media (prefers-reduced-motion: reduce){
+  .celebrateLayer{ display:none !important; }
 }

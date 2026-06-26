@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { familyBoardList, familyBoardCreate, familyBoardResolve, familyBoardArchive, getDashboard, shoppingCreate, dailyActivityCreate } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
+import { markCelebrate } from "../../../lib/celebrate";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -162,6 +163,7 @@ function PostCard({ hid, p }: { hid: string; p: any }) {
           <form action={async () => {
             "use server";
             await familyBoardResolve(hid, p.id);
+            await markCelebrate();
             revalidatePath(`/avisos/${hid}`); revalidatePath(`/hogar/${hid}`);
           }}>
             <button className="btn" type="submit">Marcar resuelto</button>

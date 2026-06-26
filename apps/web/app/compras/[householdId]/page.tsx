@@ -14,6 +14,7 @@ import {
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
+import { markCelebrate } from "../../../lib/celebrate";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -238,6 +239,7 @@ function ItemRow({ hid, it, personById, done = false }: { hid: string; it: any; 
             <form action={async () => {
               "use server";
               await shoppingMarkPurchased(hid, it.id);
+              await markCelebrate();
               revalidatePath(`/compras/${hid}`); revalidatePath(`/hogar/${hid}`);
             }}>
               <button className="btn btnPrimary" type="submit">Comprado</button>

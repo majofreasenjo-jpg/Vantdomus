@@ -12,6 +12,7 @@ import {
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
+import { markCelebrate } from "../../../lib/celebrate";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -194,6 +195,7 @@ function ActivityRow({ hid, a }: { hid: string; a: any }) {
             <form action={async () => {
               "use server";
               await dailyActivityComplete(hid, a.id);
+              await markCelebrate();
               revalidatePath(`/actividades/${hid}`); revalidatePath(`/hogar/${hid}`);
             }}>
               <button className="btn btnPrimary" type="submit">Hecho</button>

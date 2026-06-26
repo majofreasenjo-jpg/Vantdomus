@@ -1,9 +1,20 @@
 import "./globals.css";
+import { Nunito } from "next/font/google";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
 import { cookies } from "next/headers";
 import { logoutAction, setViewLevelAction } from "./login/actions";
 import NavLink from "./components/NavLink";
+import Celebrate from "./components/Celebrate";
+
+// Tipografía humanista redondeada y cálida, coherente con "hogar".
+// Se expone como CSS var --font-family-warm y se aplica en modo familia.
+const nunito = Nunito({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "800", "900"],
+  variable: "--font-nunito",
+  display: "swap",
+});
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let hid = "";
@@ -65,7 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : `${tax.product_line || "Planificador de Unidades"} - ${tax.domain_label || "Cliente adaptable"}`;
 
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className={nunito.variable} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         data-theme={isFamily ? "family" : undefined}
@@ -142,6 +153,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </div>
         <div className="container">{children}</div>
+        {isFamily ? <Celebrate /> : null}
       </body>
     </html>
   );
