@@ -267,3 +267,14 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @media (prefers-reduced-motion: reduce){
   .celebrateLayer{ display:none !important; }
 }
+
+/* ---- Skeleton loaders (forma de la data, patrón Linear) ---- */
+.skel{ position:relative; overflow:hidden; background:rgba(0,0,0,.06); border-radius:10px; }
+.skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  animation:skelShimmer 1.3s infinite; }
+@keyframes skelShimmer{ 100%{ transform:translateX(100%); } }
+.skelLine{ height:12px; margin:6px 0; }
+.skelTitle{ height:22px; width:42%; margin-bottom:12px; }
+body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
+@media (prefers-reduced-motion: reduce){ .skel::after{ animation:none; } }
