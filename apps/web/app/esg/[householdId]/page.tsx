@@ -178,10 +178,10 @@ export default async function EsgDashboard({ params }: { params: Promise<{ house
       {isFamily && (
         <div className="grid" style={{ gridColumn: "span 4", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
           {familyActions.map((action) => (
-            <a key={action.title} href={action.href} className="card" style={{ textDecoration: "none", color: "var(--text)", border: `1px solid ${action.color}66`, background: "rgba(15,23,42,0.58)", minHeight: 150 }}>
-              <div className="cardTitle" style={{ color: action.color, fontWeight: 900 }}>{action.title}</div>
-              <div className="small" style={{ lineHeight: 1.5, marginTop: 8 }}>{action.body}</div>
-              <div className="small" style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid var(--line)", color: action.color, fontWeight: 900 }}>{action.cta} &rarr;</div>
+            <a key={action.title} href={action.href} className="card warmAccess" style={{ textDecoration: "none", color: "var(--text)", borderTop: `3px solid ${action.color}`, minHeight: 150 }}>
+              <div className="cardTitle" style={{ color: "var(--text)", fontWeight: 800 }}>{action.title}</div>
+              <div className="small" style={{ lineHeight: 1.5, marginTop: 8, color: "var(--muted)" }}>{action.body}</div>
+              <div className="small" style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid var(--line)", color: action.color, fontWeight: 800 }}>{action.cta} &rarr;</div>
             </a>
           ))}
         </div>
