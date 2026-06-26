@@ -38,7 +38,15 @@ export default function AssistantOrb({
       className={`assistantOrb ao-${state}${compact ? " compact" : ""}`}
       role="img"
       aria-label={`Domi, asistente de VantDomus${text ? `: ${text}` : ""}`}
-    />
+    >
+      {/* Cara de Domi: ojos que parpadean + boca que cambia según el estado.
+          Puro CSS/markup, sin assets externos. */}
+      <span className="aoFace" aria-hidden="true">
+        <span className="aoEye l" />
+        <span className="aoEye r" />
+        <span className="aoMouth" />
+      </span>
+    </span>
   );
   if (!showLabel || !text) return orb;
   return (

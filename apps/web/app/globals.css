@@ -219,6 +219,31 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @keyframes orbRipple{ 0%{ opacity:.5; transform:scale(.9); } 100%{ opacity:0; transform:scale(1.5); } }
 .assistantOrbWrap{ display:inline-flex; align-items:center; gap:10px; }
 .assistantOrbWrap .aoLabel{ font-size:13px; color:var(--muted); line-height:1.35; max-width:320px; }
+
+/* ---- Cara de Domi: ojos + boca, para que se lea como personaje vivo ----
+   Los ojos parpadean en loop; la boca cambia de forma por estado. Todo en %
+   para escalar con .compact. Colores oscuros legibles sobre el orb salvia. */
+.aoFace{ position:absolute; inset:0; z-index:2; pointer-events:none; }
+.aoEye{ position:absolute; top:40%; width:13.5%; height:15%; border-radius:50%;
+  background:#22332f; transform-origin:center; animation: aoBlink 5.4s ease-in-out infinite; }
+.aoEye.l{ left:28%; }
+.aoEye.r{ right:28%; }
+.aoMouth{ position:absolute; top:60%; left:50%; transform:translateX(-50%);
+  width:26%; height:13%; border:2px solid #22332f; border-top:0;
+  border-radius:0 0 40px 40px; opacity:.92; transition:all .25s ease; }
+@keyframes aoBlink{ 0%,93%,100%{ transform:scaleY(1); } 96.5%{ transform:scaleY(.12); } }
+
+/* Expresiones por estado */
+.ao-success .aoEye{ height:8%; border-radius:40px 40px 0 0; top:43%; animation:none; } /* ojos felices ^ ^ */
+.ao-success .aoMouth{ width:34%; height:17%; top:56%; }
+.ao-alert .aoEye{ top:38%; }
+.ao-alert .aoMouth{ width:20%; height:0; border-radius:40px; top:64%; } /* boca recta = atención */
+.ao-thinking .aoEye{ top:35%; left:auto; } /* mirada hacia arriba */
+.ao-thinking .aoEye.l{ left:33%; } .ao-thinking .aoEye.r{ right:33%; }
+.ao-thinking .aoMouth{ width:14%; }
+.ao-calm .aoEye{ height:7%; top:44%; border-radius:40px; animation:none; } /* ojos entornados, relajado */
+.ao-listening .aoEye{ width:15%; height:17%; } /* ojos más abiertos, atento */
+
 @media (prefers-reduced-motion: reduce){
-  .assistantOrb, .assistantOrb::after{ animation:none !important; }
+  .assistantOrb, .assistantOrb::after, .aoEye{ animation:none !important; }
 }

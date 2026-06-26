@@ -132,7 +132,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <a className="btn" href="/login">Entrar</a>
             )}
             {/* En modo familia, el badge muestra el nombre del hogar (no su UUID). */}
-            <div className="badge">
+            <div className="badge" style={{ whiteSpace: "nowrap", alignSelf: "center", display: "inline-flex", alignItems: "center" }}>
               {hid ? (
                 isFamily
                   ? (tax.unit || "Tu hogar")
