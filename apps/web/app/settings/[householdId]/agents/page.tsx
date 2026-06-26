@@ -1,6 +1,7 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { Suspense, use, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Bot, BrainCircuit, CheckCircle2, ClipboardList, Layers3, LockKeyhole, Mic, Route, Save, ShieldCheck, Square, Volume2 } from 'lucide-react';
 import { getAgentSettings, getVoiceAudioStatus, synthesizeVoiceSpeech, transcribeVoiceAudio, updateAgentSettings } from '../../../../lib/api';
 
@@ -116,7 +117,17 @@ function defaultSettings(): AgentSettings {
 }
 
 export default function AgentsPage({ params }: { params: Promise<{ householdId: string }> }) {
+  return (
+    <Suspense fallback={<div>Cargando…</div>}>
+      <AgentsPageInner params={params} />
+    </Suspense>
+  );
+}
+
+function AgentsPageInner({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId } = use(params);
+  const searchParams = useSearchParams();
+  const advanced = searchParams?.get('advanced') === '1';
   const [settings, setSettings] = useState<AgentSettings>(defaultSettings());
   const [industry, setIndustry] = useState('default');
   const [loading, setLoading] = useState(true);
@@ -309,7 +320,94 @@ export default function AgentsPage({ params }: { params: Promise<{ householdId: 
     }
   };
 
-  if (loading) return <div>Cargando agentes IA...</div>;
+  if (loading) return <div>Cargando…</div>;
+
+  // En modo familia mostramos un panel simple y honesto (sin jerga técnica).
+  // Lo técnico-avanzado sigue disponible con ?advanced=1.
+  if (isFamily && !advanced) {
+    return (
+      <div className="container">
+        <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
+          <div>
+            <div className="small">Ajustes del Hogar</div>
+            <div className="big" style={{ fontSize: 28 }}>Asistente Domi</div>
+          </div>
+          <a className="btn" href={`/hogar/${householdId}`}>← Panel del Hogar</a>
+        </div>
+
+        {message && <div className="card" style={{ padding: 12, marginBottom: 12, borderLeft: "3px solid #4A7A6B" }}>{message}</div>}
+        {error && <div className="card" style={{ padding: 12, marginBottom: 12, borderLeft: "3px solid #c0392b" }}>{error}</div>}
+
+        {/* QUÉ HACE DOMI HOY */}
+        <div className="card" style={{ padding: 18, marginBottom: 14 }}>
+          <div className="cardTitle">¿Qué hace Domi hoy?</div>
+          <p className="small" style={{ marginTop: 6, marginBottom: 14 }}>
+            Domi es la <strong>cara visible</strong> de tu Guía Familiar. Ordena, resume y propone a
+            partir de los datos reales de tu hogar. <strong>No decide cosas importantes sin tu
+            confirmación</strong>: salud, medicamentos, finanzas y permisos siempre pasan por una persona.
+          </p>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+            <a className="card warmAccess" href={`/hogar/${householdId}`} style={{ padding: 14, textDecoration: "none", color: "inherit" }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>🌞 Resume tu día</div>
+              <div className="small">En el Panel del Hogar, Domi te dice qué es lo importante hoy.</div>
+            </a>
+            <a className="card warmAccess" href={`/documents/${householdId}`} style={{ padding: 14, textDecoration: "none", color: "inherit" }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>📄 Lee documentos</div>
+              <div className="small">Pegá una receta o boleta en la Bandeja: Domi propone y vos confirmás.</div>
+            </a>
+            <a className="card warmAccess" href={`/guia`} style={{ padding: 14, textDecoration: "none", color: "inherit" }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>🧭 Ordena funciones</div>
+              <div className="small">En la Guía Familiar ves lo de cada integrante y lo pendiente de revisión.</div>
+            </a>
+          </div>
+        </div>
+
+        {/* REGLA DE SEGURIDAD */}
+        <div className="card" style={{ padding: 18, marginBottom: 14 }}>
+          <div className="cardTitle">Confirmación humana</div>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginTop: 8 }}>
+            <input
+              type="checkbox"
+              checked={settings.approval_required}
+              onChange={(e) => setSettings((prev) => ({ ...prev, approval_required: e.target.checked }))}
+              style={{ marginTop: 3 }}
+            />
+            <span>
+              <span style={{ fontWeight: 700 }}>Pedir confirmación antes de acciones importantes</span>
+              <span className="small" style={{ display: "block", marginTop: 2 }}>
+                Recomendado dejarlo activo. Domi propone (medicamentos, recordatorios, gastos) y un
+                integrante confirma. Todo queda registrado en el historial del hogar.
+              </span>
+            </span>
+          </label>
+          <button className="btn btnPrimary" style={{ marginTop: 12 }} onClick={save} disabled={saving}>
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+
+        {/* PRÓXIMAMENTE */}
+        <div className="card" style={{ padding: 18, marginBottom: 14, opacity: 0.9 }}>
+          <div className="row" style={{ marginBottom: 4 }}>
+            <div className="cardTitle">Lo que viene</div>
+            <span className="pill warn">Próximamente</span>
+          </div>
+          <ul className="small" style={{ margin: "8px 0 0 0", paddingLeft: 18, lineHeight: 1.8 }}>
+            <li><strong>Domi conversacional</strong>: preguntarle al hogar en lenguaje natural (requiere activar IA generativa).</li>
+            <li><strong>Voz</strong>: dictar y escuchar resúmenes.</li>
+            <li><strong>Avisos por WhatsApp y correo</strong>: que la familia reciba recordatorios donde ya conversa.</li>
+          </ul>
+          <div className="small" style={{ marginTop: 10, color: "var(--muted)", fontStyle: "italic" }}>
+            Estas funciones aún no están activas. Te avisamos cuando las abramos.
+          </div>
+        </div>
+
+        <div className="small" style={{ color: "var(--muted)" }}>
+          ¿Necesitás opciones técnicas (modelo, autonomía, agentes especializados, voz)?{" "}
+          <a href={`/settings/${householdId}/agents?advanced=1`}>Abrir modo avanzado</a>.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl">
