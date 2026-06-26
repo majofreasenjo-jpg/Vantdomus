@@ -5,6 +5,7 @@
  */
 import React from "react";
 import { DomiState, DomiChip } from "./DomiOrb";
+import { ModuleKey } from "./domiIcons";
 import DomiOrbAuto from "./DomiOrbAuto";
 import DomiStateBadge from "./DomiStateBadge";
 import DomiContextChip from "./DomiContextChip";
@@ -24,7 +25,7 @@ export default function DomiPanel({
   lines?: string[];
   note?: string;
   orbitChips?: DomiChip[];
-  contextChips?: { icon: string; label: string; hint?: string; href?: string; active?: boolean }[];
+  contextChips?: { icon: ModuleKey; label: string; hint?: string; href?: string; active?: boolean }[];
 }) {
   return (
     <div className="card" style={{ marginBottom: 18, padding: 22, overflow: "hidden" }}>

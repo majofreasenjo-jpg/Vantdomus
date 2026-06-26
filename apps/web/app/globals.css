@@ -418,6 +418,89 @@ body[data-level="simple"] .advanced{ display:none !important; }
   .assistantOrb, .aoInner, .aoRing, .aoMouth, .aoFace, .aoHalo, .aoEyeHappy, .aoEyeBall, .aoDots i { animation:none !important; }
 }
 
+/* ===========================================================================
+   DomiConstellation — "Constelación inteligente del hogar".
+   Núcleo ámbar SIEMPRE + halo de acento por estado + órbitas finas + chips de
+   vidrio con iconos + puntos de luz. Solo CSS/SVG, sin assets ni dependencias.
+   =========================================================================== */
+.domiC{
+  display:inline-flex; align-items:center; justify-content:center;
+  --domi-accent:#8FB3E0;            /* acento por defecto (atento) */
+  --domi-core-hi:#FFF4DD; --domi-core:#FFC971; --domi-core-deep:#A85F12;
+}
+.domiC--sereno{ --domi-accent:#7FB49C; }
+.domiC--motivado{ --domi-accent:#E8B04B; }
+.domiC--atento{ --domi-accent:#8FB3E0; }
+.domiC--cariñoso{ --domi-accent:#E8917E; }
+.domiC--protector{ --domi-accent:#9B8CD4; }
+.domiC--pensando{ --domi-accent:#B7A9E6; }
+.domiC--logro{ --domi-accent:#6FBF95; }
+.domiC--organizando{ --domi-accent:#E0B770; }
+
+/* Halo de acento que respira detrás del núcleo */
+.domiCglow{
+  position:absolute; inset:8%; border-radius:50%; z-index:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--domi-accent) 55%, transparent) 0%, transparent 62%);
+  filter:blur(10px); opacity:.8; animation:domiCglowB 5s ease-in-out infinite;
+}
+
+/* Órbitas finas (champagne/oro) + puntos de luz; rotación lenta */
+.domiCorbits{ position:absolute; inset:0; z-index:1; pointer-events:none; transform-origin:center; animation:domiCspin 46s linear infinite; }
+.domiCorbit{ fill:none; stroke:rgba(214,178,110,.5); stroke-width:.5; }
+.domiCorbit.o2{ stroke:color-mix(in srgb, var(--domi-accent) 55%, rgba(214,178,110,.3)); stroke-width:.45; }
+.domiCdot{ fill:#fff7e6; filter:drop-shadow(0 0 1.4px var(--domi-accent)); animation:domiCtwinkle 3.2s ease-in-out infinite; }
+.domiCdot:nth-child(4){ animation-delay:1.1s; } .domiCdot:nth-child(5){ animation-delay:1.9s; }
+
+/* Núcleo ámbar glossy con profundidad */
+.domiCcore{
+  position:relative; z-index:2; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 36% 30%, var(--domi-core-hi) 0%, var(--domi-core) 44%, var(--domi-core-deep) 100%);
+  box-shadow:
+    inset -3px -4px 9px rgba(80,40,0,.5),
+    inset 4px 5px 11px rgba(255,255,255,.8),
+    0 8px 22px rgba(168,95,18,.28),
+    0 0 26px 3px color-mix(in srgb, var(--domi-accent) 45%, transparent);
+  animation:domiCpulse 4.6s ease-in-out infinite;
+}
+.domiCcore::before{ /* brillo especular */
+  content:""; position:absolute; top:12%; left:20%; width:38%; height:30%; border-radius:50%;
+  background:radial-gradient(circle at 40% 35%, rgba(255,255,255,.92), rgba(255,255,255,0) 70%); filter:blur(.4px);
+}
+/* Rostro sutil (interfaz viva, no caricatura) */
+.domiCface{ position:relative; z-index:1; opacity:.55; }
+.domiCeye, .domiCmouth{ fill:none; stroke:#7a4a16; stroke-width:3.4; stroke-linecap:round; }
+.domiCeye{ animation:domiCblink 6s ease-in-out infinite; transform-origin:center; }
+
+/* Chips modulares de vidrio con icono */
+.domiCchip{
+  position:absolute; z-index:3; transform:translate(-50%,-50%);
+  display:inline-flex; align-items:center; justify-content:center; border-radius:30%;
+  background:color-mix(in srgb, var(--chip) 16%, rgba(255,255,255,.62));
+  border:1px solid color-mix(in srgb, var(--chip) 55%, transparent);
+  box-shadow:0 4px 12px rgba(90,70,40,.16), inset 0 1px 2px rgba(255,255,255,.7);
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  animation:domiCfloat 5.5s ease-in-out infinite;
+}
+.domiCchip:nth-child(odd){ animation-delay:.8s; }
+.domiCchip:nth-child(even){ animation-delay:1.6s; }
+.domiCchip.active{
+  background:color-mix(in srgb, var(--chip) 30%, rgba(255,255,255,.7));
+  box-shadow:0 6px 16px rgba(90,70,40,.22), 0 0 0 3px color-mix(in srgb, var(--chip) 30%, transparent), inset 0 1px 2px rgba(255,255,255,.8);
+  transform:translate(-50%,-50%) scale(1.1);
+}
+
+@keyframes domiCpulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.035);} }
+@keyframes domiCglowB{ 0%,100%{ opacity:.7; transform:scale(1);} 50%{ opacity:.95; transform:scale(1.06);} }
+@keyframes domiCspin{ from{ transform:rotate(0);} to{ transform:rotate(360deg);} }
+@keyframes domiCtwinkle{ 0%,100%{ opacity:.35;} 50%{ opacity:1;} }
+@keyframes domiCfloat{ 0%,100%{ transform:translate(-50%,-50%) translateY(0);} 50%{ transform:translate(-50%,-50%) translateY(-4%);} }
+@keyframes domiCblink{ 0%,93%,100%{ transform:scaleY(1);} 96.5%{ transform:scaleY(.2);} }
+
+@media (prefers-reduced-motion: reduce){
+  .domiCglow, .domiCorbits, .domiCdot, .domiCcore, .domiCchip, .domiCeye{ animation:none !important; }
+}
+
 /* ---- Confetti de celebración de Domi (componente Celebrate) ---- */
 .celebrateLayer{ position:fixed; inset:0; pointer-events:none; z-index:60; overflow:hidden; }
 .confettiPiece{ position:absolute; top:-12px; width:9px; height:14px; border-radius:2px;

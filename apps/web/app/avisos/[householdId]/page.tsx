@@ -7,7 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { familyBoardList, familyBoardCreate, familyBoardResolve, familyBoardArchive, getDashboard, shoppingCreate, dailyActivityCreate } from "../../../lib/api";
-import AssistantOrb from "../../components/AssistantOrb";
+import DomiOrb from "../../components/DomiOrb";
 import PostComments from "../../components/PostComments";
 import { markCelebrate } from "../../../lib/celebrate";
 
@@ -57,7 +57,7 @@ export default async function AvisosPage({ params }: { params: Promise<{ househo
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <AssistantOrb state="idle" showLabel={false} />
+          <DomiOrb state="sereno" size={48} showChips={false} />
           <div>
             <div className="small">{familyName}</div>
             <div className="big" style={{ fontSize: 28 }}>Avisos del hogar</div>

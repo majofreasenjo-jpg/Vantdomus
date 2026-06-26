@@ -18,7 +18,6 @@ import {
   dailyActivitiesList,
   listUnitFunctions,
 } from "../../../lib/api";
-import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
 import TrustFooter from "../../components/TrustFooter";
 import DomiPanel from "../../components/DomiPanel";
@@ -164,15 +163,14 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
     schoolNoticeTitle: schoolNotice?.title,
   });
 
-  // Identidad de Domi en reposo: SIEMPRE dorada (sereno/motivado) para que sea
-  // coherente con el resto de la app (encabezados + flotante también dorados).
-  // Los estados expresivos (atento=azul, cariñoso=coral, protector=morado) se
-  // reservan para la interacción real (chat) y no para el hero estático, así no
-  // hay "dos colores de Domi" en una misma pantalla.
+  // Estado de Domi en el Panel (canon "Constelación"): el NÚCLEO siempre es ámbar;
+  // el estado solo cambia el ACENTO del halo. Por defecto "atento" (presencia
+  // atenta), y sube a protector/cariñoso/motivado según el momento del hogar.
   const domiState: import("../../components/DomiOrb").DomiState =
-    (alerts.length > 0 || tonightMeds.length > 0 || shoppingPending.length > 0
-      || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
-    : "sereno";
+    alerts.length > 0 ? "protector"
+    : tonightMeds.length > 0 ? "cariñoso"
+    : (shoppingPending.length > 0 || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
+    : "atento";
 
   return (
     <div className="container">
@@ -184,18 +182,18 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
         lines={domi.lines}
         note="Domi propone y resume. Las decisiones importantes (salud, medicamentos, finanzas) las confirmás tú."
         orbitChips={[
-          { icon: "🏠", label: "Hogar" },
-          { icon: "❤️", label: "Salud", active: tonightMeds.length > 0 },
-          { icon: "🛒", label: "Compras", active: shoppingPending.length > 0 },
-          { icon: "✉️", label: "Mensajes", active: alerts.length > 0 },
-          { icon: "👨‍👩‍👧", label: "Familia" },
-          { icon: "🛡️", label: "Seguridad" },
+          { icon: "home", label: "Hogar" },
+          { icon: "health", label: "Salud", active: tonightMeds.length > 0 },
+          { icon: "shopping", label: "Compras", active: shoppingPending.length > 0 },
+          { icon: "message", label: "Mensajes", active: alerts.length > 0 },
+          { icon: "users", label: "Familia" },
+          { icon: "shield", label: "Seguridad" },
         ]}
         contextChips={[
-          { icon: "🧑‍🤝‍🧑", label: "Perfiles", hint: "avatares y estados", href: `/perfiles/${hid}` },
-          { icon: "🧭", label: "Guía Familiar", hint: "funciones por integrante", href: `/guia` },
-          { icon: "📚", label: "Biblioteca", hint: "memoria y evidencia", href: `/biblioteca` },
-          { icon: "📄", label: "Documentos", hint: "bandeja inteligente", href: `/documents/${hid}` },
+          { icon: "users", label: "Perfiles", hint: "avatares y estados", href: `/perfiles/${hid}` },
+          { icon: "guide", label: "Guía Familiar", hint: "funciones por integrante", href: `/guia` },
+          { icon: "book", label: "Biblioteca", hint: "memoria y evidencia", href: `/biblioteca` },
+          { icon: "file", label: "Documentos", hint: "bandeja inteligente", href: `/documents/${hid}` },
         ]}
       />
 

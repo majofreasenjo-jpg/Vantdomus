@@ -21,7 +21,7 @@ import {
   type UnitFunctionRow,
 } from "../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../lib/taxonomy";
-import AssistantOrb from "../components/AssistantOrb";
+import DomiOrb from "../components/DomiOrb";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -187,7 +187,7 @@ export default async function GuiaPage({
       {/* Header */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {isFamily ? <AssistantOrb state="idle" showLabel={false} /> : null}
+          {isFamily ? <DomiOrb state="sereno" size={48} showChips={false} /> : null}
           <div>
           {!isFamily ? <div className="small" style={{ marginBottom: 6 }}>VantGuide</div> : null}
           <div className="big" style={{ fontSize: 32 }}>

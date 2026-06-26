@@ -12,7 +12,7 @@ import {
   shoppingMarkInCart, shoppingMarkPurchased, shoppingCancel,
   getDashboard,
 } from "../../../lib/api";
-import AssistantOrb from "../../components/AssistantOrb";
+import DomiOrb from "../../components/DomiOrb";
 import MemberChip from "../../components/MemberChip";
 import { markCelebrate } from "../../../lib/celebrate";
 import { itemEmoji } from "../../../lib/itemEmoji";
@@ -67,7 +67,7 @@ export default async function ComprasPage({ params }: { params: Promise<{ househ
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <AssistantOrb state="idle" showLabel={false} />
+          <DomiOrb state="sereno" size={48} showChips={false} />
           <div>
             <div className="small">{familyName}</div>
             <div className="big" style={{ fontSize: 28 }}>Compras del hogar</div>

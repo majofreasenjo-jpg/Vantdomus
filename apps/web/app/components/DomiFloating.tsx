@@ -12,17 +12,18 @@
 import { useState } from "react";
 import DomiOrb from "./DomiOrb";
 import DomiChat from "./DomiChat";
+import DomiIcon, { ModuleKey, MODULE_COLOR } from "./domiIcons";
 
 export default function DomiFloating({ hid }: { hid: string }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"chat" | "accesos">("chat");
 
-  const actions = [
-    { icon: "🏠", label: "Inicio", href: `/hogar/${hid}` },
-    { icon: "📣", label: "Mural", href: `/avisos/${hid}` },
-    { icon: "🛒", label: "Compras", href: `/compras/${hid}` },
-    { icon: "🌞", label: "Actividades", href: `/actividades/${hid}` },
-    { icon: "🧑‍🤝‍🧑", label: "Perfiles", href: `/perfiles/${hid}` },
+  const actions: { icon: ModuleKey; label: string; href: string }[] = [
+    { icon: "home", label: "Inicio", href: `/hogar/${hid}` },
+    { icon: "message", label: "Mural", href: `/avisos/${hid}` },
+    { icon: "shopping", label: "Compras", href: `/compras/${hid}` },
+    { icon: "calendar", label: "Actividades", href: `/actividades/${hid}` },
+    { icon: "users", label: "Perfiles", href: `/perfiles/${hid}` },
   ];
 
   return (
@@ -43,7 +44,7 @@ export default function DomiFloating({ hid }: { hid: string }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {actions.map((a) => (
                   <a key={a.label} href={a.href} className="btn" style={{ justifyContent: "flex-start", gap: 8 }} onClick={() => setOpen(false)}>
-                    <span aria-hidden="true">{a.icon}</span> {a.label}
+                    <DomiIcon name={a.icon} size={17} color={MODULE_COLOR[a.icon]} strokeWidth={2.1} /> {a.label}
                   </a>
                 ))}
               </div>

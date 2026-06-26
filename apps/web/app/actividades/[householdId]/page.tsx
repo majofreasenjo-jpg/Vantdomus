@@ -10,7 +10,7 @@ import {
   dailyActivitiesList, dailyActivityCreate, dailyActivityComplete, dailyActivityCancel,
   getDashboard,
 } from "../../../lib/api";
-import AssistantOrb from "../../components/AssistantOrb";
+import DomiOrb from "../../components/DomiOrb";
 import MemberChip from "../../components/MemberChip";
 import QuickAddActivity from "../../components/QuickAddActivity";
 import ProgressRing from "../../components/ProgressRing";
@@ -86,7 +86,7 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <AssistantOrb state="idle" showLabel={false} />
+          <DomiOrb state="sereno" size={48} showChips={false} />
           <div>
             <div className="small">{familyName}</div>
             <div className="big" style={{ fontSize: 28 }}>Actividades del día</div>

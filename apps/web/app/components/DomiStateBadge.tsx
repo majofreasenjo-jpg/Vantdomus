@@ -4,15 +4,16 @@
 import React from "react";
 import type { DomiState } from "./DomiOrb";
 
+// Acentos del canon "Constelación" (mismos que el halo del orbe).
 const META: Record<DomiState, { label: string; color: string }> = {
-  sereno: { label: "Sereno", color: "#C28A2E" },
-  motivado: { label: "Motivado", color: "#E07B1A" },
-  atento: { label: "Atento", color: "#5B7CFF" },
-  "cariñoso": { label: "Cariñoso", color: "#E8845C" },
-  protector: { label: "Protector", color: "#6A5BFF" },
+  sereno: { label: "Sereno", color: "#5E9079" },
+  motivado: { label: "Motivado", color: "#C98A2E" },
+  atento: { label: "Atento", color: "#5E86C2" },
+  "cariñoso": { label: "Cariñoso", color: "#D9745C" },
+  protector: { label: "Protector", color: "#7C6BC4" },
   pensando: { label: "Pensando", color: "#8A7BD8" },
-  logro: { label: "¡Logro!", color: "#2E9E6B" },
-  organizando: { label: "Organizando", color: "#C28A2E" },
+  logro: { label: "¡Logro!", color: "#3E9E73" },
+  organizando: { label: "Organizando", color: "#C98A2E" },
 };
 
 export default function DomiStateBadge({ state }: { state: DomiState }) {

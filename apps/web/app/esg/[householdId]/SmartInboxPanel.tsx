@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { smartInboxAnalyze, smartInboxConfirm, smartInboxReject } from "../../../lib/api";
-import AssistantOrb, { type OrbState } from "../../components/AssistantOrb";
+import DomiOrb, { type DomiState } from "../../components/DomiOrb";
 
 type Person = { id: string; display_name: string };
 
@@ -67,12 +67,12 @@ export default function SmartInboxPanel({ hid, persons }: { hid: string; persons
 
   const setF = (k: string, v: any) => setFields((p) => ({ ...p, [k]: v }));
   const route = cand?.route_type as string | undefined;
-  const orbState: OrbState = busy ? "thinking" : msg.startsWith("Listo") ? "success" : cand ? "alert" : "idle";
+  const orbState: DomiState = busy ? "pensando" : msg.startsWith("Listo") ? "logro" : cand ? "protector" : "sereno";
 
   return (
     <div className="card" style={{ gridColumn: "span 4", borderColor: "var(--primary)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-        <AssistantOrb state={orbState} compact showLabel={false} />
+        <DomiOrb state={orbState} size={34} showChips={false} />
         <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: 900, margin: 0 }}>Bandeja inteligente</div>
       </div>
       <div className="small" style={{ marginBottom: 12, lineHeight: 1.55, maxWidth: 760 }}>
