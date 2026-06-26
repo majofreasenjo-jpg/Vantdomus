@@ -130,16 +130,72 @@ _AMOUNT_RE = re.compile(
 _DATE_RE = re.compile(r"\b(\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4})\b")
 
 
-def _parse_amount(text: str) -> Optional[float]:
-    m = _AMOUNT_RE.search(text or "")
-    if not m:
-        return None
-    raw = m.group(1).replace(".", "").replace(",", ".")
+def _to_number(raw: str) -> Optional[float]:
+    raw = (raw or "").strip()
+    # Formato CLP: punto = miles. Si hay coma decimal (poco común en boletas), la respetamos.
+    if "," in raw and "." in raw:
+        raw = raw.replace(".", "").replace(",", ".")
+    else:
+        raw = raw.replace(".", "").replace(",", "")
     try:
-        val = float(raw)
-        return val if val > 0 else None
+        v = float(raw)
+        return v if v > 0 else None
     except ValueError:
         return None
+
+
+# Marcas frecuentes en Chile para detectar el comercio real (no la dirección).
+_MERCHANTS = [
+    ("lider", "Líder"), ("jumbo", "Jumbo"), ("santa isabel", "Santa Isabel"),
+    ("tottus", "Tottus"), ("unimarc", "Unimarc"), ("ekono", "Ekono"),
+    ("acuenta", "Acuenta"), ("mayorista 10", "Mayorista 10"),
+    ("cruz verde", "Cruz Verde"), ("salcobrand", "Salcobrand"),
+    ("ahumada", "Farmacias Ahumada"), ("dr. simi", "Dr. Simi"),
+    ("sodimac", "Sodimac"), ("easy", "Easy"), ("construmart", "Construmart"),
+    ("copec", "Copec"), ("shell", "Shell"), ("petrobras", "Petrobras"),
+]
+
+
+def _detect_merchant(text: str) -> str:
+    low = (text or "").lower()
+    for key, label in _MERCHANTS:
+        if key in low:
+            return label
+    # Si no hay marca conocida, la primera línea "de nombre" (no dirección/RUT/código).
+    for ln in (text or "").splitlines():
+        s = ln.strip()
+        if len(s) < 3:
+            continue
+        up = s.upper()
+        if up.startswith(("SUC", "RUT", "BOL", "FECHA", "HORA", "CODIGO", "CÓDIGO", "CAJA", "$")):
+            continue
+        if any(c.isalpha() for c in s):
+            return s[:40]
+    return _first_line(text)
+
+
+def _parse_amount(text: str) -> Optional[float]:
+    """Prefiere el TOTAL de la boleta (no el precio de un ítem)."""
+    txt = text or ""
+    cands = []
+    # Montos que vienen tras una etiqueta "total" (excluyendo subtotal/iva/etc.)
+    for m in re.finditer(r"(total[^\n$]{0,22}?)\$?\s*([\d][\d.\,]{2,})", txt, re.IGNORECASE):
+        label = m.group(1).lower()
+        if any(x in label for x in ("subtotal", "iva", "numero", "número", "acumulado", "exento", "artic")):
+            continue
+        v = _to_number(m.group(2))
+        if v:
+            cands.append(v)
+    if cands:
+        return max(cands)
+    # Respaldo: el mayor monto con signo $ del documento.
+    alls = [_to_number(x) for x in re.findall(r"\$\s*([\d][\d.\,]{2,})", txt)]
+    alls = [a for a in alls if a]
+    if alls:
+        return max(alls)
+    # Último respaldo: regex original.
+    m = _AMOUNT_RE.search(txt)
+    return _to_number(m.group(1)) if m else None
 
 
 def _extract_shopping_items(text: str) -> list[str]:
@@ -217,7 +273,7 @@ def _classify(text: str, filename: str) -> dict:
         payload = {"med_title": med, "category": "medication"}
     elif route == "receipt_to_finance":
         amount = _parse_amount(text)
-        merchant = _first_line(text)
+        merchant = _detect_merchant(text)
         title = f"Gasto: {merchant}" if merchant else "Gasto detectado"
         summary = ("Boleta/factura detectada." if amount
                    else "Boleta detectada, pero no se reconoció el monto — completalo a mano.")
