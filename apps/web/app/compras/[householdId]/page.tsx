@@ -73,7 +73,10 @@ export default async function ComprasPage({ params }: { params: Promise<{ househ
             <div className="big" style={{ fontSize: 28 }}>Compras del hogar</div>
           </div>
         </div>
-        <a className="btn" href={`/hogar/${hid}`}>← Panel del hogar</a>
+        <div className="formRow" style={{ gap: 8 }}>
+          <a className="btn btnPrimary" href={`/compras/${hid}/modo`}>🛒 Modo compra</a>
+          <a className="btn" href={`/hogar/${hid}`}>← Panel del hogar</a>
+        </div>
       </div>
 
       {/* CREAR ITEM */}
