@@ -319,6 +319,7 @@ body[data-level="simple"] .advanced{ display:none !important; }
   position:relative; display:inline-flex; align-items:center; justify-content:center;
   width:var(--domi-size,120px); height:var(--domi-size,120px); flex:0 0 auto;
   --domi-glow:#FFCD88; --domi-core1:#FFE6B8; --domi-core2:#E8A23C; --domi-eye:#6b3f12;
+  perspective: 520px;
 }
 /* Halo exterior (doble capa: glow base + destello giratorio premium) */
 .domiOrb .domiHalo{
@@ -337,23 +338,34 @@ body[data-level="simple"] .advanced{ display:none !important; }
   filter: blur(6px); opacity:.5; mix-blend-mode:screen;
   animation: domiSpin 9s linear infinite;
 }
-/* Órbitas (anillos elípticos tenues) */
+/* Órbitas 3D doradas con brillo + destello que viaja (como el render) */
 .domiOrb .domiRing{
-  position:absolute; inset:6%; border-radius:50%;
-  border:1px solid color-mix(in srgb, var(--domi-glow) 45%, transparent);
-  opacity:.55;
+  position:absolute; inset:0; border-radius:50%; transform-style:preserve-3d;
+  border:1.6px solid color-mix(in srgb, var(--domi-glow) 70%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--domi-glow) 45%, transparent);
+  opacity:.8;
 }
-.domiOrb .domiRing2{ inset:-4%; transform:rotate(32deg); border-style:dashed; opacity:.4; }
-.domiOrb.domi-pensando .domiRing1{ animation: domiSpin 6s linear infinite; }
-.domiOrb.domi-pensando .domiRing2{ animation: domiSpin 9s linear infinite reverse; }
+.domiOrb .domiRing1{ inset:-6%; transform: rotateX(70deg); animation: domiOrbit1 13s linear infinite; }
+.domiOrb .domiRing2{ inset:-2%; transform: rotateX(70deg) rotateY(60deg); opacity:.6; animation: domiOrbit2 17s linear infinite; }
+/* Destello que viaja por la órbita */
+.domiOrb .domiRing::after{
+  content:""; position:absolute; top:-3px; left:50%; width:7px; height:7px; margin-left:-3.5px;
+  border-radius:50%; background:#fff;
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--domi-glow) 90%, white);
+}
+.domiOrb.domi-pensando .domiRing1{ animation: domiOrbit1 4.5s linear infinite; }
+.domiOrb.domi-pensando .domiRing2{ animation: domiOrbit2 6s linear infinite; }
 /* Núcleo luminoso */
 .domiOrb .domiCore{
   position:relative; z-index:2; width:62%; height:62%; border-radius:50%;
   display:inline-flex; align-items:center; justify-content:center;
-  background: radial-gradient(circle at 38% 32%, var(--domi-core1) 0%, var(--domi-glow) 48%, var(--domi-core2) 100%);
-  box-shadow: 0 6px 22px color-mix(in srgb, var(--domi-core2) 45%, transparent),
-              inset 0 2px 8px rgba(255,255,255,.55),
-              0 0 0 6px color-mix(in srgb, var(--domi-glow) 18%, transparent);
+  background: radial-gradient(circle at 36% 28%, #ffffff 0%, var(--domi-core1) 22%, var(--domi-glow) 55%, var(--domi-core2) 100%);
+  box-shadow:
+    0 10px 28px color-mix(in srgb, var(--domi-core2) 55%, transparent),
+    inset 0 3px 10px rgba(255,255,255,.7),
+    inset 0 -12px 22px color-mix(in srgb, var(--domi-core2) 55%, transparent),
+    0 0 26px 6px color-mix(in srgb, var(--domi-glow) 40%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--domi-glow) 16%, transparent);
   animation: domiBreathe 4.6s ease-in-out infinite;
 }
 .domiOrb .domiCore::before{ /* brillo especular */
@@ -410,13 +422,18 @@ body[data-level="simple"] .advanced{ display:none !important; }
 .domiShield{ position:absolute; bottom:-2%; right:-2%; font-size:calc(var(--domi-size,120px)*.22); z-index:5;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,.25)); }
 
-/* ---- Estados emocionales (color + comportamiento) ---- */
-.domiOrb.domi-sereno   { --domi-glow:#FFCD88; }
-.domiOrb.domi-motivado { --domi-glow:#FFB74D; --domi-core2:#E07B1A; }
+/* ---- Estados (IDENTIDAD DORADA cálida como el render; solo protector violeta) ---- */
+.domiOrb.domi-sereno   { --domi-glow:#FFCD88; --domi-core1:#FFE9C2; --domi-core2:#E8A23C; --domi-eye:#6b3f12; }
+.domiOrb.domi-motivado { --domi-glow:#FFB74D; --domi-core1:#FFE3AE; --domi-core2:#E07B1A; --domi-eye:#6b3f12; }
 .domiOrb.domi-motivado .domiCore{ animation-duration:3s; }
-.domiOrb.domi-atento   { --domi-glow:#7FA0FF; --domi-core1:#E6ECFF; --domi-core2:#5B7CFF; --domi-eye:#22306b; }
+/* Atento: sigue dorado (no azul), un poco más brillante + acento cálido */
+.domiOrb.domi-atento   { --domi-glow:#FFD27A; --domi-core1:#FFF1D2; --domi-core2:#E89A2A; --domi-eye:#5e3810; }
 .domiOrb.domi-cariñoso { --domi-glow:#FFBFA3; --domi-core1:#FFE5DA; --domi-core2:#E8845C; --domi-eye:#6b3320; }
 .domiOrb.domi-cariñoso .domiCore{ animation: domiPulse 2.4s ease-in-out infinite; }
+.domiOrb.domi-pensando { --domi-glow:#F2C879; --domi-core1:#FFEFCC; --domi-core2:#D98E2A; --domi-eye:#5e3810; }
+.domiOrb.domi-organizando { --domi-glow:#FFCD88; --domi-core1:#FFE9C2; --domi-core2:#E8A23C; }
+.domiOrb.domi-logro    { --domi-glow:#FFD27A; --domi-core1:#FFF1D2; --domi-core2:#E8A23C; }
+/* Único estado frío: protector (violeta), como "Protege" del render */
 .domiOrb.domi-protector{ --domi-glow:#B49AFF; --domi-core1:#ECE6FF; --domi-core2:#6A5BFF; --domi-eye:#2c2160; }
 .domiOrb.domi-logro .domiHalo{ animation: domiHaloPop 1.2s ease-out 1; }
 .domiOrb.domi-logro .domiCore{ animation: domiPop .8s ease-out 1; }
@@ -446,6 +463,8 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @keyframes domiHaloBreathe{ 0%,100%{ opacity:.75; transform:scale(1);} 50%{ opacity:1; transform:scale(1.06);} }
 @keyframes domiPulse{ 0%,100%{ transform:scale(1); box-shadow:0 6px 22px rgba(232,132,92,.4), inset 0 2px 8px rgba(255,255,255,.55);} 50%{ transform:scale(1.06); box-shadow:0 8px 30px rgba(232,132,92,.6), inset 0 2px 8px rgba(255,255,255,.6);} }
 @keyframes domiSpin{ 100%{ transform:rotate(360deg);} }
+@keyframes domiOrbit1{ from{ transform:rotateX(70deg) rotateZ(0); } to{ transform:rotateX(70deg) rotateZ(360deg); } }
+@keyframes domiOrbit2{ from{ transform:rotateX(70deg) rotateY(60deg) rotateZ(0); } to{ transform:rotateX(70deg) rotateY(60deg) rotateZ(360deg); } }
 @keyframes domiBlink{ 0%,92%,100%{ transform:scaleY(1);} 96%{ transform:scaleY(.18);} }
 @keyframes domiPop{ 0%{ transform:scale(.85);} 55%{ transform:scale(1.12);} 100%{ transform:scale(1);} }
 @keyframes domiHaloPop{ 0%{ opacity:.6; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.18);} 100%{ opacity:.85; transform:scale(1);} }
