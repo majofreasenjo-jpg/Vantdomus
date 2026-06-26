@@ -296,18 +296,49 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @keyframes mouthTalk { from{ transform:scaleY(0.6);} to{ transform:scaleY(1.4);} }
 @keyframes eyesAlert { 0%,100%{ transform:scaleY(1);} 50%{ transform:scaleY(0.7);} }
 
-/* ---- MÁS VIDA: rostro más legible + parpadeo + flotar (vida en reposo) ---- */
-/* Rostro un poco más grande y con borde oscuro para que se lea sobre el dorado. */
-.aoFace { width:24px; height:16px; }
-.assistantOrb.compact .aoFace { width:16px; height:11px; }
-.aoEye { width:5px; height:3px; filter: drop-shadow(0 1px 1.5px rgba(70,38,5,.6)); }
-.aoMouth { width:9px; height:4px; filter: drop-shadow(0 1px 1.5px rgba(70,38,5,.55)); }
-/* Parpadeo en estados calmos (no choca con thinking/alert que ya animan ojos). */
-.ao-idle .aoEye, .ao-calm .aoEye { transform-origin:center; animation: aoBlinkLife 4.8s ease-in-out infinite; }
-@keyframes aoBlinkLife { 0%,90%,100%{ transform:scaleY(1);} 95%{ transform:scaleY(.12);} }
-/* Flotar suave del orbe (bob) combinado con la respiración, para que se vea vivo. */
+/* ===========================================================================
+   MÁS VIDA + ROSTRO CORRECTO
+   El layout original apilaba ojo/ojo/boca en vertical (se veía como candado).
+   Lo rehago: OJOS LADO A LADO arriba + SONRISA centrada debajo; ojos rellenos
+   con brillo (vivos), parpadeo y flotar. Domina el dorado (idle).
+   =========================================================================== */
+.aoFace {
+  flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center;
+  width: 24px; height: auto; top: 50%; row-gap: 2.5px; column-gap: 5px;
+}
+.assistantOrb.compact .aoFace { width: 16px; column-gap: 3px; row-gap: 1.5px; }
+
+/* Ojos: óvalos rellenos oscuros con brillo (catchlight) → se leen vivos sobre el oro */
+.aoEye {
+  width: 5.5px; height: 6.5px; margin: 0; border: 0; border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffffff 0 22%, #3c2206 46%, #2a1704 100%);
+  box-shadow: 0 1px 1.5px rgba(0,0,0,.3); transform-origin: center;
+  animation: aoBlinkLife 4.8s ease-in-out infinite; filter: none;
+}
+.assistantOrb.compact .aoEye { width: 4px; height: 4.5px; }
+
+/* Sonrisa: arco bajo los ojos (flex-basis 100% la fuerza a la segunda fila) */
+.aoMouth {
+  flex-basis: 100%; width: 11px; height: 6px; margin: 0 auto; padding: 0;
+  border: 2px solid transparent; border-bottom-color: #3c2206; border-radius: 0 0 11px 11px;
+  background: transparent; filter: none;
+}
+.assistantOrb.compact .aoMouth { width: 8px; height: 4px; border-width: 1.5px; }
+
+@keyframes aoBlinkLife { 0%,92%,100%{ transform: scaleY(1);} 96%{ transform: scaleY(.12);} }
+
+/* Variaciones por estado, ya con la cara correcta */
+.ao-thinking .aoEye { animation: none; height: 4px; border-radius: 50%; opacity: .9; }
+.ao-thinking .aoMouth { width: 5px; height: 5px; border: 2px solid #3c2206; border-radius: 50%; }
+.ao-listening .aoMouth { width: 7px; height: 7px; border: 2px solid #3c2206; border-radius: 50%; animation: mouthTalk .6s ease-in-out infinite alternate; }
+.ao-alert .aoEye { animation: eyesAlert 1.6s ease-in-out infinite; }
+.ao-alert .aoMouth { width: 9px; height: 0; border-bottom: 2px solid #3c2206; border-radius: 6px; }
+.ao-success .aoEye { animation: none; height: 3.5px; border-radius: 8px 8px 0 0; }
+.ao-success .aoMouth { width: 12px; height: 7px; }
+
+/* Flotar suave del orbe (bob) + respiración → se siente vivo en reposo */
 .ao-idle .aoInner, .ao-calm .aoInner, .ao-alert .aoInner { animation-name: orbBreatheFloat; }
-@keyframes orbBreatheFloat { 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-7%) scale(1.05);} }
+@keyframes orbBreatheFloat { 0%,100%{ transform: translateY(0) scale(1);} 50%{ transform: translateY(-7%) scale(1.05);} }
 
 .assistantOrbWrap{ display:inline-flex; align-items:center; gap:10px; }
 .assistantOrbWrap .aoLabel{ font-size:13px; color:var(--muted); line-height:1.35; max-width:320px; }
