@@ -4,8 +4,7 @@
  * Server Component (sin hooks).
  */
 import React from "react";
-import { DomiState, DomiChip } from "./DomiOrb";
-import DomiOrbAuto from "./DomiOrbAuto";
+import DomiOrb, { DomiState, DomiChip } from "./DomiOrb";
 import DomiStateBadge from "./DomiStateBadge";
 import DomiContextChip from "./DomiContextChip";
 
@@ -30,7 +29,7 @@ export default function DomiPanel({
     <div className="card" style={{ marginBottom: 18, padding: 22, overflow: "hidden" }}>
       <div style={{ display: "flex", gap: 22, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", minWidth: 160 }}>
-          <DomiOrbAuto state={state} size={150} chips={orbitChips} />
+          <DomiOrb state={state} size={150} chips={orbitChips} />
         </div>
         <div style={{ flex: 1, minWidth: 280 }}>
           <div className="row" style={{ justifyContent: "flex-start", gap: 10, marginBottom: 4 }}>

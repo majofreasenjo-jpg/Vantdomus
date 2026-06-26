@@ -320,11 +320,22 @@ body[data-level="simple"] .advanced{ display:none !important; }
   width:var(--domi-size,120px); height:var(--domi-size,120px); flex:0 0 auto;
   --domi-glow:#FFCD88; --domi-core1:#FFE6B8; --domi-core2:#E8A23C; --domi-eye:#6b3f12;
 }
-/* Halo exterior */
+/* Halo exterior (doble capa: glow base + destello giratorio premium) */
 .domiOrb .domiHalo{
-  position:absolute; inset:-12%; border-radius:50%;
-  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--domi-glow) 55%, transparent) 0%, transparent 62%);
-  filter: blur(2px); opacity:.9; animation: domiHaloBreathe 5s ease-in-out infinite;
+  position:absolute; inset:-14%; border-radius:50%;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--domi-glow) 58%, transparent) 0%, transparent 62%);
+  filter: blur(3px); opacity:.9; animation: domiHaloBreathe 5s ease-in-out infinite;
+}
+.domiOrb .domiHalo::after{ /* sheen giratorio sutil, sensación premium/3D */
+  content:""; position:absolute; inset:8%; border-radius:50%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, #ffffff 70%, transparent) 40deg,
+    transparent 110deg,
+    color-mix(in srgb, var(--domi-glow) 60%, transparent) 200deg,
+    transparent 300deg);
+  filter: blur(6px); opacity:.5; mix-blend-mode:screen;
+  animation: domiSpin 9s linear infinite;
 }
 /* Órbitas (anillos elípticos tenues) */
 .domiOrb .domiRing{
@@ -392,7 +403,7 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @keyframes domiHaloPop{ 0%{ opacity:.6; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.18);} 100%{ opacity:.85; transform:scale(1);} }
 @keyframes domiSettle{ 0%{ transform:translate(-50%,-50%) scale(.6); opacity:.2;} 100%{ transform:translate(-50%,-50%) scale(1); opacity:1;} }
 @media (prefers-reduced-motion: reduce){
-  .domiOrb .domiHalo, .domiOrb .domiCore, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
+  .domiOrb .domiHalo, .domiOrb .domiHalo::after, .domiOrb .domiCore, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
 }
 
 /* ---- Skeleton loaders (forma de la data, patrón Linear) ---- */
