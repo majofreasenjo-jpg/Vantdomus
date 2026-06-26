@@ -375,8 +375,22 @@ body[data-level="simple"] .advanced{ display:none !important; }
 }
 @keyframes domiTwinkle{ 0%,100%{ opacity:.45; } 50%{ opacity:1; } }
 .domiFace{ position:relative; z-index:3; overflow:visible; }
-.domiFace .domiEye{ fill:none; stroke:var(--domi-eye); stroke-width:6; stroke-linecap:round;
-  animation: domiBlink 5.6s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+.domiEyes{ transform-box:fill-box; transform-origin:center; }
+/* Ojos felices (curvos) = expresión por defecto; parpadean y "miran" */
+.domiFace .domiEyeHappy{ fill:none; stroke:var(--domi-eye); stroke-width:6; stroke-linecap:round;
+  transform-box:fill-box; transform-origin:center;
+  animation: domiBlink 5s ease-in-out infinite; }
+/* Ojos abiertos (redondos) = atento/pensando; ocultos por defecto */
+.domiFace .domiEyeBall{ fill:var(--domi-eye); opacity:0; transform-box:fill-box; transform-origin:center; }
+/* Boca: sonrisa sutil por defecto */
+.domiFace .domiMouth{ fill:none; stroke:var(--domi-eye); stroke-width:5; stroke-linecap:round; opacity:.6; }
+/* Mirar alrededor de vez en cuando (vida en reposo) */
+.domiOrb.domi-sereno .domiEyes, .domiOrb.domi-motivado .domiEyes{ animation: domiLookAround 7s ease-in-out infinite; }
+
+/* Puntos de "pensando" sobre el núcleo */
+.domiDots{ position:absolute; top:-14%; left:50%; transform:translateX(-50%); display:none; gap:4px; z-index:6; }
+.domiDots i{ width:6px; height:6px; border-radius:50%; background:var(--domi-glow); display:inline-block; animation: domiDot 1s infinite; }
+.domiDots i:nth-child(2){ animation-delay:.18s; } .domiDots i:nth-child(3){ animation-delay:.36s; }
 /* Chips de contexto alrededor del núcleo */
 .domiOrb .domiChip{
   position:absolute; z-index:4; transform:translate(-50%,-50%);
@@ -408,6 +422,26 @@ body[data-level="simple"] .advanced{ display:none !important; }
 .domiOrb.domi-logro .domiCore{ animation: domiPop .8s ease-out 1; }
 .domiOrb.domi-organizando .domiChip{ animation: domiSettle .7s ease-out 1; }
 
+/* ---- GESTOS visibles por estado ---- */
+/* ATENTO (escucha): ojos bien abiertos, mira de frente, anillo que pulsa */
+.domiOrb.domi-atento .domiEyeHappy{ opacity:0; animation:none; }
+.domiOrb.domi-atento .domiEyeBall{ opacity:1; animation: domiEyeWide 2.4s ease-in-out infinite; }
+.domiOrb.domi-atento .domiMouth{ opacity:.9; }
+.domiOrb.domi-atento .domiRing1{ animation: domiPulseRing 1.6s ease-out infinite; }
+/* PENSANDO: ojos miran arriba, puntos visibles, núcleo se inclina, órbitas giran */
+.domiOrb.domi-pensando .domiEyeHappy{ opacity:0; animation:none; }
+.domiOrb.domi-pensando .domiEyeBall{ opacity:1; transform:translateY(-3px); }
+.domiOrb.domi-pensando .domiMouth{ opacity:0; }
+.domiOrb.domi-pensando .domiDots{ display:flex; }
+.domiOrb.domi-pensando .domiCore{ animation: domiThink 2.2s ease-in-out infinite; }
+/* LOGRO: ojos felices grandes + boca sonriente amplia */
+.domiOrb.domi-logro .domiMouth{ opacity:1; stroke-width:6; }
+/* PROTECTOR: ojos firmes al frente */
+.domiOrb.domi-protector .domiEyeHappy{ opacity:0; }
+.domiOrb.domi-protector .domiEyeBall{ opacity:1; }
+/* Núcleo flota suave SIEMPRE (vida en reposo), combinado con respiración */
+.domiOrb .domiCore{ animation: domiBreatheFloat 4.6s ease-in-out infinite; }
+
 @keyframes domiBreathe{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.05);} }
 @keyframes domiHaloBreathe{ 0%,100%{ opacity:.75; transform:scale(1);} 50%{ opacity:1; transform:scale(1.06);} }
 @keyframes domiPulse{ 0%,100%{ transform:scale(1); box-shadow:0 6px 22px rgba(232,132,92,.4), inset 0 2px 8px rgba(255,255,255,.55);} 50%{ transform:scale(1.06); box-shadow:0 8px 30px rgba(232,132,92,.6), inset 0 2px 8px rgba(255,255,255,.6);} }
@@ -416,8 +450,14 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @keyframes domiPop{ 0%{ transform:scale(.85);} 55%{ transform:scale(1.12);} 100%{ transform:scale(1);} }
 @keyframes domiHaloPop{ 0%{ opacity:.6; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.18);} 100%{ opacity:.85; transform:scale(1);} }
 @keyframes domiSettle{ 0%{ transform:translate(-50%,-50%) scale(.6); opacity:.2;} 100%{ transform:translate(-50%,-50%) scale(1); opacity:1;} }
+@keyframes domiBreatheFloat{ 0%,100%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-6%) scale(1.05);} }
+@keyframes domiLookAround{ 0%,70%,100%{ transform:translateX(0);} 80%{ transform:translateX(-3px);} 90%{ transform:translateX(3px);} }
+@keyframes domiEyeWide{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.18);} }
+@keyframes domiThink{ 0%,100%{ transform:rotate(-4deg) translateY(0);} 50%{ transform:rotate(4deg) translateY(-4%);} }
+@keyframes domiPulseRing{ 0%{ opacity:.7; transform:scale(.96);} 100%{ opacity:0; transform:scale(1.25);} }
+@keyframes domiDot{ 0%,100%{ transform:translateY(0); opacity:.5;} 50%{ transform:translateY(-4px); opacity:1;} }
 @media (prefers-reduced-motion: reduce){
-  .domiOrb .domiHalo, .domiOrb .domiHalo::after, .domiOrb .domiCore, .domiOrb .domiCore::after, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
+  .domiOrb .domiHalo, .domiOrb .domiHalo::after, .domiOrb .domiCore, .domiOrb .domiCore::after, .domiOrb .domiRing, .domiFace .domiEyeHappy, .domiFace .domiEyeBall, .domiEyes, .domiDots i, .domiOrb .domiChip{ animation:none !important; }
 }
 
 /* ---- DomiFloating: presencia constante que flota y te acompaña ---- */

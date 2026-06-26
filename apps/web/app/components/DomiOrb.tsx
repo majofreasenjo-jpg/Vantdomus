@@ -81,11 +81,18 @@ export default function DomiOrb({
         </>
       ) : null}
       <span className="domiCore" aria-hidden="true">
-        <svg className="domiFace" viewBox="0 0 100 64" width="60%" height="60%">
-          {/* Ojos felices (arcos suaves) + brillo de núcleo */}
-          <path className="domiEye" d="M22 30 Q30 20 38 30" />
-          <path className="domiEye" d="M62 30 Q70 20 78 30" />
+        <svg className="domiFace" viewBox="0 0 100 64" width="62%" height="62%">
+          {/* Ojos: abiertos (atento), curvos felices (logro/idle), pupila con mirada */}
+          <g className="domiEyes">
+            <ellipse className="domiEyeBall l" cx="32" cy="30" rx="7" ry="9" />
+            <ellipse className="domiEyeBall r" cx="68" cy="30" rx="7" ry="9" />
+            <path className="domiEyeHappy l" d="M22 30 Q32 19 42 30" />
+            <path className="domiEyeHappy r" d="M58 30 Q68 19 78 30" />
+            <path className="domiMouth" d="M40 44 Q50 52 60 44" />
+          </g>
         </svg>
+        {/* Puntos de "pensando" */}
+        <span className="domiDots" aria-hidden="true"><i></i><i></i><i></i></span>
         {showShield ? <span className="domiShield" aria-hidden="true">🛡️</span> : null}
       </span>
     </div>

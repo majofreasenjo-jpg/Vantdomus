@@ -47,10 +47,10 @@ export default function DomiChat({ hid }: { hid: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: 380, maxHeight: "70vh" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 8, borderBottom: "1px solid var(--line)" }}>
-        <DomiOrb state={busy ? "pensando" : "atento"} size={36} showChips={false} />
+        <DomiOrb state={busy ? "pensando" : (input.trim() ? "atento" : "sereno")} size={40} showChips={false} />
         <div>
           <div style={{ fontWeight: 800 }}>Domi</div>
-          <div className="small" style={{ color: "var(--muted)" }}>{busy ? "pensando…" : "tu copilot del hogar"}</div>
+          <div className="small" style={{ color: "var(--muted)" }}>{busy ? "pensando…" : (input.trim() ? "te escucho…" : "tu copilot del hogar")}</div>
         </div>
       </div>
 
