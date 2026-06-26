@@ -1,5 +1,6 @@
 import { getDashboard, getPersonHealthTimeline } from "../../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
+import DomiOrb from "../../components/DomiOrb";
 
 export default async function Health({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -40,10 +41,13 @@ export default async function Health({ params }: { params: Promise<{ householdId
 
   return (
     <div className="grid" style={{ gap: 14 }}>
-      <div className="card">
-        <div className="cardTitle">{isFamily ? "Bienestar familiar y cuidado senior" : "HSE - Health, Safety & Environment"}</div>
-        <div className="big" style={{ fontSize: 26 }}>{tax.health}</div>
-        <div className="small">{isFamily ? "Medicacion, controles, descanso, alertas preventivas y red de apoyo por integrante." : "Desglose parametrico de seguridad industrial e indicadores biometricos por individuo."}</div>
+      <div className="card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {isFamily ? <DomiOrb state="cariñoso" size={48} showChips={false} /> : null}
+        <div>
+          <div className="cardTitle">{isFamily ? "Bienestar familiar y cuidado senior" : "HSE - Health, Safety & Environment"}</div>
+          <div className="big" style={{ fontSize: 26 }}>{tax.health}</div>
+          <div className="small">{isFamily ? "Medicacion, controles, descanso, alertas preventivas y red de apoyo por integrante." : "Desglose parametrico de seguridad industrial e indicadores biometricos por individuo."}</div>
+        </div>
       </div>
 
       <div className="grid">

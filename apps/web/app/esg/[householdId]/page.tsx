@@ -1,6 +1,7 @@
 import { getDashboard, getScores } from "../../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 import SmartInboxPanel from "./SmartInboxPanel";
+import DomiOrb from "../../components/DomiOrb";
 
 export default async function EsgDashboard({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -67,10 +68,13 @@ export default async function EsgDashboard({ params }: { params: Promise<{ house
   return (
     <div className="grid" style={{ gap: 14 }}>
       {/* HEADER ESG */}
-      <div className="card" style={{ gridColumn: "span 4" }}>
-        <div className="cardTitle">{isFamily ? "Repositorio familiar" : "Reporte Integrado ESG"}</div>
-        <div className="big" style={{ fontSize: 26 }}>{tax.esg}</div>
-        <div className="small">{isFamily ? `Caja fuerte familiar para polizas, seguros, recetas, boletas, garantias, circulares, beneficios y vencimientos de la ${tax.unit}.` : `Desempeno Sostenible y Cumplimiento Normativo de la ${tax.unit}.`}</div>
+      <div className="card" style={{ gridColumn: "span 4", display: "flex", alignItems: "center", gap: 12 }}>
+        {isFamily ? <DomiOrb state="atento" size={48} showChips={false} /> : null}
+        <div>
+          <div className="cardTitle">{isFamily ? "Repositorio familiar" : "Reporte Integrado ESG"}</div>
+          <div className="big" style={{ fontSize: 26 }}>{tax.esg}</div>
+          <div className="small">{isFamily ? `Caja fuerte familiar para polizas, seguros, recetas, boletas, garantias, circulares, beneficios y vencimientos de la ${tax.unit}.` : `Desempeno Sostenible y Cumplimiento Normativo de la ${tax.unit}.`}</div>
+        </div>
       </div>
 
       {isFamily ? <SmartInboxPanel hid={hid} persons={(dash.persons || []).map((p: any) => ({ id: p.id, display_name: p.display_name }))} /> : null}

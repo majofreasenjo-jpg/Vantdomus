@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { addExpense, listExpenses, getDashboard, getHouseholds } from "../../../lib/api";
+import DomiOrb from "../../components/DomiOrb";
 import { redirect } from "next/navigation";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 
@@ -93,10 +94,13 @@ export default async function Finance({ params }: { params: Promise<{ householdI
     <div className="grid" style={{ gap: 20 }}>
       {/* HEADER FINANCIERO */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 8 }}>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isFamily ? <DomiOrb state="sereno" size={48} showChips={false} /> : null}
+          <div>
           <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: "bold" }}>{isFamily ? "Finanzas del hogar" : "FINANZAS DE LA UNIDAD (VANTDOMUS)"}</div>
           <div className="big" style={{ fontSize: 26, margin: "4px 0" }}>{isFamily ? "Presupuesto familiar y vencimientos" : "Control presupuestario y gastos"}</div>
           <div className="small">{isFamily ? "Organiza ingresos, gastos del hogar, supermercado, salud, colegio, seguros, beneficios y respaldos." : "Registro centralizado de proveedores, contratos, ordenes de compra, facturas y respaldos."}</div>
+          </div>
         </div>
         <div style={{ textAlign: "right", background: "rgba(0,0,0,0.2)", padding: "12px 18px", borderRadius: 8, border: "1px solid var(--line)" }}>
            <div className="small" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Total registrado (acumulado)</div>
