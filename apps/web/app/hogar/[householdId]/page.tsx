@@ -163,14 +163,15 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
     schoolNoticeTitle: schoolNotice?.title,
   });
 
-  // Estado de Domi en el Panel (canon "Constelación"): el NÚCLEO siempre es ámbar;
-  // el estado solo cambia el ACENTO del halo. Por defecto "atento" (presencia
-  // atenta), y sube a protector/cariñoso/motivado según el momento del hogar.
+  // Hero de Domi: SIEMPRE el orbe DORADO con cara (identidad reconocible "Domi").
+  // "motivado" cuando hay movimiento en casa, "sereno" cuando está tranquilo.
+  // (Los estados de color —atento/cariñoso/protector— se reservan para momentos
+  // puntuales, p.ej. el chat; el orbe "protector" es un cristal sin cara y no se
+  // usa como hero porque se ve críptico.)
   const domiState: import("../../components/DomiOrb").DomiState =
-    alerts.length > 0 ? "protector"
-    : tonightMeds.length > 0 ? "cariñoso"
-    : (shoppingPending.length > 0 || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
-    : "atento";
+    (alerts.length > 0 || tonightMeds.length > 0 || shoppingPending.length > 0
+      || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
+    : "sereno";
 
   return (
     <div className="container">
