@@ -6,6 +6,7 @@
 import { cookies } from "next/headers";
 import { getDashboard, getHouseholds } from "../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../lib/taxonomy";
+import DomiOrb from "../components/DomiOrb";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,7 +46,9 @@ export default async function BibliotecaIndex() {
   return (
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 20 }}>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isFamily ? <DomiOrb state="sereno" size={48} showChips={false} /> : null}
+          <div>
           {!isFamily ? <div className="small">VantGuide</div> : null}
           <div className="big" style={{ fontSize: 32 }}>
             {isFamily ? "Biblioteca Familiar" : "Biblioteca"}
@@ -54,6 +57,7 @@ export default async function BibliotecaIndex() {
             {isFamily
               ? "Todo lo que aprendimos del hogar: cumplimientos, evidencia, mejoras y aprendizajes."
               : "Trazabilidad de cumplimiento, evidencia y aprendizaje por integrante."}
+          </div>
           </div>
         </div>
         <a className="btn" href="/guia">Volver a la Guía</a>

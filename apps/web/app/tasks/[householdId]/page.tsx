@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import CreateTaskForm from "./CreateTaskForm";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 import SchoolPlannerForm from "./SchoolPlannerForm";
+import DomiOrb from "../../components/DomiOrb";
 
 export default async function Tasks({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -31,9 +32,14 @@ export default async function Tasks({ params }: { params: Promise<{ householdId:
       {isFamily && <SchoolPlannerForm hid={hid} persons={dash.persons} />}
 
       <div className="card">
-        <div className="cardTitle">{isFamily ? "Rutinas y compromisos" : "Tasks"}</div>
-        <div className="big" style={{ fontSize: 26 }}>{isFamily ? "Agenda familiar y seguimiento" : "Execution Engine"}</div>
-        <div className="small">{isFamily ? "Recordatorios, preparacion escolar, compras, salud, acuerdos y tareas del hogar." : "Asignacion, vencimientos, cumplimiento."}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isFamily ? <DomiOrb state="motivado" size={44} showChips={false} /> : null}
+          <div>
+            <div className="cardTitle">{isFamily ? "Rutinas y compromisos" : "Tasks"}</div>
+            <div className="big" style={{ fontSize: 26 }}>{isFamily ? "Agenda familiar y seguimiento" : "Execution Engine"}</div>
+            <div className="small">{isFamily ? "Recordatorios, preparacion escolar, compras, salud, acuerdos y tareas del hogar." : "Asignacion, vencimientos, cumplimiento."}</div>
+          </div>
+        </div>
 
         <div style={{ marginTop: 14 }}>
           <CreateTaskForm 

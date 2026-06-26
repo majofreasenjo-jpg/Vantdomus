@@ -357,9 +357,23 @@ body[data-level="simple"] .advanced{ display:none !important; }
   animation: domiBreathe 4.6s ease-in-out infinite;
 }
 .domiOrb .domiCore::before{ /* brillo especular */
-  content:""; position:absolute; top:14%; left:24%; width:26%; height:22%;
-  border-radius:50%; background:rgba(255,255,255,.8); filter:blur(1px);
+  content:""; position:absolute; top:13%; left:22%; width:28%; height:24%;
+  border-radius:50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%);
+  filter:blur(.5px); z-index:2;
 }
+/* Partículas/estrellas internas (sensación premium tipo render) */
+.domiOrb .domiCore::after{
+  content:""; position:absolute; inset:8%; border-radius:50%; z-index:1; overflow:hidden;
+  background:
+    radial-gradient(1.4px 1.4px at 30% 65%, rgba(255,255,255,.95), transparent 60%),
+    radial-gradient(1.2px 1.2px at 68% 40%, rgba(255,255,255,.9), transparent 60%),
+    radial-gradient(1.1px 1.1px at 55% 72%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(1.3px 1.3px at 42% 30%, rgba(255,255,255,.8), transparent 60%),
+    radial-gradient(1px 1px at 75% 62%, rgba(255,255,255,.8), transparent 60%);
+  animation: domiTwinkle 3.6s ease-in-out infinite;
+}
+@keyframes domiTwinkle{ 0%,100%{ opacity:.45; } 50%{ opacity:1; } }
 .domiFace{ position:relative; z-index:3; overflow:visible; }
 .domiFace .domiEye{ fill:none; stroke:var(--domi-eye); stroke-width:6; stroke-linecap:round;
   animation: domiBlink 5.6s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
@@ -403,7 +417,7 @@ body[data-level="simple"] .advanced{ display:none !important; }
 @keyframes domiHaloPop{ 0%{ opacity:.6; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.18);} 100%{ opacity:.85; transform:scale(1);} }
 @keyframes domiSettle{ 0%{ transform:translate(-50%,-50%) scale(.6); opacity:.2;} 100%{ transform:translate(-50%,-50%) scale(1); opacity:1;} }
 @media (prefers-reduced-motion: reduce){
-  .domiOrb .domiHalo, .domiOrb .domiHalo::after, .domiOrb .domiCore, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
+  .domiOrb .domiHalo, .domiOrb .domiHalo::after, .domiOrb .domiCore, .domiOrb .domiCore::after, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
 }
 
 /* ---- DomiFloating: presencia constante que flota y te acompaña ---- */
