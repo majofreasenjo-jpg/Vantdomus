@@ -406,6 +406,25 @@ body[data-level="simple"] .advanced{ display:none !important; }
   .domiOrb .domiHalo, .domiOrb .domiHalo::after, .domiOrb .domiCore, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
 }
 
+/* ---- DomiFloating: presencia constante que flota y te acompaña ---- */
+.domiFloat{ position:fixed; right:20px; bottom:20px; z-index:80;
+  display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+.domiFloatBtn{ border:0; background:transparent; padding:0; cursor:pointer;
+  border-radius:50%; line-height:0;
+  filter: drop-shadow(0 8px 22px rgba(120,95,60,.30));
+  animation: domiFloatBob 4.2s ease-in-out infinite; }
+.domiFloatBtn:hover{ transform:translateY(-2px); }
+.domiFloatCard{ width:300px; max-width:78vw; padding:14px; border-radius:16px;
+  background: var(--card,#fff); border:1px solid var(--line,#e5ddcf);
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+  animation: domiFloatIn .2s ease-out; }
+@keyframes domiFloatBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+@keyframes domiFloatIn{ 0%{ opacity:0; transform:translateY(8px) scale(.98); } 100%{ opacity:1; transform:translateY(0) scale(1); } }
+@media (max-width: 640px){ .domiFloat{ right:12px; bottom:12px; } }
+/* En reloj (≤320) la presencia flotante estorba: la ocultamos. */
+@media (max-width: 320px){ .domiFloat{ display:none; } }
+@media (prefers-reduced-motion: reduce){ .domiFloatBtn{ animation:none; } }
+
 /* ---- Skeleton loaders (forma de la data, patrón Linear) ---- */
 .skel{ position:relative; overflow:hidden; background:rgba(0,0,0,.06); border-radius:10px; }
 .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);

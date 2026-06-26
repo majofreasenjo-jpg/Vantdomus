@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { logoutAction, setViewLevelAction } from "./login/actions";
 import NavLink from "./components/NavLink";
 import Celebrate from "./components/Celebrate";
+import DomiFloating from "./components/DomiFloating";
 
 // Tipografía humanista redondeada y cálida, coherente con "hogar".
 // Se expone como CSS var --font-family-warm y se aplica en modo familia.
@@ -154,6 +155,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </div>
         <div className="container">{children}</div>
         {isFamily ? <Celebrate /> : null}
+        {isFamily && hasSession && hid ? <DomiFloating hid={hid} /> : null}
       </body>
     </html>
   );
