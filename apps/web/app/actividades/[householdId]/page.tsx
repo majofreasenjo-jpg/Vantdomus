@@ -13,6 +13,7 @@ import {
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
 import QuickAddActivity from "../../components/QuickAddActivity";
+import ProgressRing from "../../components/ProgressRing";
 import { markCelebrate } from "../../../lib/celebrate";
 
 export const dynamic = "force-dynamic";
@@ -153,11 +154,17 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
         <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
           {persons.map((p) => {
             const acts = byPerson.get(p.id) || [];
+            const doneCount = acts.filter((a) => a.status === "done").length;
+            const pct = acts.length ? (doneCount / acts.length) * 100 : 0;
             return (
               <div key={p.id} className="card" style={{ padding: 14 }}>
                 <div className="row" style={{ marginBottom: 6 }}>
                   <MemberChip name={p.display_name} personId={p.id} avatar={p.avatar} bold />
-                  <span className="small" style={{ color: "var(--muted)" }}>{p.relation || ""}</span>
+                  {acts.length > 0 ? (
+                    <ProgressRing value={pct} size={38} label={`${doneCount} de ${acts.length} hechas hoy`} />
+                  ) : (
+                    <span className="small" style={{ color: "var(--muted)" }}>{p.relation || ""}</span>
+                  )}
                 </div>
                 {acts.length === 0 ? (
                   <div className="small" style={{ marginTop: 6, color: "var(--muted)" }}>Sin actividades hoy.</div>
