@@ -40,15 +40,24 @@ export default function AssistantOrb({
       aria-label={`Domi, asistente de VantDomus${text ? `: ${text}` : ""}`}
     >
       <span className="aoInner">
+        <span className="aoHalo" />
+        <span className="aoSpecular" />
         <span className="aoRings">
           <span className="aoRing aoRing1" />
           <span className="aoRing aoRing2" />
         </span>
         <span className="aoFace">
-          <span className="aoEye aoEyeLeft" />
-          <span className="aoEye aoEyeRight" />
-          <span className="aoMouth" />
+          <svg className="aoSvg" viewBox="0 0 100 64" width="100%" height="100%">
+            <g className="aoEyes">
+              <ellipse className="aoEyeBall aoEyeBallLeft" cx="32" cy="30" rx="7" ry="9" />
+              <ellipse className="aoEyeBall aoEyeBallRight" cx="68" cy="30" rx="7" ry="9" />
+              <path className="aoEyeHappy aoEyeHappyLeft" d="M22 30 Q32 19 42 30" />
+              <path className="aoEyeHappy aoEyeHappyRight" d="M58 30 Q68 19 78 30" />
+              <path className="aoMouth" d="M40 44 Q50 52 60 44" />
+            </g>
+          </svg>
         </span>
+        <span className="aoDots"><i></i><i></i><i></i></span>
       </span>
     </span>
   );

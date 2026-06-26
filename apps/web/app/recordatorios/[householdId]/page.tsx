@@ -72,7 +72,7 @@ export default async function RecordatoriosPage({ params }: { params: Promise<{ 
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <DomiOrb state={items.length > 0 ? "atento" : "calm"} size={48} showChips={false} />
+          <DomiOrb state={items.length > 0 ? "atento" : "cariñoso"} size={48} showChips={false} />
           <div>
             <div className="small">{familyName}</div>
             <div className="big" style={{ fontSize: 28 }}>Recordatorios</div>
