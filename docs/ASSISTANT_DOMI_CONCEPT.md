@@ -3,6 +3,33 @@
 > Propuesta de personaje/asistente original para que la app se sienta más viva,
 > sin usar IP de terceros (nada de Disney, celebridades, voces famosas).
 
+## DIRECCIÓN VISUAL CANÓNICA (elegida por Manuel) — "Constelación inteligente del hogar"
+
+Referencia visual (Drive): https://drive.google.com/file/d/1groUaiXN6L8-7KV0cBMBK71_ZNwiI_T6/view
+
+Domi = **núcleo tecnológico cálido** que organiza, anticipa, conecta y cuida el
+hogar. NO robot genérico / mascota infantil / orb sin identidad / cartoon común /
+asistente frío corporativo. SÍ tecnología premium + sistema vivo + cálido +
+organizador inteligente + presencia confiable + **constelación modular de funciones**.
+
+Elementos: núcleo luminoso central · rostro simple amable · halo/órbitas · chips
+de módulos orbitando (hogar/salud/compras/mensajes/familia/seguridad) · luz
+dorada cálida · compatible claro/oscuro.
+
+Paleta: Dorado Solar #FFCD88 · Champagne #F2E6D7 · Coral Suave #FFBFA3 ·
+Azul Noche #5B7CFF · Lavanda Bruma #B49AFF.
+
+Estados emocionales: **sereno · motivado · atento · cariñoso · protector**.
+Comportamientos: idle=respiración del núcleo · pensando=órbitas giran ·
+alert=chip relevante se ilumina · logro=halo se expande y destella ·
+cariñoso=coral + pulso · protector=violeta/azul + escudo · organizando=chips se alinean.
+
+**Implementado (U4, commit 2f5eaeb)** en React/CSS/SVG sin Lottie/Rive:
+`DomiOrb` · `DomiPanel` · `DomiStateBadge` · `DomiContextChip`. AssistantOrb pasó
+a ser wrapper de compatibilidad sobre DomiOrb. Integrado en Panel del Hogar
+(hero) y, vía AssistantOrb, en avisos/compras/actividades. Lottie/Rive = mejora
+futura opcional, no bloquea.
+
 ## Nombre
 **Domi** (de "domus" = hogar). Alternativas evaluadas: Luma, Nido, Vanti, Alma.
 Recomendado: **Domi** (cálido, corto, memorable, neutro de género).
