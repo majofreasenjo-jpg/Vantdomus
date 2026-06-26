@@ -219,6 +219,11 @@ export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${enco
 export const getHSIStatus = (hid: string) => getScores(hid).then(res => res.items[0] || { hsi: 0 });
 export const getHouseholds = () => apiFetch("/households");
 export const getPersonDetail = (pid: string) => apiFetch(`/persons/${encodeURIComponent(pid)}`);
+// Onboarding
+export const createPerson = (hid: string, displayName: string, relation = "") =>
+  apiFetch(`/persons?household_id=${encodeURIComponent(hid)}&display_name=${encodeURIComponent(displayName)}&relation=${encodeURIComponent(relation)}`, { method: "POST" });
+export const updateHouseholdProfile = (hid: string, body: { family_name?: string; industry_preset?: string }) =>
+  apiFetch(`/households/${encodeURIComponent(hid)}/profile`, { method: "PATCH", body: JSON.stringify(body) });
 // U3 — avatar + estado del integrante
 export const personUpdate = (pid: string, body: Record<string, any>) =>
   apiFetch(`/persons/${encodeURIComponent(pid)}`, { method: "PATCH", body: JSON.stringify(body) });

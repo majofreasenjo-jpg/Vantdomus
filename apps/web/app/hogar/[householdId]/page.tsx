@@ -196,6 +196,13 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
         ]}
       />
 
+      {persons.length === 0 ? (
+        <a className="card" href={`/onboarding/${hid}`} style={{ display: "block", padding: 16, marginBottom: 14, textDecoration: "none", color: "inherit", borderLeft: "3px solid #4A7A6B" }}>
+          <div style={{ fontWeight: 700 }}>✨ Configura tu hogar en 1 minuto</div>
+          <div className="small" style={{ marginTop: 4, color: "var(--muted)" }}>Agrega integrantes, elige avatares e invita a la familia. (O prueba con una familia de muestra.)</div>
+        </a>
+      ) : null}
+
       {/* GRID: avisos + actividades del día */}
       <div className="grid2" style={{ marginBottom: 14 }}>
         {/* AVISOS DEL HOGAR */}

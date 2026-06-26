@@ -64,6 +64,30 @@ class InvitationCreate(BaseModel):
     role: str = "viewer"
     ttl_hours: int = 168
 
+class HouseholdProfileUpdate(BaseModel):
+    family_name: str | None = None
+    industry_preset: str | None = None
+
+
+@router.patch("/{household_id}/profile")
+def update_household_profile(household_id: str, payload: HouseholdProfileUpdate, user=Depends(get_current_user), db=Depends(get_db)):
+    """Onboarding: setea el nombre del hogar (meta.family_name) y/o preset."""
+    require_household_role(db, user["user_id"], household_id, "admin")
+    h = db.execute("SELECT meta FROM households WHERE id=?", (household_id,)).fetchone()
+    if not h:
+        raise HTTPException(status_code=404, detail="Household not found")
+    meta = json.loads(h["meta"] or "{}")
+    if payload.family_name is not None:
+        name = payload.family_name.strip()[:80]
+        if name:
+            meta["family_name"] = name
+    if payload.industry_preset is not None:
+        meta["industry_preset"] = payload.industry_preset
+    db.execute("UPDATE households SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), household_id))
+    db.commit()
+    return {"ok": True, "family_name": meta.get("family_name"), "industry_preset": meta.get("industry_preset")}
+
+
 @router.patch("/{household_id}/settings/taxonomy")
 def update_taxonomy(household_id: str, payload: TaxonomySettingsUpdate, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "admin")
