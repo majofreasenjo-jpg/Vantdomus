@@ -12,6 +12,7 @@ import {
 } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
+import QuickAddActivity from "../../components/QuickAddActivity";
 import { markCelebrate } from "../../../lib/celebrate";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,10 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
         <a className="btn" href={`/hogar/${hid}`}>← Panel del hogar</a>
       </div>
 
-      {/* CREAR */}
+      {/* QUICK-ADD lenguaje natural */}
+      <QuickAddActivity hid={hid} persons={persons.map((p) => ({ id: p.id, display_name: p.display_name }))} />
+
+      {/* CREAR (detallado) */}
       <form
         className="card"
         style={{ padding: 16, marginBottom: 18 }}
