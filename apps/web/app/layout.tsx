@@ -111,6 +111,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <>
                     <NavLink href={`/avisos/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Mural</NavLink>
                     <NavLink href={`/compras/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Compras</NavLink>
+                    <NavLink href={`/recordatorios/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Recordatorios</NavLink>
                   </>
                 ) : null}
                 {/* Sprint VG+2: "Guía" + "Biblioteca" como pilares del producto VantGuide.
