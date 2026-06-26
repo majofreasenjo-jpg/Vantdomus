@@ -224,6 +224,9 @@ export const createPerson = (hid: string, displayName: string, relation = "") =>
   apiFetch(`/persons?household_id=${encodeURIComponent(hid)}&display_name=${encodeURIComponent(displayName)}&relation=${encodeURIComponent(relation)}`, { method: "POST" });
 export const updateHouseholdProfile = (hid: string, body: { family_name?: string; industry_preset?: string }) =>
   apiFetch(`/households/${encodeURIComponent(hid)}/profile`, { method: "PATCH", body: JSON.stringify(body) });
+// #17 visibilidad por módulo (rol mínimo: viewer|member|admin|owner)
+export const updateModuleVisibility = (hid: string, body: { finance?: string; health?: string; documents?: string }) =>
+  apiFetch(`/households/${encodeURIComponent(hid)}/module-visibility`, { method: "PATCH", body: JSON.stringify(body) });
 // U3 — avatar + estado del integrante
 export const personUpdate = (pid: string, body: Record<string, any>) =>
   apiFetch(`/persons/${encodeURIComponent(pid)}`, { method: "PATCH", body: JSON.stringify(body) });

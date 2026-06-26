@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from ..deps import get_db, get_current_user, require_household_role, require_person_in_household
+from ..rbac import require_module_visible
 from ..audit import write_audit_log
 from ..tenancy import get_household_organization_id
 
@@ -40,7 +41,7 @@ def add_expense(household_id: str, amount: float, currency: str="USD", category:
 
 @router.get("/expenses")
 def list_expenses(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], household_id, "viewer")
+    require_module_visible(db, user["user_id"], household_id, "finance")
     rows = db.execute("""
       SELECT id,amount,currency,category,merchant,expense_at,notes,person_id,created_at
       FROM expenses

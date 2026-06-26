@@ -1,4 +1,4 @@
-import { getDashboard } from "../../../lib/api";
+import { getDashboard, updateModuleVisibility } from "../../../lib/api";
 import { updateTaxonomySetting } from "../../../lib/taxonomy";
 import { seedCeo } from "../../../lib/api";
 import { revalidatePath } from "next/cache";
@@ -68,6 +68,48 @@ function FamilySettings({ hid, dash }: { hid: string; dash: any }) {
                     medicamentos, salud, finanzas y permisos siempre pasan por una persona.
                 </p>
                 <a className="btn" style={{ marginTop: 10 }} href={`/settings/${hid}/agents`}>Configurar Domi</a>
+            </div>
+
+            <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+                <div className="cardTitle">Privacidad: quién ve cada sección</div>
+                <p className="small" style={{ marginTop: 6, marginBottom: 12 }}>
+                    Elegí el rol mínimo que puede ver las secciones sensibles del hogar. Lo que quede
+                    restringido se oculta del menú y se bloquea en el servidor (no solo en pantalla).
+                </p>
+                <form action={async (fd: FormData) => {
+                    "use server";
+                    await updateModuleVisibility(hid, {
+                        finance: String(fd.get("finance") || "viewer"),
+                        health: String(fd.get("health") || "viewer"),
+                        documents: String(fd.get("documents") || "viewer"),
+                    });
+                    revalidatePath(`/settings/${hid}`);
+                    revalidatePath(`/hogar/${hid}`);
+                }}>
+                    {(() => {
+                        const mv = (dash?.household?.meta?.module_visibility || {}) as Record<string, string>;
+                        const ROLES = [
+                            { v: "viewer", l: "Todos los integrantes" },
+                            { v: "member", l: "Integrantes (no invitados)" },
+                            { v: "admin", l: "Solo admins" },
+                            { v: "owner", l: "Solo el dueño del hogar" },
+                        ];
+                        const MODS = [
+                            { k: "finance", l: "💰 Presupuesto / Finanzas" },
+                            { k: "health", l: "❤️ Salud" },
+                            { k: "documents", l: "📄 Documentos" },
+                        ];
+                        return MODS.map((m) => (
+                            <label key={m.k} className="formRow" style={{ alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                                <span>{m.l}</span>
+                                <select className="input" name={m.k} defaultValue={mv[m.k] || "viewer"}>
+                                    {ROLES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
+                                </select>
+                            </label>
+                        ));
+                    })()}
+                    <button className="btn btnPrimary" type="submit" style={{ marginTop: 8 }}>Guardar privacidad</button>
+                </form>
             </div>
 
             <div className="card" style={{ padding: 16, marginBottom: 14, opacity: 0.85 }}>

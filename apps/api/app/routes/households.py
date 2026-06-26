@@ -88,6 +88,33 @@ def update_household_profile(household_id: str, payload: HouseholdProfileUpdate,
     return {"ok": True, "family_name": meta.get("family_name"), "industry_preset": meta.get("industry_preset")}
 
 
+class ModuleVisibilityUpdate(BaseModel):
+    # rol mínimo por módulo: viewer|member|admin|owner
+    finance: str | None = None
+    health: str | None = None
+    documents: str | None = None
+
+
+@router.patch("/{household_id}/module-visibility")
+def update_module_visibility(household_id: str, payload: ModuleVisibilityUpdate, user=Depends(get_current_user), db=Depends(get_db)):
+    """#17 — quién (rol mínimo) puede ver módulos sensibles (salud/finanzas/docs)."""
+    require_household_role(db, user["user_id"], household_id, "admin")
+    h = db.execute("SELECT meta FROM households WHERE id=?", (household_id,)).fetchone()
+    if not h:
+        raise HTTPException(status_code=404, detail="Household not found")
+    meta = json.loads(h["meta"] or "{}")
+    mv = meta.get("module_visibility") or {}
+    valid = {"viewer", "member", "admin", "owner"}
+    for mod in ("finance", "health", "documents"):
+        val = getattr(payload, mod)
+        if val is not None and val in valid:
+            mv[mod] = val
+    meta["module_visibility"] = mv
+    db.execute("UPDATE households SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), household_id))
+    db.commit()
+    return {"ok": True, "module_visibility": mv}
+
+
 @router.patch("/{household_id}/settings/taxonomy")
 def update_taxonomy(household_id: str, payload: TaxonomySettingsUpdate, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "admin")
@@ -937,8 +964,16 @@ def dashboard(household_id: str, user=Depends(get_current_user), db=Depends(get_
             "created_at": r["created_at"],
         })
 
+    me_role = None
+    try:
+        mr = db.execute("SELECT role FROM household_memberships WHERE household_id=? AND user_id=?", (household_id, user["user_id"])).fetchone()
+        me_role = mr["role"] if mr else None
+    except Exception:
+        me_role = None
+
     return {
         "household": {"id": h["id"], "name": h["name"], "meta": json.loads(h["meta"] or "{}"), "created_at": h["created_at"], "organization_id": h["organization_id"]},
+        "me": {"role": me_role},
         "features": features,
         "assistant": assistant,
         "persons": [{"id": p["id"], "display_name": p["display_name"], "relation": p["relation"], "avatar": p["avatar"], "status_emoji": p["status_emoji"], "status_text": p["status_text"], "status_set_at": p["status_set_at"]} for p in persons],

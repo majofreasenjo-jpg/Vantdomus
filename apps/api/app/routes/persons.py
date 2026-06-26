@@ -118,7 +118,8 @@ def health_timeline(person_id: str, user=Depends(get_current_user), db=Depends(g
     if not p:
         raise HTTPException(status_code=404, detail="Person not found")
     household_id = p["household_id"]
-    require_household_role(db, user["user_id"], household_id, "viewer")
+    from ..rbac import require_module_visible
+    require_module_visible(db, user["user_id"], household_id, "health")
 
     rows = db.execute("""
       SELECT e.id, e.event_type, e.summary, e.occurred_at, e.payload

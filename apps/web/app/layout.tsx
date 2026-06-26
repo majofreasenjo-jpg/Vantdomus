@@ -20,6 +20,8 @@ const nunito = Nunito({
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let hid = "";
   let tax = INDUSTRY_PRESETS_UI["default"];
+  let meRole: string | null = null;
+  let moduleVis: Record<string, string> = {};
   const store = await cookies();
   const hasSession = Boolean(store.get("vantdomus_session_id")?.value || store.get("vantdomus_access_token")?.value);
   const cookieHid = store.get("hid")?.value || "";
@@ -33,6 +35,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       const dash = await getDashboard(hid);
       const preset = dash.household.meta?.industry_preset || "default";
       tax = INDUSTRY_PRESETS_UI[preset] || INDUSTRY_PRESETS_UI["default"];
+      meRole = dash.me?.role || null;
+      moduleVis = dash.household.meta?.module_visibility || {};
     } catch (e) {
       hid = "";
     }
@@ -71,6 +75,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // familiar. La detección es por industry_preset (rich preset family lo
   // marca con family_mode=true).
   const isFamily = Boolean(tax.family_mode);
+  // #17 visibilidad por módulo: ocultar links sensibles si el rol no alcanza.
+  const ROLE_RANK: Record<string, number> = { viewer: 0, member: 1, admin: 2, owner: 3 };
+  const canSee = (mod: string) => {
+    if (!meRole) return true; // sin rol conocido (B2B u owner directo) → no filtrar
+    const need = moduleVis[mod] || "viewer";
+    return (ROLE_RANK[meRole] ?? -1) >= (ROLE_RANK[need] ?? 0);
+  };
   const familyName: string | undefined = (tax as any).__familyName; // not used now, but reserved
   const brandSubline = isFamily
     ? "Tu hogar, organizado con ayuda de IA"
@@ -119,9 +130,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <NavLink href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</NavLink>
                 <NavLink href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</NavLink>
                 <NavLink href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</NavLink>
-                <NavLink href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</NavLink>
-                <NavLink href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</NavLink>
-                <NavLink href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</NavLink>
+                {canSee("health") ? <NavLink href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</NavLink> : null}
+                {canSee("finance") ? <NavLink href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</NavLink> : null}
+                {canSee("documents") ? <NavLink href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</NavLink> : null}
                 {/* En family, la bandeja vive dentro de Documentos; "Buzón" sigue
                     siendo accesible en B2B. */}
                 {!isFamily ? <NavLink href="/inbox">Buzón</NavLink> : null}
