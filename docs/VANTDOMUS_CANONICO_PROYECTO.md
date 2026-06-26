@@ -539,3 +539,23 @@ integraciones clínicas/colegios · borrado/exportación de datos por owner.
 Sólo cuando esta checklist esté verde se abre **beta real** con familias
 externas. Hasta entonces: demo local + revisión con co-arquitecto + pitch
 controlado.
+
+## 47. REGLA CANÓNICA — Multi-dispositivo "de lujo" (decisión de Manuel)
+
+VantDomus **debe verse de lujo** en **móvil, tablet, reloj inteligente y
+notebook/desktop**. Es regla canónica, no opcional. Implica:
+
+- **Ninguna grilla fija en 2+ columnas** en pantallas chicas: usar `.grid2`
+  (colapsa a 1 col <760px) o `auto-fit minmax`. Nada de `"1fr 1fr"` inline.
+- **Breakpoints** (en `globals.css`): desktop ≥1280 · tablet ≤1024 · móvil
+  ≤640 · móvil chico ≤420 · **reloj ≤320**.
+- **Domi responsivo**: `DomiOrbAuto` usa 3D (WebGL) solo si `innerWidth≥360` +
+  no reduced-motion + tamaño hero; si no, cae a CSS. En reloj (≤320) se ocultan
+  órbitas/chips y queda núcleo+rostro pequeño.
+- **Reloj inteligente**: el navegador web completo NO es la experiencia ideal.
+  Canon: vista **glance ultra-compacta** (estado de Domi + lo siguiente a hacer),
+  una sola columna, sin barra de navegación. Una app **nativa** de reloj
+  (watchOS/Wear OS) queda como roadmap, no como web.
+- **Táctil**: targets cómodos (botones ≥40px de alto efectivo).
+- **Verificación**: la responsividad real se valida en dispositivos por el Owner;
+  el asistente garantiza media queries + colapso de grillas + render sin error.

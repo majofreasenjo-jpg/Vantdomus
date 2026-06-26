@@ -197,7 +197,7 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
       />
 
       {/* GRID: avisos + actividades del día */}
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div className="grid2" style={{ marginBottom: 14 }}>
         {/* AVISOS DEL HOGAR */}
         <div className="card" style={{ padding: 18 }}>
           <div className="row" style={{ marginBottom: 10 }}>
@@ -282,7 +282,7 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
           <div className="cardTitle">🛒 Compras del hogar</div>
           <a className="btn" href={`/compras/${hid}`} style={{ fontSize: 12 }}>Ver todas</a>
         </div>
-        <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="grid2">
           <div>
             <div className="small" style={{ marginBottom: 6 }}>
               Falta en casa ({shoppingPending.length})

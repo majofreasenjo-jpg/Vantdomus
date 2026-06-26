@@ -35,7 +35,9 @@ export default function DomiOrbAuto(props: {
   useEffect(() => {
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     const bigEnough = size >= 110;
-    setUse3d(bigEnough && !reduce && canUseWebGL());
+    // Reloj inteligente / pantallas diminutas: nada de 3D (perf + tamaño).
+    const screenOk = window.innerWidth >= 360;
+    setUse3d(bigEnough && screenOk && !reduce && canUseWebGL());
   }, [size]);
 
   if (use3d) {
