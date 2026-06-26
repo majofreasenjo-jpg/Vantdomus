@@ -15,10 +15,12 @@ import type { DomiState } from "./DomiOrb";
 export default function DomiCoreImage({ state }: { state: DomiState }) {
   // nombre de archivo ASCII (cariñoso → carinoso) para evitar problemas de URL
   const norm = state.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ñ/g, "n");
+  // ?v=N evita que el navegador muestre un recorte viejo en caché (subir al recortar)
+  const v = "5";
   const candidates = [
-    `/assistant/domi/${norm}.png`,
-    `/assistant/domi/sereno.png`,
-    `/assistant/domi/domi.png`,
+    `/assistant/domi/${norm}.png?v=${v}`,
+    `/assistant/domi/sereno.png?v=${v}`,
+    `/assistant/domi/domi.png?v=${v}`,
   ];
   const [idx, setIdx] = useState(0);
   if (idx >= candidates.length) return null; // ninguna imagen: queda el núcleo CSS
