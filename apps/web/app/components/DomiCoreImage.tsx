@@ -13,7 +13,13 @@ import { useState } from "react";
 import type { DomiState } from "./DomiOrb";
 
 export default function DomiCoreImage({ state }: { state: DomiState }) {
-  const candidates = [`/assistant/domi/${state}.png`, `/assistant/domi/domi.png`];
+  // nombre de archivo ASCII (cariñoso → carinoso) para evitar problemas de URL
+  const norm = state.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ñ/g, "n");
+  const candidates = [
+    `/assistant/domi/${norm}.png`,
+    `/assistant/domi/sereno.png`,
+    `/assistant/domi/domi.png`,
+  ];
   const [idx, setIdx] = useState(0);
   if (idx >= candidates.length) return null; // ninguna imagen: queda el núcleo CSS
   return (
