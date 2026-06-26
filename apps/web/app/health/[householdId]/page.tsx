@@ -1,6 +1,21 @@
-import { getDashboard, getPersonHealthTimeline } from "../../../lib/api";
+import { getDashboard, getPersonHealthTimeline, listUnitFunctions } from "../../../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 import DomiOrb from "../../components/DomiOrb";
+
+// Franjas del día (metáfora pastillero Medisafe).
+const FRANJAS = [
+  { key: "manana", label: "Mañana", icon: "🌅", from: 5, to: 11 },
+  { key: "mediodia", label: "Mediodía", icon: "🌞", from: 12, to: 14 },
+  { key: "tarde", label: "Tarde", icon: "🌇", from: 15, to: 18 },
+  { key: "noche", label: "Noche", icon: "🌙", from: 19, to: 28 }, // 19:00–04:59
+];
+function franjaFor(t: string): string {
+  const h = parseInt((t || "").slice(0, 2), 10);
+  if (Number.isNaN(h)) return "noche";
+  const hh = h < 5 ? h + 24 : h; // 00-04 → noche
+  for (const f of FRANJAS) if (hh >= f.from && hh <= f.to) return f.key;
+  return "noche";
+}
 
 export default async function Health({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -39,6 +54,24 @@ export default async function Health({ params }: { params: Promise<{ householdId
     })
   );
 
+  // Medicamentos por franja del día (metáfora pastillero) — solo family.
+  const personName = new Map<string, string>(dash.persons.map((p: any) => [p.id, p.display_name]));
+  const meds = isFamily
+    ? ((await listUnitFunctions({ household_id: hid, category: "medication", limit: 50 }).catch(() => ({ items: [] }))).items || [])
+    : [];
+  const doses: Record<string, { person: string; med: string; time: string; confirm: boolean }[]> =
+    { manana: [], mediodia: [], tarde: [], noche: [] };
+  for (const m of meds as any[]) {
+    const times: string[] = (m?.schedule?.times || []) as string[];
+    for (const t of times) {
+      doses[franjaFor(t)].push({
+        person: personName.get(m.person_id) || "Integrante",
+        med: m.title, time: t, confirm: Boolean(m.ai_needs_confirmation),
+      });
+    }
+  }
+  const totalDoses = Object.values(doses).reduce((a, b) => a + b.length, 0);
+
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -49,6 +82,42 @@ export default async function Health({ params }: { params: Promise<{ householdId
           <div className="small">{isFamily ? "Medicacion, controles, descanso, alertas preventivas y red de apoyo por integrante." : "Desglose parametrico de seguridad industrial e indicadores biometricos por individuo."}</div>
         </div>
       </div>
+
+      {isFamily ? (
+        <div className="card" style={{ padding: 18 }}>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <div className="cardTitle">💊 Medicamentos de hoy por franja</div>
+            <span className="small" style={{ color: "var(--muted)" }}>{totalDoses} toma(s) programada(s)</span>
+          </div>
+          {totalDoses === 0 ? (
+            <div className="small" style={{ color: "var(--muted)" }}>
+              No hay medicamentos cargados. Podés agregarlos escaneando una receta en la Bandeja Inteligente (Documentos).
+            </div>
+          ) : (
+            <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+              {FRANJAS.map((f) => (
+                <div key={f.key} className="card" style={{ padding: 12, background: "var(--bg)" }}>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>{f.icon} {f.label}</div>
+                  {doses[f.key].length === 0 ? (
+                    <div className="small" style={{ color: "var(--muted)" }}>—</div>
+                  ) : (
+                    doses[f.key].sort((a, b) => a.time.localeCompare(b.time)).map((d, i) => (
+                      <div key={i} className="small" style={{ marginBottom: 6 }}>
+                        <span style={{ color: "var(--muted)" }}>{d.time}</span> · <strong>{d.med}</strong>
+                        <div style={{ color: "var(--muted)" }}>{d.person}</div>
+                        {d.confirm ? <span style={{ color: "#9a6a00" }}>🛡️ pendiente de confirmar</span> : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="small" style={{ marginTop: 10, color: "var(--muted)", fontStyle: "italic" }}>
+            Domi solo recuerda; las dosis las confirma una persona. Los recordatorios automáticos (push/SMS) llegan en una próxima fase.
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid">
         {timelines.map((item: any) => {
