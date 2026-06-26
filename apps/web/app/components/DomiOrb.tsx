@@ -14,15 +14,17 @@ export type DomiState =
 
 export type DomiChip = { icon: string; label: string; active?: boolean };
 
-// Identidad dorada dominante (idle) salvo estados puntuales (canon + feedback owner).
+// Estados fieles al canon de la infografía:
+//   Sereno/Motivado/Organizando = dorado (reposo) · Atento = AZUL · Cariñoso = CORAL
+//   Protector = MORADO/lavanda · Pensando = thinking · Logro = verde éxito.
 const STATE_MAP: Record<DomiState, OrbState> = {
   sereno: "idle",
   motivado: "idle",
-  atento: "idle",
   organizando: "idle",
+  atento: "listening",   // azul — "te escucho / detecto señales"
+  cariñoso: "calm",      // coral — cercanía y calidez
+  protector: "alert",    // morado/lavanda — cuida y alerta a tiempo
   pensando: "thinking",
-  cariñoso: "calm",
-  protector: "alert",
   logro: "success",
 };
 

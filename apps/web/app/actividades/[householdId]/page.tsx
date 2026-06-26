@@ -86,7 +86,7 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <AssistantOrb state={pendientesHoy > 0 ? "idle" : "calm"} showLabel={false} />
+          <AssistantOrb state="idle" showLabel={false} />
           <div>
             <div className="small">{familyName}</div>
             <div className="big" style={{ fontSize: 28 }}>Actividades del día</div>

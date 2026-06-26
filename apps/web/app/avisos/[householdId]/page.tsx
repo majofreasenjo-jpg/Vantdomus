@@ -57,7 +57,7 @@ export default async function AvisosPage({ params }: { params: Promise<{ househo
     <div className="container">
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 16, gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <AssistantOrb state={pinned.length > 0 ? "alert" : "idle"} showLabel={false} />
+          <AssistantOrb state="idle" showLabel={false} />
           <div>
             <div className="small">{familyName}</div>
             <div className="big" style={{ fontSize: 28 }}>Avisos del hogar</div>

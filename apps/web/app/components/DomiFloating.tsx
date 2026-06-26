@@ -62,7 +62,7 @@ export default function DomiFloating({ hid }: { hid: string }) {
         aria-label={open ? "Cerrar Domi" : "Abrir Domi"}
         title="Domi"
       >
-        <DomiOrb state={open ? "atento" : "sereno"} size={58} showChips={false} />
+        <DomiOrb state="sereno" size={58} showChips={false} />
       </button>
     </div>
   );

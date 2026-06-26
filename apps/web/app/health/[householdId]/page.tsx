@@ -75,7 +75,7 @@ export default async function Health({ params }: { params: Promise<{ householdId
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="card" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {isFamily ? <DomiOrb state="cariñoso" size={48} showChips={false} /> : null}
+        {isFamily ? <DomiOrb state="sereno" size={48} showChips={false} /> : null}
         <div>
           <div className="cardTitle">{isFamily ? "Bienestar familiar y cuidado senior" : "HSE - Health, Safety & Environment"}</div>
           <div className="big" style={{ fontSize: 26 }}>{tax.health}</div>

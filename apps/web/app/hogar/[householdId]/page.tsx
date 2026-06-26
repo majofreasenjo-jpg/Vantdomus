@@ -164,11 +164,14 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
     schoolNoticeTitle: schoolNotice?.title,
   });
 
-  // Estado emocional de Domi según el momento del hogar (canon "Constelación").
+  // Identidad de Domi en reposo: SIEMPRE dorada (sereno/motivado) para que sea
+  // coherente con el resto de la app (encabezados + flotante también dorados).
+  // Los estados expresivos (atento=azul, cariñoso=coral, protector=morado) se
+  // reservan para la interacción real (chat) y no para el hero estático, así no
+  // hay "dos colores de Domi" en una misma pantalla.
   const domiState: import("../../components/DomiOrb").DomiState =
-    alerts.length > 0 ? "atento"
-    : tonightMeds.length > 0 ? "protector"
-    : (shoppingPending.length > 0 || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
+    (alerts.length > 0 || tonightMeds.length > 0 || shoppingPending.length > 0
+      || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
     : "sereno";
 
   return (
