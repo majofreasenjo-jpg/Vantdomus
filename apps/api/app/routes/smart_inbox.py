@@ -82,6 +82,14 @@ _RULES = [
         "requires_confirmation": True,
     },
     {
+        "route_type": "shopping_list_to_items",
+        "suggested_category": "shopping",
+        "keywords": ["lista de compras", "lista del super", "comprar", "lista super",
+                     "hay que comprar", "falta", "necesitamos", "ir al super",
+                     "supermercado lista", "feria"],
+        "requires_confirmation": True,
+    },
+    {
         "route_type": "school_notice_to_study",
         "suggested_category": "study",
         "keywords": ["prueba", "evaluaci", "tarea", "trabajo", "entrega",
@@ -134,6 +142,32 @@ def _parse_amount(text: str) -> Optional[float]:
         return None
 
 
+def _extract_shopping_items(text: str) -> list[str]:
+    """Extrae nombres de productos desde una lista pegada (líneas, comas, viñetas)."""
+    raw = (text or "")
+    # separar por saltos de línea y comas
+    parts: list[str] = []
+    for line in raw.splitlines():
+        for piece in line.split(","):
+            parts.append(piece)
+    items: list[str] = []
+    seen = set()
+    for p in parts:
+        s = p.strip(" \t-•*–·:0123456789.)#")
+        # descartar encabezados/ruido
+        low = s.lower()
+        if len(s) < 2 or len(s) > 40:
+            continue
+        if low in ("lista", "compras", "lista de compras", "supermercado", "comprar", "feria"):
+            continue
+        if s and low not in seen:
+            seen.add(low)
+            items.append(s[:40].capitalize())
+        if len(items) >= 20:
+            break
+    return items
+
+
 def _first_line(text: str) -> str:
     for ln in (text or "").splitlines():
         s = ln.strip()
@@ -167,7 +201,14 @@ def _classify(text: str, filename: str) -> dict:
     title = ""
     summary = ""
 
-    if route == "prescription_to_medication":
+    if route == "shopping_list_to_items":
+        prod = _extract_shopping_items(text)
+        title = f"{len(prod)} productos para la lista de compras" if prod else "Lista de compras detectada"
+        summary = ("Detecté una lista de compras. Confirmá los productos y los agrego a Compras."
+                   if prod else "Parece una lista de compras, pero no reconocí productos claros.")
+        payload = {"items": prod, "category": "grocery", "store_type": "supermarket"}
+        confidence = min(0.5 + 0.06 * len(prod), 0.9)
+    elif route == "prescription_to_medication":
         mm = _MED_RE.search(text or "")
         med = (f"{mm.group(1).capitalize()} {mm.group(2)}{mm.group(3).lower()}"
                if mm else "Medicamento detectado")
@@ -344,7 +385,29 @@ def confirm_candidate(
     result_type = None
     result_id = None
 
-    if route == "prescription_to_medication":
+    if route == "shopping_list_to_items":
+        items = payload.get("items") or []
+        if not items:
+            raise HTTPException(status_code=400, detail="No hay productos para agregar a la lista")
+        created = []
+        for name in items[:20]:
+            iid = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO household_shopping_items ("
+                "id, household_id, organization_id, requested_by_user_id, requested_by_person_id, "
+                "assigned_to_person_id, item_name, quantity, unit, category, priority, "
+                "store_type, preferred_store, estimated_price, currency, external_url, "
+                "status, notes, metadata, created_at, updated_at"
+                ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (iid, hid, org, user["user_id"], pid, None, str(name), None, None,
+                 payload.get("category", "grocery"), "normal", payload.get("store_type", "supermarket"),
+                 None, None, "CLP", None, "needed", "Desde Bandeja Inteligente",
+                 json.dumps({"from_smart_inbox": True}, ensure_ascii=False), _now(), _now()),
+            )
+            created.append(iid)
+        result_type = "shopping_items"
+        result_id = f"{len(created)} items"
+    elif route == "prescription_to_medication":
         if not pid:
             raise HTTPException(status_code=400, detail="Asigná un integrante para el medicamento")
         result_id = create_unit_function_internal(

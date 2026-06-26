@@ -9,6 +9,7 @@ type Person = { id: string; display_name: string };
 const ROUTE_LABELS: Record<string, string> = {
   prescription_to_medication: "Receta → Medicamento",
   receipt_to_finance: "Boleta → Gasto",
+  shopping_list_to_items: "Lista → Compras",
   school_notice_to_study: "Circular → Estudio",
   doctor_document_to_health: "Documento médico → Salud",
   insurance_policy_to_document: "Póliza/seguro → Vencimiento",
@@ -102,6 +103,17 @@ export default function SmartInboxPanel({ hid, persons }: { hid: string; persons
           </div>
           <div className="small">{cand.summary}</div>
 
+          {route === "shopping_list_to_items" ? (
+            <div className="small">
+              <div style={{ marginBottom: 6 }}>Productos detectados ({(fields.items || cand.proposed_payload?.items || []).length}):</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {((fields.items || cand.proposed_payload?.items || []) as string[]).map((it, i) => (
+                  <span key={i} className="pill">🛒 {it}</span>
+                ))}
+              </div>
+              <div style={{ marginTop: 6, color: "var(--muted)" }}>Al confirmar, los agrego a Compras (pendientes).</div>
+            </div>
+          ) : null}
           {route === "prescription_to_medication" ? (
             <label className="small">Medicamento
               <input className="input" value={fields.med_title || ""} onChange={(e) => setF("med_title", e.target.value)} />
