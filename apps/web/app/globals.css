@@ -268,6 +268,92 @@ body[data-level="simple"] .advanced{ display:none !important; }
   .celebrateLayer{ display:none !important; }
 }
 
+/* =========================================================================
+   DomiOrb — "Constelación inteligente del hogar" (canon visual de Domi).
+   Núcleo luminoso cálido + rostro + halo + órbitas + chips de contexto.
+   Paleta: Dorado Solar #FFCD88 · Champagne #F2E6D7 · Coral #FFBFA3 ·
+   Azul Noche #5B7CFF · Lavanda #B49AFF. Funciona en claro y oscuro.
+   ========================================================================= */
+.domiOrb{
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:var(--domi-size,120px); height:var(--domi-size,120px); flex:0 0 auto;
+  --domi-glow:#FFCD88; --domi-core1:#FFE6B8; --domi-core2:#E8A23C; --domi-eye:#6b3f12;
+}
+/* Halo exterior */
+.domiOrb .domiHalo{
+  position:absolute; inset:-12%; border-radius:50%;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--domi-glow) 55%, transparent) 0%, transparent 62%);
+  filter: blur(2px); opacity:.9; animation: domiHaloBreathe 5s ease-in-out infinite;
+}
+/* Órbitas (anillos elípticos tenues) */
+.domiOrb .domiRing{
+  position:absolute; inset:6%; border-radius:50%;
+  border:1px solid color-mix(in srgb, var(--domi-glow) 45%, transparent);
+  opacity:.55;
+}
+.domiOrb .domiRing2{ inset:-4%; transform:rotate(32deg); border-style:dashed; opacity:.4; }
+.domiOrb.domi-pensando .domiRing1{ animation: domiSpin 6s linear infinite; }
+.domiOrb.domi-pensando .domiRing2{ animation: domiSpin 9s linear infinite reverse; }
+/* Núcleo luminoso */
+.domiOrb .domiCore{
+  position:relative; z-index:2; width:62%; height:62%; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  background: radial-gradient(circle at 38% 32%, var(--domi-core1) 0%, var(--domi-glow) 48%, var(--domi-core2) 100%);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--domi-core2) 45%, transparent),
+              inset 0 2px 8px rgba(255,255,255,.55),
+              0 0 0 6px color-mix(in srgb, var(--domi-glow) 18%, transparent);
+  animation: domiBreathe 4.6s ease-in-out infinite;
+}
+.domiOrb .domiCore::before{ /* brillo especular */
+  content:""; position:absolute; top:14%; left:24%; width:26%; height:22%;
+  border-radius:50%; background:rgba(255,255,255,.8); filter:blur(1px);
+}
+.domiFace{ position:relative; z-index:3; overflow:visible; }
+.domiFace .domiEye{ fill:none; stroke:var(--domi-eye); stroke-width:6; stroke-linecap:round;
+  animation: domiBlink 5.6s ease-in-out infinite; transform-origin:center; transform-box:fill-box; }
+/* Chips de contexto alrededor del núcleo */
+.domiOrb .domiChip{
+  position:absolute; z-index:4; transform:translate(-50%,-50%);
+  width:calc(var(--domi-size,120px) * .22); height:calc(var(--domi-size,120px) * .22);
+  min-width:22px; min-height:22px;
+  border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  font-size:calc(var(--domi-size,120px) * .11);
+  background: var(--card, #fff);
+  border:1px solid color-mix(in srgb, var(--domi-glow) 50%, var(--line,#e5ddcf));
+  box-shadow: 0 3px 10px rgba(120,95,60,.18);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.domiOrb .domiChip.active{
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--domi-glow) 45%, transparent), 0 4px 14px rgba(120,95,60,.28);
+  transform:translate(-50%,-50%) scale(1.12);
+}
+.domiShield{ position:absolute; bottom:-2%; right:-2%; font-size:calc(var(--domi-size,120px)*.22); z-index:5;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.25)); }
+
+/* ---- Estados emocionales (color + comportamiento) ---- */
+.domiOrb.domi-sereno   { --domi-glow:#FFCD88; }
+.domiOrb.domi-motivado { --domi-glow:#FFB74D; --domi-core2:#E07B1A; }
+.domiOrb.domi-motivado .domiCore{ animation-duration:3s; }
+.domiOrb.domi-atento   { --domi-glow:#7FA0FF; --domi-core1:#E6ECFF; --domi-core2:#5B7CFF; --domi-eye:#22306b; }
+.domiOrb.domi-cariñoso { --domi-glow:#FFBFA3; --domi-core1:#FFE5DA; --domi-core2:#E8845C; --domi-eye:#6b3320; }
+.domiOrb.domi-cariñoso .domiCore{ animation: domiPulse 2.4s ease-in-out infinite; }
+.domiOrb.domi-protector{ --domi-glow:#B49AFF; --domi-core1:#ECE6FF; --domi-core2:#6A5BFF; --domi-eye:#2c2160; }
+.domiOrb.domi-logro .domiHalo{ animation: domiHaloPop 1.2s ease-out 1; }
+.domiOrb.domi-logro .domiCore{ animation: domiPop .8s ease-out 1; }
+.domiOrb.domi-organizando .domiChip{ animation: domiSettle .7s ease-out 1; }
+
+@keyframes domiBreathe{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.05);} }
+@keyframes domiHaloBreathe{ 0%,100%{ opacity:.75; transform:scale(1);} 50%{ opacity:1; transform:scale(1.06);} }
+@keyframes domiPulse{ 0%,100%{ transform:scale(1); box-shadow:0 6px 22px rgba(232,132,92,.4), inset 0 2px 8px rgba(255,255,255,.55);} 50%{ transform:scale(1.06); box-shadow:0 8px 30px rgba(232,132,92,.6), inset 0 2px 8px rgba(255,255,255,.6);} }
+@keyframes domiSpin{ 100%{ transform:rotate(360deg);} }
+@keyframes domiBlink{ 0%,92%,100%{ transform:scaleY(1);} 96%{ transform:scaleY(.18);} }
+@keyframes domiPop{ 0%{ transform:scale(.85);} 55%{ transform:scale(1.12);} 100%{ transform:scale(1);} }
+@keyframes domiHaloPop{ 0%{ opacity:.6; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.18);} 100%{ opacity:.85; transform:scale(1);} }
+@keyframes domiSettle{ 0%{ transform:translate(-50%,-50%) scale(.6); opacity:.2;} 100%{ transform:translate(-50%,-50%) scale(1); opacity:1;} }
+@media (prefers-reduced-motion: reduce){
+  .domiOrb .domiHalo, .domiOrb .domiCore, .domiOrb .domiRing, .domiFace .domiEye, .domiOrb .domiChip{ animation:none !important; }
+}
+
 /* ---- Skeleton loaders (forma de la data, patrón Linear) ---- */
 .skel{ position:relative; overflow:hidden; background:rgba(0,0,0,.06); border-radius:10px; }
 .skel::after{ content:""; position:absolute; inset:0; transform:translateX(-100%);

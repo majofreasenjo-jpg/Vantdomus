@@ -21,6 +21,7 @@ import {
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
 import TrustFooter from "../../components/TrustFooter";
+import DomiPanel from "../../components/DomiPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -163,33 +164,37 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
     schoolNoticeTitle: schoolNotice?.title,
   });
 
+  // Estado emocional de Domi según el momento del hogar (canon "Constelación").
+  const domiState: import("../../components/DomiOrb").DomiState =
+    alerts.length > 0 ? "atento"
+    : tonightMeds.length > 0 ? "protector"
+    : (shoppingPending.length > 0 || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
+    : "sereno";
+
   return (
     <div className="container">
-      {/* HEADER + DOMI */}
-      <div className="card" style={{ marginBottom: 18, padding: 22 }}>
-        <div className="row" style={{ alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-          <div title="Domi es la cara visible de tu Guía Familiar. La IA real ordena y propone, pero tú confirmás lo importante.">
-            <AssistantOrb state={alerts.length > 0 ? "alert" : "idle"} showLabel={false} />
-          </div>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div className="small" style={{ color: "var(--muted)" }}>Hoy en tu hogar</div>
-            <div className="big" style={{ fontSize: 28, lineHeight: 1.2, marginTop: 2 }}>{familyName}</div>
-            <div style={{ fontSize: 16, marginTop: 10, fontWeight: 500 }}>{domi.headline}</div>
-            <ul style={{ margin: "10px 0 0 0", paddingLeft: 20, color: "var(--muted)", lineHeight: 1.7 }}>
-              {domi.lines.map((l, i) => <li key={i}>{l}</li>)}
-            </ul>
-            <div className="small" style={{ marginTop: 8, color: "var(--muted)", fontStyle: "italic" }}>
-              Domi propone y resume. Las decisiones importantes (salud, medicamentos, finanzas) las confirmás vos.
-            </div>
-          </div>
-          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            <a className="btn" href={`/perfiles/${hid}`}>Perfiles</a>
-            <a className="btn" href={`/guia`}>Guía Familiar</a>
-            <a className="btn" href={`/biblioteca`}>Biblioteca</a>
-            <a className="btn" href={`/documents/${hid}`}>Documentos</a>
-          </div>
-        </div>
-      </div>
+      {/* HERO — Constelación inteligente del hogar */}
+      <DomiPanel
+        state={domiState}
+        familyName={familyName}
+        headline={domi.headline}
+        lines={domi.lines}
+        note="Domi propone y resume. Las decisiones importantes (salud, medicamentos, finanzas) las confirmás tú."
+        orbitChips={[
+          { icon: "🏠", label: "Hogar" },
+          { icon: "❤️", label: "Salud", active: tonightMeds.length > 0 },
+          { icon: "🛒", label: "Compras", active: shoppingPending.length > 0 },
+          { icon: "✉️", label: "Mensajes", active: alerts.length > 0 },
+          { icon: "👨‍👩‍👧", label: "Familia" },
+          { icon: "🛡️", label: "Seguridad" },
+        ]}
+        contextChips={[
+          { icon: "🧑‍🤝‍🧑", label: "Perfiles", hint: "avatares y estados", href: `/perfiles/${hid}` },
+          { icon: "🧭", label: "Guía Familiar", hint: "funciones por integrante", href: `/guia` },
+          { icon: "📚", label: "Biblioteca", hint: "memoria y evidencia", href: `/biblioteca` },
+          { icon: "📄", label: "Documentos", hint: "bandeja inteligente", href: `/documents/${hid}` },
+        ]}
+      />
 
       {/* GRID: avisos + actividades del día */}
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
