@@ -27,8 +27,10 @@ export default function DomiPanel({
 }) {
   return (
     <div className="card" style={{ marginBottom: 18, padding: 22, overflow: "hidden" }}>
-      <div style={{ display: "flex", gap: 22, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", minWidth: 160 }}>
+      <div style={{ display: "flex", gap: 40, alignItems: "center", flexWrap: "wrap" }}>
+        {/* Ancho reservado mayor que el orbe (150) para que los chips de la
+            constelación no queden pegados al texto. */}
+        <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center", minWidth: 196 }}>
           <DomiOrb state={state} size={150} chips={orbitChips} />
         </div>
         <div style={{ flex: 1, minWidth: 280 }}>
