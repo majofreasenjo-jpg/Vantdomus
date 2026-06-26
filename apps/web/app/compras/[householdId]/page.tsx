@@ -15,6 +15,7 @@ import {
 import AssistantOrb from "../../components/AssistantOrb";
 import MemberChip from "../../components/MemberChip";
 import { markCelebrate } from "../../../lib/celebrate";
+import { itemEmoji } from "../../../lib/itemEmoji";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -211,7 +212,8 @@ function ItemRow({ hid, it, personById, done = false }: { hid: string; it: any; 
   return (
     <div className="card" style={{ padding: 10, background: "var(--bg)" }}>
       <div className="row" style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
+        <span aria-hidden="true" style={{ fontSize: 22, flex: "0 0 auto", lineHeight: 1.1 }}>{itemEmoji(it.item_name)}</span>
+        <div style={{ flex: 1, minWidth: 180 }}>
           <div style={{ fontWeight: 600, textDecoration: isDone ? "line-through" : "none" }}>
             {it.item_name}
             {it.quantity ? <span style={{ fontWeight: 400, color: "var(--muted)" }}> · {it.quantity}{it.unit ? " " + it.unit : ""}</span> : null}
