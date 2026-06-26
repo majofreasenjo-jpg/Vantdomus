@@ -173,7 +173,8 @@ def ensure_schema():
             "270_vantguide_runtime_v1.sql", "271_vantguide_micro_pre_ui.sql",
             "272_persons_user_link.sql", "273_document_route_candidates.sql",
             "274_family_board.sql", "275_household_shopping.sql",
-            "276_daily_activities.sql", "277_persons_avatar_status.sql"
+            "276_daily_activities.sql", "277_persons_avatar_status.sql",
+            "278_family_post_comments.sql"
         ]
 
         is_pg = isinstance(con, PostgresConnectionWrapper)

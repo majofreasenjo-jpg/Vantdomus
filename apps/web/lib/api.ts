@@ -613,6 +613,10 @@ export const familyBoardResolve = (hid: string, postId: string) =>
   apiFetch(`/family_board/${encodeURIComponent(hid)}/${encodeURIComponent(postId)}/resolve`, { method: "POST", body: "{}" });
 export const familyBoardArchive = (hid: string, postId: string) =>
   apiFetch(`/family_board/${encodeURIComponent(hid)}/${encodeURIComponent(postId)}/archive`, { method: "POST", body: "{}" });
+export const familyBoardComments = (hid: string, postId: string) =>
+  apiFetch(`/family_board/${encodeURIComponent(hid)}/${encodeURIComponent(postId)}/comments`, { cache: "no-store" });
+export const familyBoardComment = (hid: string, postId: string, body: string, reaction?: string) =>
+  apiFetch(`/family_board/${encodeURIComponent(hid)}/${encodeURIComponent(postId)}/comments`, { method: "POST", body: JSON.stringify({ body, reaction }) });
 
 // Compras del Hogar
 export const shoppingList = (hid: string, status?: string) =>

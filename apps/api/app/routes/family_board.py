@@ -220,3 +220,54 @@ def archive_post(household_id: str, post_id: str, user=Depends(get_current_user)
     )
     db.commit()
     return {"ok": True, "status": "archived"}
+
+
+# ---------------------------------------------------------------------------
+# Comentarios por aviso (U2-UX B2): hilo simple para coordinar sin WhatsApp.
+# ---------------------------------------------------------------------------
+class CommentCreate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=600)
+    reaction: Optional[str] = None
+
+
+def _person_for_user(db, household_id: str, user_id: str) -> Optional[str]:
+    try:
+        r = db.execute("SELECT id FROM persons WHERE household_id=? AND user_id=?", (household_id, user_id)).fetchone()
+        return r["id"] if r else None
+    except Exception:
+        return None
+
+
+@router.get("/{household_id}/{post_id}/comments")
+def list_comments(household_id: str, post_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    rows = db.execute(
+        "SELECT c.id, c.body, c.reaction, c.created_at, c.author_person_id, p.display_name "
+        "FROM family_post_comments c LEFT JOIN persons p ON p.id=c.author_person_id "
+        "WHERE c.household_id=? AND c.post_id=? ORDER BY c.created_at ASC",
+        (household_id, post_id),
+    ).fetchall()
+    return {"items": [
+        {"id": r["id"], "body": r["body"], "reaction": r["reaction"], "created_at": r["created_at"],
+         "author_person_id": r["author_person_id"], "author_name": r["display_name"]}
+        for r in rows
+    ]}
+
+
+@router.post("/{household_id}/{post_id}/comments")
+def add_comment(household_id: str, post_id: str, body: CommentCreate, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "member")
+    post = db.execute("SELECT id FROM family_board_posts WHERE id=? AND household_id=?", (post_id, household_id)).fetchone()
+    if not post:
+        raise HTTPException(status_code=404, detail="Aviso no encontrado")
+    cid = str(uuid.uuid4())
+    db.execute(
+        "INSERT INTO family_post_comments (id, household_id, post_id, author_user_id, author_person_id, body, reaction, created_at) "
+        "VALUES (?,?,?,?,?,?,?,?)",
+        (cid, household_id, post_id, user["user_id"], _person_for_user(db, household_id, user["user_id"]),
+         body.body.strip(), (body.reaction or None), _now()),
+    )
+    write_audit_log(db, action="family_board.comment", resource_type="family_post_comment",
+                    resource_id=cid, household_id=household_id, user_id=user["user_id"], metadata={"post_id": post_id})
+    db.commit()
+    return {"ok": True, "id": cid}

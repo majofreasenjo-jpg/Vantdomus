@@ -8,6 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { familyBoardList, familyBoardCreate, familyBoardResolve, familyBoardArchive, getDashboard, shoppingCreate, dailyActivityCreate } from "../../../lib/api";
 import AssistantOrb from "../../components/AssistantOrb";
+import PostComments from "../../components/PostComments";
 import { markCelebrate } from "../../../lib/celebrate";
 
 export const dynamic = "force-dynamic";
@@ -209,6 +210,7 @@ function PostCard({ hid, p }: { hid: string; p: any }) {
           </form>
         </div>
       ) : null}
+      <PostComments hid={hid} postId={p.id} />
     </div>
   );
 }
