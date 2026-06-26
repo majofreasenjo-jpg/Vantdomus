@@ -42,9 +42,9 @@ export default function DomiOrb({
   const list = (chips ?? DEFAULT_CHIPS).slice(0, 7);
   const withOrbits = showChips && size >= 96;       // órbitas/puntos solo en tamaño protagonista
   const cx = size / 2;
-  const chipR = size * 0.46;
-  const chipSize = Math.max(22, Math.round(size * 0.26));
-  const coreSize = Math.round(size * (withOrbits ? 0.5 : 0.78));
+  const chipR = size * 0.5;
+  const chipSize = Math.max(20, Math.round(size * 0.21));
+  const coreSize = Math.round(size * (withOrbits ? 0.62 : 0.86)); // núcleo protagonista
 
   // puntos de luz a lo largo de la órbita (decorativos)
   const dots = withOrbits ? [18, 130, 250, 312] : [];
