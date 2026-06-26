@@ -25,7 +25,7 @@ import TrustFooter from "../../components/TrustFooter";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type Person = { id: string; display_name: string; relation?: string };
+type Person = { id: string; display_name: string; relation?: string; avatar?: string | null; status_emoji?: string | null; status_text?: string | null };
 
 function todayIso(): string {
   const d = new Date();
@@ -183,6 +183,7 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
             </div>
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <a className="btn" href={`/perfiles/${hid}`}>Perfiles</a>
             <a className="btn" href={`/guia`}>Guía Familiar</a>
             <a className="btn" href={`/biblioteca`}>Biblioteca</a>
             <a className="btn" href={`/documents/${hid}`}>Documentos</a>
@@ -241,7 +242,14 @@ export default async function PanelDelHogar({ params }: { params: Promise<{ hous
                 const personActs = (actsByPerson.get(p.id) || []).slice(0, 3);
                 return (
                   <div key={p.id} className="card" style={{ padding: 12, background: "var(--bg)" }}>
-                    <div style={{ marginBottom: 6 }}><MemberChip name={p.display_name} personId={p.id} bold /></div>
+                    <div style={{ marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <MemberChip name={p.display_name} personId={p.id} avatar={p.avatar} bold />
+                      {p.status_emoji || p.status_text ? (
+                        <span className="pill" style={{ fontSize: 11 }} title="Estado del hogar">
+                          {p.status_emoji || "•"} {p.status_text || ""}
+                        </span>
+                      ) : null}
+                    </div>
                     {personActs.length === 0 ? (
                       <div className="small" style={{ color: "var(--muted)" }}>Sin actividades hoy.</div>
                     ) : (

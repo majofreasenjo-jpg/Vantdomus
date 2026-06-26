@@ -152,7 +152,7 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
             return (
               <div key={p.id} className="card" style={{ padding: 14 }}>
                 <div className="row" style={{ marginBottom: 6 }}>
-                  <MemberChip name={p.display_name} personId={p.id} bold />
+                  <MemberChip name={p.display_name} personId={p.id} avatar={p.avatar} bold />
                   <span className="small" style={{ color: "var(--muted)" }}>{p.relation || ""}</span>
                 </div>
                 {acts.length === 0 ? (

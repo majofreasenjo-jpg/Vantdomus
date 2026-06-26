@@ -220,7 +220,7 @@ function ItemRow({ hid, it, personById, done = false }: { hid: string; it: any; 
             <span>{CAT_LABEL[it.category] || it.category} · {STORE_LABEL[it.store_type] || it.store_type}{it.estimated_price ? ` · ~${clp(it.estimated_price)}` : ""}</span>
             {who ? (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                · <MemberChip name={who.display_name} personId={who.id} size={18} />
+                · <MemberChip name={who.display_name} personId={who.id} avatar={who.avatar} size={18} />
               </span>
             ) : null}
           </div>

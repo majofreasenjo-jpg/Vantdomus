@@ -890,7 +890,7 @@ def dashboard(household_id: str, user=Depends(get_current_user), db=Depends(get_
     if not h:
         raise HTTPException(status_code=404, detail="Household not found")
 
-    persons = db.execute("SELECT id, display_name, relation FROM persons WHERE household_id=? ORDER BY display_name", (household_id,)).fetchall()
+    persons = db.execute("SELECT id, display_name, relation, avatar, status_emoji, status_text, status_set_at FROM persons WHERE household_id=? ORDER BY display_name", (household_id,)).fetchall()
     alerts = db.execute("SELECT id,severity,title,message,status,created_at FROM alerts WHERE household_id=? ORDER BY created_at DESC LIMIT 50", (household_id,)).fetchall()
     events = db.execute("SELECT id,domain,event_type,summary,occurred_at FROM events WHERE household_id=? ORDER BY occurred_at DESC LIMIT 50", (household_id,)).fetchall()
 
@@ -917,7 +917,7 @@ def dashboard(household_id: str, user=Depends(get_current_user), db=Depends(get_
         "household": {"id": h["id"], "name": h["name"], "meta": json.loads(h["meta"] or "{}"), "created_at": h["created_at"], "organization_id": h["organization_id"]},
         "features": features,
         "assistant": assistant,
-        "persons": [{"id": p["id"], "display_name": p["display_name"], "relation": p["relation"]} for p in persons],
+        "persons": [{"id": p["id"], "display_name": p["display_name"], "relation": p["relation"], "avatar": p["avatar"], "status_emoji": p["status_emoji"], "status_text": p["status_text"], "status_set_at": p["status_set_at"]} for p in persons],
         "alerts": [{"id": a["id"], "severity": a["severity"], "title": a["title"], "message": a["message"], "status": a["status"], "created_at": a["created_at"]} for a in alerts],
         "events": [{"id": e["id"], "domain": e["domain"], "event_type": e["event_type"], "summary": e["summary"], "occurred_at": e["occurred_at"]} for e in events],
     }

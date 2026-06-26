@@ -219,6 +219,13 @@ export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${enco
 export const getHSIStatus = (hid: string) => getScores(hid).then(res => res.items[0] || { hsi: 0 });
 export const getHouseholds = () => apiFetch("/households");
 export const getPersonDetail = (pid: string) => apiFetch(`/persons/${encodeURIComponent(pid)}`);
+// U3 — avatar + estado del integrante
+export const personUpdate = (pid: string, body: Record<string, any>) =>
+  apiFetch(`/persons/${encodeURIComponent(pid)}`, { method: "PATCH", body: JSON.stringify(body) });
+export const personSetStatus = (pid: string, emoji: string, text: string) =>
+  apiFetch(`/persons/${encodeURIComponent(pid)}/status`, { method: "PUT", body: JSON.stringify({ emoji, text }) });
+export const personClearStatus = (pid: string) =>
+  apiFetch(`/persons/${encodeURIComponent(pid)}/status`, { method: "DELETE" });
 export const evalAndPersist = (eid: string) => Promise.resolve({ ok: true, note: "Dummy implementation for build" });
 export async function getGerenciaState() {
   return apiFetch("/gerencia/dashboard");
