@@ -1,28 +1,30 @@
 /**
- * DomiOrb — "Constelación inteligente del hogar" (dirección visual canónica).
+ * DomiOrb — Domi "Constelación": el orbe 3D (AssistantOrb, aporte de Antigravity)
+ * escalado al tamaño pedido + chips de contexto orbitando alrededor.
  *
- * Núcleo luminoso cálido + rostro amable + halo + órbitas + chips de contexto
- * orbitando. Puro CSS/SVG (sin Lottie/Rive), liviano, responsive y reusable.
- * Server o Client Component (sin hooks).
- *
- * Estados emocionales: sereno · motivado · atento · cariñoso · protector
- * (+ comportamientos: pensando, logro, organizando).
- *   - sereno     → dorado, respiración suave del núcleo
- *   - motivado   → dorado intenso, energía
- *   - atento     → acento azul, detecta señales
- *   - cariñoso   → coral, pulso suave
- *   - protector  → violeta/azul, escudo activo
- *   - pensando   → órbitas giran
- *   - logro      → halo se expande y destella
- *   - organizando→ chips se alinean
+ * Mantiene la API previa (DomiState/size/chips) para no romper Panel/headers.
+ * El orbe base mide 44px; lo escalamos con transform para cualquier `size`.
  */
 import React from "react";
+import AssistantOrb, { OrbState } from "./AssistantOrb";
 
 export type DomiState =
   | "sereno" | "motivado" | "atento" | "cariñoso" | "protector"
   | "pensando" | "logro" | "organizando";
 
 export type DomiChip = { icon: string; label: string; active?: boolean };
+
+// Identidad dorada dominante (idle) salvo estados puntuales (canon + feedback owner).
+const STATE_MAP: Record<DomiState, OrbState> = {
+  sereno: "idle",
+  motivado: "idle",
+  atento: "idle",
+  organizando: "idle",
+  pensando: "thinking",
+  cariñoso: "calm",
+  protector: "alert",
+  logro: "success",
+};
 
 const DEFAULT_CHIPS: DomiChip[] = [
   { icon: "🏠", label: "Hogar" },
@@ -32,6 +34,8 @@ const DEFAULT_CHIPS: DomiChip[] = [
   { icon: "👨‍👩‍👧", label: "Familia" },
   { icon: "🛡️", label: "Seguridad" },
 ];
+
+const ORB_BASE = 44; // tamaño natural de AssistantOrb
 
 export default function DomiOrb({
   state = "sereno",
@@ -47,22 +51,34 @@ export default function DomiOrb({
   label?: string;
 }) {
   const list = (chips ?? DEFAULT_CHIPS).slice(0, 6);
-  const radius = size * 0.62; // distancia del chip al centro
-  const showShield = state === "protector";
+  const radius = size * 0.62;
+  const scale = size / ORB_BASE;
 
   return (
     <div
-      className={`domiOrb domi-${state}`}
-      style={{ ["--domi-size" as any]: `${size}px`, ["--domi-radius" as any]: `${radius}px` }}
+      className="domiOrb"
+      style={{
+        position: "relative",
+        width: size,
+        height: size,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flex: "0 0 auto",
+        ["--domi-size" as any]: `${size}px`,
+        ["--domi-glow" as any]: "#FFCD88",
+      }}
       role="img"
       aria-label={label || `Domi, asistente del hogar (${state})`}
     >
-      <span className="domiHalo" aria-hidden="true" />
-      {showChips ? (
-        <>
-          <span className="domiRing domiRing1" aria-hidden="true" />
-          <span className="domiRing domiRing2" aria-hidden="true" />
-          {list.map((c, i) => {
+      {/* Orbe 3D (Antigravity) escalado al tamaño pedido */}
+      <span style={{ transform: `scale(${scale})`, transformOrigin: "center", lineHeight: 0, display: "inline-flex" }}>
+        <AssistantOrb state={STATE_MAP[state]} showLabel={false} label={label} />
+      </span>
+
+      {/* Chips de contexto orbitando */}
+      {showChips
+        ? list.map((c, i) => {
             const angle = (-90 + i * (360 / list.length)) * (Math.PI / 180);
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
@@ -77,24 +93,8 @@ export default function DomiOrb({
                 {c.icon}
               </span>
             );
-          })}
-        </>
-      ) : null}
-      <span className="domiCore" aria-hidden="true">
-        <svg className="domiFace" viewBox="0 0 100 64" width="62%" height="62%">
-          {/* Ojos: abiertos (atento), curvos felices (logro/idle), pupila con mirada */}
-          <g className="domiEyes">
-            <ellipse className="domiEyeBall l" cx="32" cy="30" rx="7" ry="9" />
-            <ellipse className="domiEyeBall r" cx="68" cy="30" rx="7" ry="9" />
-            <path className="domiEyeHappy l" d="M22 30 Q32 19 42 30" />
-            <path className="domiEyeHappy r" d="M58 30 Q68 19 78 30" />
-            <path className="domiMouth" d="M40 44 Q50 52 60 44" />
-          </g>
-        </svg>
-        {/* Puntos de "pensando" */}
-        <span className="domiDots" aria-hidden="true"><i></i><i></i><i></i></span>
-        {showShield ? <span className="domiShield" aria-hidden="true">🛡️</span> : null}
-      </span>
+          })
+        : null}
     </div>
   );
 }

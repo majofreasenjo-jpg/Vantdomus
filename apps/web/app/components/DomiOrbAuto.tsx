@@ -9,9 +9,13 @@
  * Domi pasa al look render sin tocar las pantallas.
  */
 
+import dynamic from "next/dynamic";
 import DomiOrb, { DomiState, DomiChip } from "./DomiOrb";
-import DomiLottie from "./DomiLottie";
 import { domiLottieSrc } from "../../lib/domiAssets";
+
+// Cargar el player Lottie solo cuando realmente exista un asset (evita arrastrar
+// lottie-react al grafo de la página cuando el manifiesto está vacío).
+const DomiLottie = dynamic(() => import("./DomiLottie"), { ssr: false });
 
 export default function DomiOrbAuto({
   state = "sereno",

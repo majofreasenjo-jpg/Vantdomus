@@ -1,24 +1,16 @@
 /**
- * AssistantOrb — wrapper de compatibilidad sobre DomiOrb.
+ * AssistantOrb — "Domi", el asistente vivo de VantDomus Hogar.
  *
- * Domi ahora vive en DomiOrb ("Constelación inteligente del hogar"). Este
- * componente mantiene la API previa (state idle/thinking/success/alert/calm/
- * listening + label) que usan avisos/compras/actividades, y delega en DomiOrb
- * con el estado mapeado, en versión compacta (sin chips orbitando).
+ * Diseño 3D en CSS (esfera glossy con degradado radial + dos anillos orbitales
+ * en perspectiva 3D + rostro animado por estado). Sin dependencias ni assets.
+ * Respeta prefers-reduced-motion (ver globals.css, bloque .assistantOrb).
+ * Aporte de diseño integrado desde Google Antigravity y unificado en este repo.
+ *
+ * Sin hooks ni handlers: funciona como Server o Client Component.
  */
 import React from "react";
-import DomiOrb, { DomiState } from "./DomiOrb";
 
 export type OrbState = "idle" | "thinking" | "success" | "alert" | "calm" | "listening";
-
-const STATE_MAP: Record<OrbState, DomiState> = {
-  idle: "sereno",
-  calm: "sereno",
-  thinking: "pensando",
-  success: "logro",
-  alert: "atento",
-  listening: "atento",
-};
 
 const DEFAULT_LABELS: Record<OrbState, string> = {
   idle: "Estoy aquí para ayudarte a ordenar el hogar.",
@@ -41,12 +33,30 @@ export default function AssistantOrb({
   showLabel?: boolean;
 }) {
   const text = label !== undefined ? label : DEFAULT_LABELS[state];
-  const orb = <DomiOrb state={STATE_MAP[state]} size={compact ? 34 : 48} showChips={false} label={text || undefined} />;
+  const orb = (
+    <span
+      className={`assistantOrb ao-${state}${compact ? " compact" : ""}`}
+      role="img"
+      aria-label={`Domi, asistente de VantDomus${text ? `: ${text}` : ""}`}
+    >
+      <span className="aoInner">
+        <span className="aoRings">
+          <span className="aoRing aoRing1" />
+          <span className="aoRing aoRing2" />
+        </span>
+        <span className="aoFace">
+          <span className="aoEye aoEyeLeft" />
+          <span className="aoEye aoEyeRight" />
+          <span className="aoMouth" />
+        </span>
+      </span>
+    </span>
+  );
   if (!showLabel || !text) return orb;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+    <span className="assistantOrbWrap">
       {orb}
-      <span className="aoLabel" style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.35, maxWidth: 320 }}>{text}</span>
+      <span className="aoLabel">{text}</span>
     </span>
   );
 }

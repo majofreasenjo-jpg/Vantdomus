@@ -81,7 +81,6 @@ input::placeholder{color:#6f829b}
   .navLinks{ gap:6px; }
   .navLinks a{ font-size:12px; padding:6px 8px; }
   .big{ font-size:26px; }
-  .domiOrb, .domiOrb3d{ --domi-size:120px; width:120px !important; height:120px !important; }
   .btn{ padding:10px 12px; } /* mantener target táctil cómodo */
 }
 /* Móvil chico */
@@ -95,8 +94,7 @@ input::placeholder{color:#6f829b}
   .container{ padding:10px; }
   .grid2, .cols4{ grid-template-columns:1fr !important; }
   .navLinks{ display:none; } /* en reloj, navegación por el contenido, no barra */
-  .domiOrb .domiRing, .domiOrb .domiChip{ display:none; } /* núcleo + rostro, sin constelación */
-  .domiOrb, .domiOrb3d{ --domi-size:84px; width:84px !important; height:84px !important; }
+  .domiOrb .domiChip{ display:none; } /* en reloj: solo el orbe, sin chips */
   .big{ font-size:20px; }
 }
 
@@ -243,57 +241,65 @@ body[data-level="simple"] .advanced{ display:none !important; }
    Animación CSS liviana; respeta prefers-reduced-motion; fallback estático.
    El color por estado se controla con --orb. Reemplazable luego por Lottie/Rive.
    ========================================================================= */
-.assistantOrb{ position:relative; display:inline-flex; align-items:center; justify-content:center;
-  width:44px; height:44px; border-radius:50%; flex:0 0 auto;
-  --orb:#5E8B7E;
-  background: radial-gradient(circle at 32% 30%, #ffffff 0%, var(--orb) 62%, var(--orb) 100%);
-  box-shadow: 0 6px 18px rgba(0,0,0,.12), 0 0 0 6px color-mix(in srgb, var(--orb) 16%, transparent);
+.assistantOrb { position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto; perspective: 800px; }
+.assistantOrb.compact { width: 30px; height: 30px; }
+
+/* Esfera interna 3D glossy */
+.aoInner {
+  position: relative; width: 100%; height: 100%; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  --orb-base: #FFAF40; --orb-dark: #8A4F00; --orb-glow: rgba(255,205,136,0.45); --orb-face: #FFF0D0;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--orb-base) 45%, var(--orb-dark) 100%);
+  box-shadow: inset -4px -4px 10px rgba(0,0,0,0.6), inset 4px 4px 10px rgba(255,255,255,0.7), 0 8px 24px var(--orb-glow);
 }
-.assistantOrb.compact{ width:30px; height:30px; }
-.assistantOrb::before{ content:""; position:absolute; top:24%; left:28%; width:24%; height:24%;
-  border-radius:50%; background:rgba(255,255,255,.85); filter:blur(.3px); }
-.assistantOrb::after{ content:""; position:absolute; inset:-6px; border-radius:50%;
-  border:2px solid color-mix(in srgb, var(--orb) 45%, transparent); opacity:0; }
-.ao-idle{ animation: orbBreathe 4.5s ease-in-out infinite; }
-.ao-calm{ --orb:#6FA3C7; animation: orbBreathe 6.5s ease-in-out infinite; }
-.ao-thinking{ --orb:#7C83D3; animation: orbBreathe 1.6s ease-in-out infinite; }
-.ao-thinking::after{ animation: orbRipple 1.6s ease-out infinite; }
-.ao-listening{ --orb:#3E9B86; }
-.ao-listening::after{ animation: orbRipple 2s ease-out infinite; }
-.ao-success{ --orb:#2E9E6B; animation: orbPop .6s ease-out 1; }
-.ao-alert{ --orb:#C98A2E; animation: orbBreathe 1.8s ease-in-out infinite; }
-@keyframes orbBreathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
-@keyframes orbPop{ 0%{ transform:scale(.8); } 60%{ transform:scale(1.12); } 100%{ transform:scale(1); } }
-@keyframes orbRipple{ 0%{ opacity:.5; transform:scale(.9); } 100%{ opacity:0; transform:scale(1.5); } }
+/* Paleta por estado (infografía) */
+.ao-idle .aoInner { --orb-base:#FFCD88; --orb-dark:#9E6B28; --orb-glow:rgba(255,205,136,0.45); --orb-face:#FFF0D0; animation: orbBreathe 4.5s ease-in-out infinite; }
+.ao-calm .aoInner { --orb-base:#FFBFA3; --orb-dark:#8F4D30; --orb-glow:rgba(255,191,163,0.45); --orb-face:#FFEFE9; animation: orbBreathe 6s ease-in-out infinite; }
+.ao-thinking .aoInner { --orb-base:#7C83D3; --orb-dark:#3B3E7A; --orb-glow:rgba(124,131,211,0.45); --orb-face:#EAEBFF; animation: orbBreathe 1.5s ease-in-out infinite; }
+.ao-listening .aoInner { --orb-base:#5B7CFF; --orb-dark:#1A2F8C; --orb-glow:rgba(91,124,255,0.45); --orb-face:#E5ECFF; animation: orbPulseListening 1.2s ease-in-out infinite; }
+.ao-success .aoInner { --orb-base:#2E9E6B; --orb-dark:#0E4A2D; --orb-glow:rgba(46,158,107,0.45); --orb-face:#E0FFF1; animation: orbSuccessPop 0.8s cubic-bezier(0.175,0.885,0.32,1.275) 1; }
+.ao-alert .aoInner { --orb-base:#B49AFF; --orb-dark:#52369C; --orb-glow:rgba(180,154,255,0.45); --orb-face:#F2EEFF; animation: orbBreathe 1.8s ease-in-out infinite; }
+
+/* Rostro digital brillante */
+.aoFace { position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  width:20px; height:14px; top:48%; left:50%; transform:translate(-50%,-50%); transition:all 0.3s ease; }
+.assistantOrb.compact .aoFace { width:14px; height:10px; }
+.aoEye { width:4px; height:2px; border-radius:4px 4px 0 0; border:1.5px solid var(--orb-face); border-bottom:0;
+  display:inline-block; margin:0 2px; filter:drop-shadow(0 0 2px var(--orb-face)); }
+.assistantOrb.compact .aoEye { width:3px; height:1.5px; border-width:1px; margin:0 1px; }
+.aoMouth { width:7px; height:3px; border-radius:0 0 5px 5px; border:1.5px solid var(--orb-face); border-top:0;
+  margin-top:2px; filter:drop-shadow(0 1px 2px var(--orb-face)); }
+.assistantOrb.compact .aoMouth { width:4px; height:2px; border-width:1px; margin-top:1px; }
+/* Variaciones del rostro por estado */
+.ao-thinking .aoFace { animation: faceThinking 2s ease-in-out infinite; }
+.ao-thinking .aoEye { border-radius:50%; height:2px; border-bottom:1.5px solid var(--orb-face); }
+.ao-thinking .aoMouth { width:3px; height:1.5px; border-radius:50%; border:1.5px solid var(--orb-face); margin-top:2.5px; }
+.ao-listening .aoMouth { width:4px; height:4px; border-radius:50%; border:1.5px solid var(--orb-face); margin-top:2px; animation: mouthTalk 0.6s ease-in-out infinite alternate; }
+.ao-alert .aoEye { border-radius:50%; height:3px; border-bottom:1.5px solid var(--orb-face); animation: eyesAlert 1.8s ease-in-out infinite; }
+.ao-alert .aoMouth { width:5px; height:1.5px; border-radius:3px 3px 0 0; border:1.5px solid var(--orb-face); border-bottom:0; }
+
+/* Anillos orbitales 3D giratorios */
+.aoRings { position:absolute; inset:-10px; pointer-events:none; transform-style:preserve-3d; transition:all 0.5s ease; }
+.assistantOrb.compact .aoRings { inset:-6px; }
+.aoRing { position:absolute; inset:0; border:1px solid rgba(255,205,136,0.35); border-radius:50%; filter:drop-shadow(0 0 4px rgba(255,205,136,0.15)); }
+.aoRing1 { transform:rotateX(75deg) rotateY(15deg); animation: spinRing1 8s linear infinite; border-color: color-mix(in srgb, var(--orb-base) 35%, transparent); }
+.aoRing2 { transform:rotateX(65deg) rotateY(-25deg); animation: spinRing2 12s linear infinite; border-color: color-mix(in srgb, var(--orb-base) 20%, transparent); }
+
+@keyframes orbBreathe { 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.06);} }
+@keyframes orbPulseListening { 0%,100%{ transform:scale(1); box-shadow:0 8px 24px var(--orb-glow),0 0 0 4px rgba(91,124,255,0.25);} 50%{ transform:scale(1.08); box-shadow:0 8px 32px var(--orb-glow),0 0 0 10px rgba(91,124,255,0);} }
+@keyframes orbSuccessPop { 0%{ transform:scale(0.7);} 50%{ transform:scale(1.15);} 100%{ transform:scale(1);} }
+@keyframes spinRing1 { from{ transform:rotateX(75deg) rotateY(15deg) rotateZ(0);} to{ transform:rotateX(75deg) rotateY(15deg) rotateZ(360deg);} }
+@keyframes spinRing2 { from{ transform:rotateX(65deg) rotateY(-25deg) rotateZ(360deg);} to{ transform:rotateX(65deg) rotateY(-25deg) rotateZ(0);} }
+@keyframes faceThinking { 0%,100%{ transform:translate(-50%,-50%) translateX(0);} 25%{ transform:translate(-50%,-50%) translateX(-1.5px);} 75%{ transform:translate(-50%,-50%) translateX(1.5px);} }
+@keyframes mouthTalk { from{ transform:scaleY(0.6);} to{ transform:scaleY(1.4);} }
+@keyframes eyesAlert { 0%,100%{ transform:scaleY(1);} 50%{ transform:scaleY(0.7);} }
 .assistantOrbWrap{ display:inline-flex; align-items:center; gap:10px; }
 .assistantOrbWrap .aoLabel{ font-size:13px; color:var(--muted); line-height:1.35; max-width:320px; }
 
-/* ---- Cara de Domi: ojos + boca, para que se lea como personaje vivo ----
-   Los ojos parpadean en loop; la boca cambia de forma por estado. Todo en %
-   para escalar con .compact. Colores oscuros legibles sobre el orb salvia. */
-.aoFace{ position:absolute; inset:0; z-index:2; pointer-events:none; }
-.aoEye{ position:absolute; top:40%; width:13.5%; height:15%; border-radius:50%;
-  background:#22332f; transform-origin:center; animation: aoBlink 5.4s ease-in-out infinite; }
-.aoEye.l{ left:28%; }
-.aoEye.r{ right:28%; }
-.aoMouth{ position:absolute; top:60%; left:50%; transform:translateX(-50%);
-  width:26%; height:13%; border:2px solid #22332f; border-top:0;
-  border-radius:0 0 40px 40px; opacity:.92; transition:all .25s ease; }
-@keyframes aoBlink{ 0%,93%,100%{ transform:scaleY(1); } 96.5%{ transform:scaleY(.12); } }
-
-/* Expresiones por estado */
-.ao-success .aoEye{ height:8%; border-radius:40px 40px 0 0; top:43%; animation:none; } /* ojos felices ^ ^ */
-.ao-success .aoMouth{ width:34%; height:17%; top:56%; }
-.ao-alert .aoEye{ top:38%; }
-.ao-alert .aoMouth{ width:20%; height:0; border-radius:40px; top:64%; } /* boca recta = atención */
-.ao-thinking .aoEye{ top:35%; left:auto; } /* mirada hacia arriba */
-.ao-thinking .aoEye.l{ left:33%; } .ao-thinking .aoEye.r{ right:33%; }
-.ao-thinking .aoMouth{ width:14%; }
-.ao-calm .aoEye{ height:7%; top:44%; border-radius:40px; animation:none; } /* ojos entornados, relajado */
-.ao-listening .aoEye{ width:15%; height:17%; } /* ojos más abiertos, atento */
-
 @media (prefers-reduced-motion: reduce){
-  .assistantOrb, .assistantOrb::after, .aoEye{ animation:none !important; }
+  .assistantOrb, .aoInner, .aoRing, .aoMouth, .aoFace { animation:none !important; }
 }
 
 /* ---- Confetti de celebración de Domi (componente Celebrate) ---- */
