@@ -730,3 +730,157 @@ body[data-level="simple"] .advanced{ display:none !important; }
 .skelTitle{ height:22px; width:42%; margin-bottom:12px; }
 body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
 @media (prefers-reduced-motion: reduce){ .skel::after{ animation:none; } }
+
+/* ===========================================================================
+   U1-COMPANION — Domi vivo (DomiCore) + experiencia companion-first.
+   Núcleo ámbar SIEMPRE; el estado cambia acento + gesto. Solo CSS/SVG.
+   =========================================================================== */
+.dcore{
+  position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto;
+  --dc-accent:#E8B04B; --dc-core-hi:#FFF4DD; --dc-core:#FFC971; --dc-core-deep:#A85F12;
+}
+.dcore--listo{ --dc-accent:#E8B04B; }
+.dcore--escuchando{ --dc-accent:#7FA8E0; }
+.dcore--pensando{ --dc-accent:#B7A9E6; }
+.dcore--acompanando{ --dc-accent:#E8917E; }
+.dcore--proponiendo{ --dc-accent:#F0B84E; }
+.dcore--esperando{ --dc-accent:#E0A23C; }
+.dcore--calma{ --dc-accent:#7FB49C; }
+.dcore--alerta{ --dc-accent:#9B8CD4; }
+
+.dcoreHalo{
+  position:absolute; inset:4%; border-radius:50%; z-index:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--dc-accent) 60%, transparent) 0%, transparent 62%);
+  filter:blur(12px); opacity:.85; animation:dcHalo 5s ease-in-out infinite;
+}
+.dcoreOrbits{ position:absolute; inset:0; z-index:1; pointer-events:none; transform-origin:center; animation:dcSpin 48s linear infinite; }
+.dcoreOrbit{ fill:none; stroke:color-mix(in srgb, #ffe7b0 80%, var(--dc-accent)); stroke-width:.6; filter:drop-shadow(0 0 1.4px rgba(230,195,120,.7)); }
+.dcoreOrbit.o2{ stroke:color-mix(in srgb, var(--dc-accent) 70%, #ffe7b0); stroke-width:.5; }
+.dcoreDot{ fill:#fffaf0; filter:drop-shadow(0 0 2.4px var(--dc-accent)); animation:dcTwinkle 3s ease-in-out infinite; }
+.dcoreDot:nth-child(4){ animation-delay:1s; } .dcoreDot:nth-child(5){ animation-delay:1.8s; }
+
+.dcoreBall{
+  position:relative; z-index:2; width:62%; height:62%; border-radius:50%; overflow:hidden;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 36% 30%, var(--dc-core-hi) 0%, var(--dc-core) 42%, var(--dc-core-deep) 100%);
+  box-shadow:
+    inset -3px -4px 10px rgba(80,40,0,.5),
+    inset 4px 5px 12px rgba(255,255,255,.82),
+    inset 0 0 16px rgba(120,60,0,.32),
+    0 8px 24px rgba(168,95,18,.30),
+    0 0 32px 4px color-mix(in srgb, var(--dc-accent) 48%, transparent);
+  animation:dcBreathe 4.6s ease-in-out infinite;
+}
+.dcoreStars{
+  position:absolute; inset:0; border-radius:50%; z-index:0; pointer-events:none; mix-blend-mode:screen;
+  background:
+    radial-gradient(1.3px 1.3px at 30% 34%, rgba(255,255,255,.95), transparent 60%),
+    radial-gradient(1px 1px at 64% 28%, rgba(255,248,225,.9), transparent 60%),
+    radial-gradient(1.5px 1.5px at 72% 64%, rgba(255,255,255,.85), transparent 60%),
+    radial-gradient(1px 1px at 40% 72%, rgba(255,243,215,.8), transparent 60%),
+    radial-gradient(1.1px 1.1px at 54% 50%, rgba(255,255,255,.85), transparent 60%);
+  animation:dcTwinkle 3.6s ease-in-out infinite;
+}
+.dcoreSpecular{
+  position:absolute; top:11%; left:19%; width:40%; height:30%; border-radius:50%; z-index:3; pointer-events:none;
+  background:radial-gradient(circle at 40% 35%, rgba(255,255,255,.92), rgba(255,255,255,0) 70%); filter:blur(.4px);
+}
+.dcoreFace{ position:relative; z-index:2; width:70%; height:70%; }
+.dcoreEyes, .eyeHappy, .eyeBall, .dcoreMouth{ transition:opacity .25s ease, transform .25s ease; }
+.eyeHappy{ fill:none; stroke:#7a4a16; stroke-width:5; stroke-linecap:round; }
+.eyeBall{ fill:#5e3a12; opacity:0; }
+.dcoreMouth{ fill:none; stroke:#7a4a16; stroke-width:5; stroke-linecap:round; opacity:.85; }
+/* puntos de "pensando" sobre el núcleo */
+.dcoreThinkDots{ position:absolute; top:-12%; left:50%; transform:translateX(-50%); display:none; gap:4px; z-index:6; }
+.dcoreThinkDots i{ width:5px; height:5px; border-radius:50%; background:var(--dc-accent); display:inline-block; animation:dcDot 1s infinite; }
+.dcoreThinkDots i:nth-child(2){ animation-delay:.18s; } .dcoreThinkDots i:nth-child(3){ animation-delay:.36s; }
+
+/* ---- gestos por estado ---- */
+.dcore--listo .dcoreEyes{ animation:dcLook 7s ease-in-out infinite; }
+.dcore--escuchando .eyeHappy{ opacity:0; } .dcore--escuchando .eyeBall{ opacity:1; animation:dcWide 2s ease-in-out infinite; }
+.dcore--escuchando .dcoreMouth{ d:path("M42 49 Q50 53 58 49"); }
+.dcore--pensando .eyeHappy{ opacity:0; } .dcore--pensando .eyeBall{ opacity:1; transform:translateY(-3px); }
+.dcore--pensando .dcoreMouth{ opacity:0; } .dcore--pensando .dcoreThinkDots{ display:flex; }
+.dcore--pensando .dcoreBall{ animation:dcThink 2.2s ease-in-out infinite; }
+.dcore--acompanando .dcoreMouth{ stroke-width:6; }
+.dcore--proponiendo .dcoreMouth{ stroke-width:6; transform:scale(1.05); }
+.dcore--esperando .dcoreMouth{ d:path("M43 50 L57 50"); }
+.dcore--calma .eyeHappy{ stroke-width:5.5; } .dcore--calma .dcoreBall{ animation:dcBreathe 6.5s ease-in-out infinite; }
+.dcore--alerta .eyeHappy{ opacity:0; } .dcore--alerta .eyeBall{ opacity:1; transform:scaleY(1.15); }
+
+@keyframes dcBreathe{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.035);} }
+@keyframes dcHalo{ 0%,100%{ opacity:.72; transform:scale(1);} 50%{ opacity:.96; transform:scale(1.06);} }
+@keyframes dcSpin{ from{ transform:rotate(0);} to{ transform:rotate(360deg);} }
+@keyframes dcTwinkle{ 0%,100%{ opacity:.35;} 50%{ opacity:1;} }
+@keyframes dcDot{ 0%,100%{ transform:translateY(0); opacity:.5;} 50%{ transform:translateY(-4px); opacity:1;} }
+@keyframes dcLook{ 0%,70%,100%{ transform:translateX(0);} 80%{ transform:translateX(-3px);} 90%{ transform:translateX(3px);} }
+@keyframes dcWide{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.15);} }
+@keyframes dcThink{ 0%,100%{ transform:rotate(-3deg);} 50%{ transform:rotate(3deg);} }
+@media (prefers-reduced-motion: reduce){
+  .dcoreHalo,.dcoreOrbits,.dcoreDot,.dcoreStars,.dcoreBall,.dcoreEyes,.eyeBall,.dcoreThinkDots i{ animation:none !important; }
+}
+
+/* ===================== COMPANION SHELL (pantalla única) ===================== */
+.companion{ max-width:560px; margin:0 auto; padding:8px 0 96px; }
+.companionStage{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:10px 0 6px; }
+.companionGreet{ font-size:20px; font-weight:800; margin-top:10px; line-height:1.25; color:var(--text); }
+.companionSub{ font-size:14px; color:var(--muted); margin-top:4px; }
+.companionState{ font-size:12px; font-weight:700; color:var(--dc-accent,#C98A2E); margin-top:8px; letter-spacing:.02em; text-transform:lowercase; }
+
+/* entrada universal */
+.composer{ position:sticky; bottom:0; z-index:20; background:linear-gradient(180deg, transparent, var(--bg) 22%); padding:10px 0 6px; }
+.composerBar{ display:flex; align-items:center; gap:8px; background:var(--card,#fff); border:1px solid var(--line); border-radius:18px; padding:7px 8px 7px 12px; box-shadow:0 6px 20px rgba(120,95,60,.10); }
+.composerBar input{ flex:1; border:none; outline:none; background:transparent; font-size:15px; color:inherit; min-width:0; }
+.composerBtn{ flex:0 0 auto; width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:var(--bg); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:#6b5436; }
+.composerBtn:hover{ background:rgba(0,0,0,.04); }
+.composerBtn.send{ background:#4A7A6B; border-color:#4A7A6B; color:#fff; }
+.composerBtn.mic.on{ background:#7FA8E0; border-color:#7FA8E0; color:#fff; animation:micPulse 1.2s ease-in-out infinite; }
+@keyframes micPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(127,168,224,.5);} 50%{ box-shadow:0 0 0 7px rgba(127,168,224,0);} }
+.composerHint{ font-size:11px; color:var(--muted); text-align:center; margin-top:6px; }
+
+/* tarjetas dinámicas */
+.cardFeed{ display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+.dcard{ background:var(--card,#fff); border:1px solid var(--line); border-radius:16px; padding:14px 16px; animation:dcardIn .28s ease; }
+.dcard--domi{ background:#FFF8EE; border-color:#EADfC8; }
+.dcard--proposal{ border-color:#D9C49A; background:#FFFaf0; }
+.dcardTitle{ font-weight:800; font-size:15px; margin-bottom:4px; }
+.dcardText{ font-size:14px; color:var(--text); line-height:1.5; }
+.dcardMuted{ font-size:12.5px; color:var(--muted); }
+.dcardActions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.suggRow{ display:flex; flex-wrap:wrap; gap:8px; }
+.suggChip{ font-size:13px; font-weight:700; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:var(--bg); cursor:pointer; color:#5b4a36; }
+.suggChip:hover{ background:rgba(0,0,0,.04); }
+.confirmNote{ font-size:12px; color:#9a6a00; margin-top:8px; display:flex; gap:6px; align-items:center; }
+@keyframes dcardIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+
+/* respiración guiada */
+.breathDot{ width:90px; height:90px; border-radius:50%; margin:14px auto 6px; background:radial-gradient(circle at 38% 32%, #fff, var(--dc-accent,#7FB49C)); animation:breath 8s ease-in-out infinite; }
+.breathLabel{ text-align:center; font-size:13px; color:var(--muted); }
+@keyframes breath{ 0%,100%{ transform:scale(.7); } 50%{ transform:scale(1.05); } }
+@media (prefers-reduced-motion: reduce){ .breathDot{ animation:none; } }
+
+/* ===================== NAV reducida + bottom nav móvil ===================== */
+.navMore{ font-weight:700; color:var(--primary); padding:6px 10px; border-radius:8px; display:inline-block; }
+.navMore:hover{ background:rgba(0,0,0,.04); }
+.moreMenu{ position:relative; }
+.moreMenu > summary{ list-style:none; cursor:pointer; }
+.moreMenu > summary::-webkit-details-marker{ display:none; }
+.morePanel{ position:absolute; right:0; top:120%; background:var(--card,#fff); border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 30px rgba(120,95,60,.16); padding:8px; min-width:200px; z-index:50; display:flex; flex-direction:column; gap:2px; }
+.morePanel a{ padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--text); font-size:14px; }
+.morePanel a:hover{ background:rgba(0,0,0,.05); }
+
+.bottomNav{ display:none; }
+@media (max-width:760px){
+  .navLinks{ display:none !important; }
+  .bottomNav{
+    display:flex; position:fixed; left:0; right:0; bottom:0; z-index:60;
+    background:var(--card,#fff); border-top:1px solid var(--line);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom)); justify-content:space-around;
+  }
+  .bottomNav a{ display:flex; flex-direction:column; align-items:center; gap:2px; font-size:10.5px; color:var(--muted); text-decoration:none; padding:4px 8px; border-radius:10px; min-width:56px; }
+  .bottomNav a.bnDomi{ transform:translateY(-12px); border-radius:50%; width:54px; height:54px; justify-content:center; padding:0;
+    background:radial-gradient(circle at 38% 32%, #fff, #FFC971 46%, #A85F12);
+    box-shadow:0 6px 16px rgba(168,95,18,.45), inset 0 1px 3px rgba(255,255,255,.7); }
+  .bnDomiDot{ width:18px; height:18px; border-radius:50%; background:radial-gradient(circle at 40% 35%, #fff, rgba(255,255,255,0) 70%); }
+  .container{ padding-bottom:84px; }
+}

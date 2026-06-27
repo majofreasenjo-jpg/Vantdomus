@@ -1,61 +1,19 @@
 /**
- * U1-LOCAL — Panel del Hogar.
+ * U1-COMPANION — Home companion-first.
  *
- * Home principal de VantDomus Hogar (modo familia). Server Component que
- * compone en una sola pantalla: saludo + Domi narrador (frases por reglas,
- * sin IA), avisos del hogar, actividades del día, compras pendientes/carro
- * tentativo, accesos rápidos a Guía/Biblioteca/Documentos/Salud/Finanzas.
- *
- * Convive con /dashboard/[id] (operativo/KPIs). No lo reemplaza.
+ * La home YA NO es un dashboard de módulos: es una sola pantalla viva donde
+ * Domi conversa y aparecen tarjetas. Este Server Component solo obtiene datos
+ * reales (resumen del día, personas, conteos) y se los pasa a <DomiCompanion>,
+ * que es la experiencia. Los módulos viven bajo "Más" (ver layout).
  */
-
 import { cookies } from "next/headers";
 import {
-  getDashboard,
-  familyBoardList,
-  shoppingList,
-  shoppingCart,
-  dailyActivitiesList,
-  listUnitFunctions,
+  getDashboard, familyBoardList, shoppingList, dailyActivitiesList, listUnitFunctions,
 } from "../../../lib/api";
-import MemberChip from "../../components/MemberChip";
-import TrustFooter from "../../components/TrustFooter";
-import DomiPanel from "../../components/DomiPanel";
+import DomiCompanion from "../../components/DomiCompanion";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-type Person = { id: string; display_name: string; relation?: string; avatar?: string | null; status_emoji?: string | null; status_text?: string | null };
-
-function todayIso(): string {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
-}
-
-function fmtTime(iso?: string | null): string {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
-  } catch { return ""; }
-}
-
-function priorityPill(p: string): { cls: string; label: string } {
-  if (p === "urgent" || p === "high") return { cls: "bad", label: "Importante" };
-  if (p === "low") return { cls: "", label: "Baja" };
-  return { cls: "warn", label: "Normal" };
-}
-
-const POST_TYPE_LABEL: Record<string, string> = {
-  notice: "Aviso", alert: "Alerta", reminder: "Recordatorio",
-  message: "Mensaje", emergency_note: "Emergencia",
-  logistics: "Logística", shopping: "Compras", health: "Salud",
-  school: "Colegio", finance: "Finanzas", document: "Documento",
-};
-
-const ACT_TYPE_EMOJI: Record<string, string> = {
-  school: "📚", work: "💼", health: "💊", errand: "🛒",
-  sport: "⚽", social: "👥", home: "🏠", travel: "✈️", other: "•",
-};
 
 function pickGreeting(): string {
   const h = new Date().getHours();
@@ -65,308 +23,67 @@ function pickGreeting(): string {
   return "Buenas noches";
 }
 
-function buildDomiSummary(opts: {
-  greeting: string; userName?: string;
-  alertsCount: number; pinnedTitle?: string;
-  pendingActivities: number; pendingMeds: number;
-  shoppingPending: number; shoppingInCart: number;
-  topAssignedShoppingPersonName?: string; topAssignedShoppingItem?: string;
-  schoolNoticeTitle?: string;
-}): { headline: string; lines: string[] } {
-  const { greeting, userName, alertsCount, pinnedTitle,
-    pendingActivities, pendingMeds, shoppingPending, shoppingInCart,
-    topAssignedShoppingPersonName, topAssignedShoppingItem, schoolNoticeTitle } = opts;
-  const things = alertsCount + Math.min(pendingActivities, 6) + (pendingMeds > 0 ? 1 : 0) + (shoppingPending > 0 ? 1 : 0);
-  const headline = userName
-    ? `${greeting}, ${userName}. Hoy hay ${things} cosas importantes en casa.`
-    : `${greeting}. Hoy hay ${things} cosas importantes en casa.`;
-  const lines: string[] = [];
-  if (pinnedTitle) lines.push(`📌 ${pinnedTitle}`);
-  if (pendingMeds > 0) lines.push(`Elena tiene ${pendingMeds === 1 ? "un medicamento pendiente" : `${pendingMeds} medicamentos pendientes`} esta noche.`);
-  if (schoolNoticeTitle) lines.push(`Aviso del colegio: ${schoolNoticeTitle}`);
-  if (shoppingPending > 0) lines.push(`Faltan ${shoppingPending} productos por comprar (${shoppingInCart} ya en carro tentativo).`);
-  if (topAssignedShoppingPersonName && topAssignedShoppingItem) {
-    lines.push(`${topAssignedShoppingPersonName} está encargado de: ${topAssignedShoppingItem}.`);
-  }
-  if (lines.length === 0) lines.push("Todo tranquilo. Buen momento para registrar evidencia o planificar la semana.");
-  return { headline, lines };
-}
-
-export default async function PanelDelHogar({ params }: { params: Promise<{ householdId: string }> }) {
+export default async function HomeCompanion({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
   const store = await cookies();
   const userName = store.get("vd_user_first_name")?.value;
 
-  // Cargar datos en paralelo. Cualquier fallo individual no rompe el panel.
-  const [dash, board, shopAll, cart, activities, ufs] = await Promise.all([
+  const [dash, board, shopAll, activities, ufs] = await Promise.all([
     getDashboard(hid).catch(() => null),
     familyBoardList(hid).catch(() => ({ items: [] })),
     shoppingList(hid).catch(() => ({ items: [] })),
-    shoppingCart(hid).catch(() => ({ groups: [], total_estimated: 0, currency: "CLP", disclaimer: "" })),
-    dailyActivitiesList(hid, todayIso()).catch(() => ({ items: [] })),
+    dailyActivitiesList(hid, new Date().toISOString().slice(0, 10)).catch(() => ({ items: [] })),
     listUnitFunctions({ household_id: hid, category: "medication", limit: 50 }).catch(() => ({ items: [] })),
   ]);
 
   if (!dash) {
     return (
-      <div className="container">
-        <div className="card" style={{ padding: 32 }}>
-          <div className="cardTitle">No pudimos cargar este hogar</div>
-          <a className="btn" href="/dashboard">← Volver</a>
-        </div>
+      <div className="card" style={{ padding: 32, maxWidth: 520, margin: "24px auto" }}>
+        <div className="cardTitle">No pudimos cargar tu hogar</div>
+        <a className="btn" href="/login">Entrar de nuevo</a>
       </div>
     );
   }
 
-  const familyName: string = dash?.household?.meta?.family_name || "Tu hogar";
-  const persons: Person[] = dash?.persons || [];
-  const personById = new Map(persons.map((p) => [p.id, p]));
-
+  const persons = (dash?.persons || []) as any[];
   const boardItems = (board?.items || []) as any[];
   const alerts = boardItems.filter((p) => p.priority === "high" || p.priority === "urgent" || p.post_type === "alert");
   const pinned = boardItems.filter((p) => p.pinned);
   const schoolNotice = boardItems.find((p) => p.post_type === "school");
-
   const shopping = (shopAll?.items || []) as any[];
   const shoppingPending = shopping.filter((s) => s.status === "needed");
   const shoppingInCart = shopping.filter((s) => s.status === "in_cart");
-
   const acts = (activities?.items || []) as any[];
-  const actsByPerson = new Map<string, any[]>();
-  for (const a of acts) {
-    if (!actsByPerson.has(a.person_id)) actsByPerson.set(a.person_id, []);
-    actsByPerson.get(a.person_id)!.push(a);
-  }
-
+  const plannedActs = acts.filter((a) => a.status === "planned").length;
   const meds = (ufs?.items || []) as any[];
-  // "Pendientes esta noche" = medication con horario 18:00-23:59 que no esté done.
-  const tonightMeds = meds.filter((m) => {
-    const times: string[] = (m?.schedule?.times || []) as string[];
-    return times.some((t) => /^(1[89]|2[0-3]):/.test(t));
-  });
+  const tonightMeds = meds.filter((m) => ((m?.schedule?.times || []) as string[]).some((t) => /^(1[89]|2[0-3]):/.test(t)));
 
-  // Top asignado (algo concreto que decir en el resumen de Domi).
-  const topAssigned = shoppingPending.find((s) => s.assigned_to_person_id);
-  const topAssignedPerson = topAssigned ? personById.get(topAssigned.assigned_to_person_id) : undefined;
+  // Resumen real del día (mismas señales que antes, ahora como tarjeta de Domi).
+  const lines: string[] = [];
+  if (pinned[0]?.title) lines.push(`📌 ${pinned[0].title}`);
+  if (tonightMeds.length > 0) lines.push(`Hay ${tonightMeds.length === 1 ? "un medicamento" : `${tonightMeds.length} medicamentos`} con horario para esta noche (la toma la confirma una persona).`);
+  if (schoolNotice?.title) lines.push(`Aviso del colegio: ${schoolNotice.title}`);
+  if (shoppingPending.length > 0) lines.push(`Faltan ${shoppingPending.length} productos por comprar (${shoppingInCart.length} ya en carro tentativo).`);
+  if (plannedActs > 0) lines.push(`${plannedActs} actividad(es) planificada(s) para hoy.`);
+  if (persons.length === 0) lines.push("Aún no hay integrantes. Pídeme “configurar mi hogar” y te guío.");
+  if (lines.length === 0) lines.push("Todo tranquilo en casa. Buen momento para un respiro o planificar la semana.");
 
-  const domi = buildDomiSummary({
-    greeting: pickGreeting(),
-    userName,
-    alertsCount: alerts.length,
-    pinnedTitle: pinned[0]?.title,
-    pendingActivities: acts.filter((a) => a.status === "planned").length,
-    pendingMeds: tonightMeds.length,
-    shoppingPending: shoppingPending.length,
-    shoppingInCart: shoppingInCart.length,
-    topAssignedShoppingPersonName: topAssignedPerson?.display_name,
-    topAssignedShoppingItem: topAssigned?.item_name,
-    schoolNoticeTitle: schoolNotice?.title,
-  });
+  const summary = { title: "Esto es lo importante hoy", lines };
 
-  // Hero de Domi: SIEMPRE el orbe DORADO con cara (identidad reconocible "Domi").
-  // "motivado" cuando hay movimiento en casa, "sereno" cuando está tranquilo.
-  // (Los estados de color —atento/cariñoso/protector— se reservan para momentos
-  // puntuales, p.ej. el chat; el orbe "protector" es un cristal sin cara y no se
-  // usa como hero porque se ve críptico.)
-  const domiState: import("../../components/DomiOrb").DomiState =
-    (alerts.length > 0 || tonightMeds.length > 0 || shoppingPending.length > 0
-      || acts.filter((a) => a.status === "planned").length > 0) ? "motivado"
-    : "sereno";
+  const suggestions = [
+    { label: "Ordenar mi día", send: "ordenar mi día" },
+    { label: "Preparar compras", send: "agrega leche, pan y paracetamol" },
+    { label: "Confirmar salud", send: "medicamento de Elena para hoy" },
+    { label: "Leer un documento", send: "subir documento" },
+    { label: "Un momento de calma", send: "pon música tranquila" },
+  ];
 
   return (
-    <div className="container">
-      {/* HERO — Constelación inteligente del hogar */}
-      <DomiPanel
-        state={domiState}
-        familyName={familyName}
-        headline={domi.headline}
-        lines={domi.lines}
-        note="Domi propone y resume. Las decisiones importantes (salud, medicamentos, finanzas) las confirmás tú."
-        orbitChips={[
-          { icon: "home", label: "Hogar" },
-          { icon: "health", label: "Salud", active: tonightMeds.length > 0 },
-          { icon: "shopping", label: "Compras", active: shoppingPending.length > 0 },
-          { icon: "message", label: "Mensajes", active: alerts.length > 0 },
-          { icon: "users", label: "Familia" },
-          { icon: "shield", label: "Seguridad" },
-        ]}
-        contextChips={[
-          { icon: "users", label: "Perfiles", hint: "avatares y estados", href: `/perfiles/${hid}` },
-          { icon: "guide", label: "Guía Familiar", hint: "funciones por integrante", href: `/guia` },
-          { icon: "book", label: "Biblioteca", hint: "memoria y evidencia", href: `/biblioteca` },
-          { icon: "file", label: "Documentos", hint: "bandeja inteligente", href: `/documents/${hid}` },
-        ]}
-      />
-
-      {persons.length === 0 ? (
-        <a className="card" href={`/onboarding/${hid}`} style={{ display: "block", padding: 16, marginBottom: 14, textDecoration: "none", color: "inherit", borderLeft: "3px solid #4A7A6B" }}>
-          <div style={{ fontWeight: 700 }}>✨ Configura tu hogar en 1 minuto</div>
-          <div className="small" style={{ marginTop: 4, color: "var(--muted)" }}>Agrega integrantes, elige avatares e invita a la familia. (O prueba con una familia de muestra.)</div>
-        </a>
-      ) : null}
-
-      {/* GRID: avisos + actividades del día */}
-      <div className="grid2" style={{ marginBottom: 14 }}>
-        {/* AVISOS DEL HOGAR */}
-        <div className="card" style={{ padding: 18 }}>
-          <div className="row" style={{ marginBottom: 10 }}>
-            <div className="cardTitle">📣 Avisos del hogar</div>
-            <a className="btn" href={`/avisos/${hid}`} style={{ fontSize: 12 }}>Ver todos</a>
-          </div>
-          {boardItems.length === 0 ? (
-            <div className="small" style={{ padding: 12 }}>Sin avisos por ahora. Cuando publiques uno, aparece acá.</div>
-          ) : (
-            <div className="grid" style={{ gap: 10 }}>
-              {boardItems.slice(0, 5).map((p) => {
-                const pill = priorityPill(p.priority);
-                const needsHuman = p.post_type === "health" || p.post_type === "alert";
-                return (
-                  <div key={p.id} className="card" style={{ padding: 12, background: "var(--bg)" }}>
-                    <div className="row" style={{ marginBottom: 6 }}>
-                      <span className="small" style={{ color: "var(--muted)" }}>
-                        {POST_TYPE_LABEL[p.post_type] || p.post_type}
-                        {p.pinned ? " · 📌 Fijado" : ""}
-                      </span>
-                      <span className={`pill ${pill.cls}`}>{pill.label}</span>
-                    </div>
-                    <div style={{ fontWeight: 700 }}>{p.title}</div>
-                    {p.body ? <div className="small" style={{ marginTop: 4 }}>{p.body}</div> : null}
-                    {needsHuman ? (
-                      <div className="small" style={{ marginTop: 6, color: "#9a6a00" }}>
-                        🛡️ Confirmación humana requerida
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* ACTIVIDADES DEL DÍA */}
-        <div className="card" style={{ padding: 18 }}>
-          <div className="row" style={{ marginBottom: 10 }}>
-            <div className="cardTitle">🌞 Hoy en la familia</div>
-          </div>
-          {persons.length === 0 ? (
-            <div className="small">Sin integrantes registrados.</div>
-          ) : (
-            <div className="grid" style={{ gap: 10 }}>
-              {persons.map((p) => {
-                const personActs = (actsByPerson.get(p.id) || []).slice(0, 3);
-                return (
-                  <div key={p.id} className="card" style={{ padding: 12, background: "var(--bg)" }}>
-                    <div style={{ marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <MemberChip name={p.display_name} personId={p.id} avatar={p.avatar} bold />
-                      {p.status_emoji || p.status_text ? (
-                        <span className="pill" style={{ fontSize: 11 }} title="Estado del hogar">
-                          {p.status_emoji || "•"} {p.status_text || ""}
-                        </span>
-                      ) : null}
-                    </div>
-                    {personActs.length === 0 ? (
-                      <div className="small" style={{ color: "var(--muted)" }}>Sin actividades hoy.</div>
-                    ) : (
-                      personActs.map((a) => (
-                        <div key={a.id} className="small" style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
-                          <span>{ACT_TYPE_EMOJI[a.activity_type] || "•"}</span>
-                          <span style={{ minWidth: 44, color: "var(--muted)" }}>{fmtTime(a.starts_at) || "—"}</span>
-                          <span style={{ textDecoration: a.status === "done" || a.status === "cancelled" ? "line-through" : "none" }}>
-                            {a.title}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* COMPRAS + CARRO */}
-      <div className="card" style={{ marginBottom: 14, padding: 18 }}>
-        <div className="row" style={{ marginBottom: 10 }}>
-          <div className="cardTitle">🛒 Compras del hogar</div>
-          <a className="btn" href={`/compras/${hid}`} style={{ fontSize: 12 }}>Ver todas</a>
-        </div>
-        <div className="grid2">
-          <div>
-            <div className="small" style={{ marginBottom: 6 }}>
-              Falta en casa ({shoppingPending.length})
-            </div>
-            {shoppingPending.length === 0 ? (
-              <div className="small" style={{ color: "var(--muted)" }}>Sin pendientes. ¡Bien!</div>
-            ) : (
-              shoppingPending.slice(0, 5).map((s) => {
-                const who = s.assigned_to_person_id ? personById.get(s.assigned_to_person_id) : null;
-                return (
-                  <div key={s.id} className="small" style={{ padding: "4px 0" }}>
-                    • {s.item_name} {s.quantity ? `· ${s.quantity}${s.unit ? " " + s.unit : ""}` : ""}
-                    {who ? <span style={{ color: "var(--muted)" }}> · para {who.display_name}</span> : null}
-                  </div>
-                );
-              })
-            )}
-          </div>
-          <div>
-            <div className="small" style={{ marginBottom: 6 }}>
-              Carro tentativo ({shoppingInCart.length})
-            </div>
-            {shoppingInCart.length === 0 ? (
-              <div className="small" style={{ color: "var(--muted)" }}>Nada en carro.</div>
-            ) : (
-              shoppingInCart.slice(0, 5).map((s) => (
-                <div key={s.id} className="small" style={{ padding: "4px 0" }}>
-                  • {s.item_name} {s.estimated_price ? <span style={{ color: "var(--muted)" }}>· ~${Math.round(s.estimated_price).toLocaleString("es-CL")} {s.currency || ""}</span> : null}
-                </div>
-              ))
-            )}
-            {cart?.total_estimated ? (
-              <div className="small" style={{ marginTop: 8, color: "var(--muted)" }}>
-                Total estimado: ${Math.round(cart.total_estimated).toLocaleString("es-CL")} {cart.currency || ""}
-              </div>
-            ) : null}
-            <div className="small" style={{ marginTop: 8, color: "var(--muted)", fontStyle: "italic" }}>
-              Por ahora, la compra se realiza fuera de VantDomus. Esta lista ayuda a organizar el hogar.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ACCESOS RÁPIDOS — paleta cálida coherente (sin neón saturado). */}
-      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-        <a className="card warmAccess" href={`/actividades/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
-          <div className="cardTitle">🌞 Actividades del día</div>
-          <div className="small" style={{ marginTop: 6 }}>{acts.length > 0 ? `${acts.length} eventos hoy` : "Planifica el día"}</div>
-        </a>
-        <a className="card warmAccess" href={`/health/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
-          <div className="cardTitle">💊 Salud y cuidado</div>
-          <div className="small" style={{ marginTop: 6 }}>
-            {tonightMeds.length > 0 ? `${tonightMeds.length} medicamento(s) esta noche` : "Sin pendientes urgentes"}
-          </div>
-        </a>
-        <a className="card warmAccess" href={`/documents/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
-          <div className="cardTitle">📄 Documentos</div>
-          <div className="small" style={{ marginTop: 6 }}>Bandeja inteligente · recetas, boletas, circulares</div>
-        </a>
-        <a className="card warmAccess" href={`/finance/${hid}`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
-          <div className="cardTitle">💰 Presupuesto</div>
-          <div className="small" style={{ marginTop: 6 }}>Ingresos, gastos y vencimientos del hogar</div>
-        </a>
-        <a className="card warmAccess" href={`/biblioteca`} style={{ padding: 16, textDecoration: "none", color: "inherit" }}>
-          <div className="cardTitle">📚 Biblioteca</div>
-          <div className="small" style={{ marginTop: 6 }}>Memoria, evidencia y evolución por integrante</div>
-        </a>
-      </div>
-
-      <TrustFooter hid={hid} />
-
-      <div className="footerNote">
-        Vista del Panel del Hogar. La compra se realiza fuera de VantDomus por ahora. Los recordatorios automáticos
-        (push/SMS) llegarán en una próxima fase.
-      </div>
-    </div>
+    <DomiCompanion
+      userName={userName}
+      greeting={pickGreeting()}
+      summary={summary}
+      suggestions={suggestions}
+    />
   );
 }

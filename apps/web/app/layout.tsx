@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { logoutAction, setViewLevelAction } from "./login/actions";
 import NavLink from "./components/NavLink";
 import Celebrate from "./components/Celebrate";
-import DomiFloating from "./components/DomiFloating";
+import DomiIcon from "./components/domiIcons";
 
 // Tipografía humanista redondeada y cálida, coherente con "hogar".
 // Se expone como CSS var --font-family-warm y se aplica en modo familia.
@@ -105,39 +105,43 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </div>
             </div>
             {hasSession ? (
-              <div className="navLinks">
-                {/* Las secciones B2B "Direccion" y "Centro Operativo" SOLO
-                    aparecen cuando NO es modo familia. En familia rompen la
-                    inmersión y revelan la naturaleza B2B del producto. */}
-                {!isFamily ? (
-                  <>
-                    <a href="/ceo" style={{ color: "var(--good)", fontWeight: "bold" }}>Direccion</a>
-                    <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
-                  </>
-                ) : null}
-                <NavLink href={hid ? (isFamily ? `/hogar/${hid}` : `/dashboard/${hid}`) : "/"}>{isFamily ? "Inicio" : "Dashboard"}</NavLink>
-                {/* Sprint U1-FIX F2: en family, el "Mural del Hogar" (canon §15) y
-                    "Compras" (canon §18) son entradas de primer nivel del navbar. */}
-                {isFamily && hid ? (
-                  <>
-                    <NavLink href={`/avisos/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Mural</NavLink>
-                    <NavLink href={`/compras/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Compras</NavLink>
-                    <NavLink href={`/recordatorios/${hid}`} style={{ color: "var(--primary)", fontWeight: "bold" }}>Recordatorios</NavLink>
-                  </>
-                ) : null}
-                {/* Sprint VG+2: "Guía" + "Biblioteca" como pilares del producto VantGuide.
-                    Codex 5.5: nav genérico "Guía", título contextual por preset. */}
-                <NavLink href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</NavLink>
-                <NavLink href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</NavLink>
-                <NavLink href={hid ? `/tasks/${hid}` : "/"}>{isFamily ? "Agenda" : tax.tasks}</NavLink>
-                {canSee("health") ? <NavLink href={hid ? `/health/${hid}` : "/"}>{isFamily ? "Salud" : tax.health}</NavLink> : null}
-                {canSee("finance") ? <NavLink href={hid ? `/finance/${hid}` : "/"}>{isFamily ? "Presupuesto" : tax.finance}</NavLink> : null}
-                {canSee("documents") ? <NavLink href={hid ? (isFamily ? `/documents/${hid}` : `/esg/${hid}`) : "/"}>{isFamily ? "Documentos" : tax.esg}</NavLink> : null}
-                {/* En family, la bandeja vive dentro de Documentos; "Buzón" sigue
-                    siendo accesible en B2B. */}
-                {!isFamily ? <NavLink href="/inbox">Buzón</NavLink> : null}
-                <NavLink href={hid ? `/settings/${hid}` : "/"}>{isFamily ? "Ajustes" : "Ajustes Cliente"}</NavLink>
-              </div>
+              isFamily ? (
+                /* U1-COMPANION: navegación reducida. La home es Domi; los módulos
+                   viven bajo "Más" (no como pestañas de primer nivel). */
+                <div className="navLinks">
+                  <NavLink href={hid ? `/hogar/${hid}` : "/"}>Inicio</NavLink>
+                  <NavLink href={hid ? `/recordatorios/${hid}` : "/"}>Hoy</NavLink>
+                  <NavLink href="/guia">Guía</NavLink>
+                  {canSee("documents") ? <NavLink href={hid ? `/documents/${hid}` : "/"}>Documentos</NavLink> : null}
+                  <details className="moreMenu">
+                    <summary><span className="navMore">Más ▾</span></summary>
+                    <div className="morePanel">
+                      {hid ? <a href={`/avisos/${hid}`}>Mural</a> : null}
+                      {hid ? <a href={`/compras/${hid}`}>Compras</a> : null}
+                      {canSee("health") && hid ? <a href={`/health/${hid}`}>Salud</a> : null}
+                      {canSee("finance") && hid ? <a href={`/finance/${hid}`}>Presupuesto</a> : null}
+                      <a href="/biblioteca">Biblioteca</a>
+                      {hid ? <a href={`/tasks/${hid}`}>Agenda</a> : null}
+                      {hid ? <a href={`/perfiles/${hid}`}>Perfiles</a> : null}
+                      {hid ? <a href={`/settings/${hid}`}>Ajustes</a> : null}
+                    </div>
+                  </details>
+                </div>
+              ) : (
+                <div className="navLinks">
+                  <a href="/ceo" style={{ color: "var(--good)", fontWeight: "bold" }}>Direccion</a>
+                  <a href="/gerencia" style={{ color: "var(--warn)", fontWeight: "bold" }}>Centro Operativo</a>
+                  <NavLink href={hid ? `/dashboard/${hid}` : "/"}>Dashboard</NavLink>
+                  <NavLink href="/guia" style={{ color: "var(--primary)", fontWeight: "bold" }}>Guía</NavLink>
+                  <NavLink href="/biblioteca" style={{ color: "var(--primary)", fontWeight: "bold" }}>Biblioteca</NavLink>
+                  <NavLink href={hid ? `/tasks/${hid}` : "/"}>{tax.tasks}</NavLink>
+                  {canSee("health") ? <NavLink href={hid ? `/health/${hid}` : "/"}>{tax.health}</NavLink> : null}
+                  {canSee("finance") ? <NavLink href={hid ? `/finance/${hid}` : "/"}>{tax.finance}</NavLink> : null}
+                  {canSee("documents") ? <NavLink href={hid ? `/esg/${hid}` : "/"}>{tax.esg}</NavLink> : null}
+                  <NavLink href="/inbox">Buzón</NavLink>
+                  <NavLink href={hid ? `/settings/${hid}` : "/"}>Ajustes Cliente</NavLink>
+                </div>
+              )
             ) : null}
             {isFamily ? (
               <form action={setViewLevelAction}>
@@ -167,7 +171,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </div>
         <div className="container">{children}</div>
         {isFamily ? <Celebrate /> : null}
-        {isFamily && hasSession && hid ? <DomiFloating hid={hid} /> : null}
+        {/* Bottom nav móvil (companion-first). Solo visible en pantallas chicas. */}
+        {isFamily && hasSession && hid ? (
+          <nav className="bottomNav" aria-label="Navegación">
+            <a href={`/hogar/${hid}`}><DomiIcon name="home" size={20} color="currentColor" /><span>Inicio</span></a>
+            <a href={`/recordatorios/${hid}`}><DomiIcon name="calendar" size={20} color="currentColor" /><span>Hoy</span></a>
+            <a className="bnDomi" href={`/hogar/${hid}`} aria-label="Hablar con Domi"><span className="bnDomiDot" /></a>
+            <a href={`/documents/${hid}`}><DomiIcon name="file" size={20} color="currentColor" /><span>Documentos</span></a>
+            <a href="/guia"><DomiIcon name="guide" size={20} color="currentColor" /><span>Guía</span></a>
+          </nav>
+        ) : null}
       </body>
     </html>
   );
