@@ -76,21 +76,27 @@ export default function DomiCompanion({
   function toggleMic() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      push({ role: "domi", text: "Tu navegador no permite hablarme aún. Puedes escribirme aquí abajo." });
+      push({ role: "domi", text: "Tu navegador no permite hablarme por ahora. Escríbeme aquí abajo y te ayudo igual." });
       return;
     }
     if (listening) { try { recRef.current?.stop(); } catch {} return; }
     const rec = new SR();
     rec.lang = "es-CL"; rec.interimResults = false; rec.maxAlternatives = 1;
-    rec.onstart = () => { setListening(true); setState("escuchando"); };
-    rec.onerror = () => { setListening(false); setState("listo"); };
-    rec.onend = () => { setListening(false); };
+    rec.onstart = () => { setListening(true); setState("escuchando"); push({ role: "domi", text: "Te escucho… dime qué necesitas." }); };
+    rec.onerror = (ev: any) => {
+      setListening(false); setState("listo");
+      push({ role: "domi", text: ev?.error === "not-allowed" || ev?.error === "service-not-allowed"
+        ? "Necesito permiso del micrófono para escucharte. Actívalo en el navegador o escríbeme aquí abajo."
+        : "No alcancé a escucharte. ¿Me lo escribes?" });
+    };
+    rec.onend = () => { setListening(false); setState((s) => (s === "escuchando" ? "listo" : s)); };
     rec.onresult = (e: any) => {
       const text = e.results?.[0]?.[0]?.transcript || "";
       if (text) handle(text);
+      else push({ role: "domi", text: "No te entendí bien. ¿Me lo escribes?" });
     };
     recRef.current = rec;
-    try { rec.start(); } catch {}
+    try { rec.start(); } catch { setListening(false); push({ role: "domi", text: "No pude abrir el micrófono. Escríbeme aquí abajo." }); }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -105,11 +111,10 @@ export default function DomiCompanion({
 
   return (
     <div className="companion">
-      {/* DOMI CENTRAL */}
+      {/* DOMI CENTRAL — fijo arriba (sticky) para que siempre se vea */}
       <div className="companionStage">
-        <DomiCore state={state} size={172} />
+        <DomiCore state={state} size={132} />
         <div className="companionGreet">{greeting}{userName ? `, ${userName}` : ""}. Estoy atento a tu hogar.</div>
-        <div className="companionSub">Puedes hablarme, escribir o subir algo.</div>
         <div className="companionState">{STATE_LABEL[state]}</div>
       </div>
 
