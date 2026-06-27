@@ -11,6 +11,7 @@ import {
   getDashboard, familyBoardList, shoppingList, dailyActivitiesList, listUnitFunctions,
 } from "../../../lib/api";
 import DomiCompanion from "../../components/DomiCompanion";
+import DomiThemeShell from "../../components/DomiThemeShell";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -102,12 +103,14 @@ export default async function HomeCompanion({ params }: { params: Promise<{ hous
   ];
 
   return (
-    <DomiCompanion
-      userName={userName}
-      greeting={pickGreeting()}
-      summary={summary}
-      cards={cards}
-      suggestions={suggestions}
-    />
+    <DomiThemeShell>
+      <DomiCompanion
+        userName={userName}
+        greeting={pickGreeting()}
+        summary={summary}
+        cards={cards}
+        suggestions={suggestions}
+      />
+    </DomiThemeShell>
   );
 }
