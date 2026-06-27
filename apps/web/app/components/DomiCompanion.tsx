@@ -22,6 +22,16 @@ type Block =
   | { id: number; role: "domi"; text: string }
   | ({ id: number; role: "card" } & { card: DomiCard });
 
+// Frases demo para "hablarle" a Domi (Opción B mock premium del brief).
+const DEMO_PHRASES = [
+  "¿Qué falta hoy?",
+  "Agrega leche, pan y paracetamol",
+  "Recuérdame la medicina de Elena",
+  "Prepara estudio para Diego",
+  "Pon música tranquila",
+  "¿Qué documentos faltan revisar?",
+];
+
 const STATE_LABEL: Record<DomiState, string> = {
   listo: "listo", escuchando: "escuchando", pensando: "pensando",
   acompanando: "acompañando", proponiendo: "proponiendo",
@@ -39,6 +49,8 @@ export default function DomiCompanion({
   const [state, setState] = useState<DomiState>("listo");
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceNote, setVoiceNote] = useState("");
   const [feed, setFeed] = useState<Block[]>([]);
   const idRef = useRef(1);
   const endRef = useRef<HTMLDivElement>(null);
@@ -73,30 +85,38 @@ export default function DomiCompanion({
     }, 420);
   }
 
-  function toggleMic() {
+  function closeVoice() {
+    try { recRef.current?.stop(); } catch {}
+    setListening(false); setVoiceOpen(false);
+    setState((s) => (s === "escuchando" ? "listo" : s));
+  }
+
+  function speakDemo(text: string) { closeVoice(); handle(text); }
+
+  // Abre el panel de voz: intenta el micrófono real (si hay permiso) y SIEMPRE
+  // ofrece frases demo (Opción B "mock premium"), sin spamear mensajes.
+  function openVoice() {
+    if (voiceOpen) { closeVoice(); return; }
+    setVoiceOpen(true); setVoiceNote(""); setState("escuchando");
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) {
-      push({ role: "domi", text: "Tu navegador no permite hablarme por ahora. Escríbeme aquí abajo y te ayudo igual." });
-      return;
-    }
-    if (listening) { try { recRef.current?.stop(); } catch {} return; }
+    if (!SR) { setVoiceNote("Tu navegador no permite micrófono. Toca una frase o escribe."); return; }
     const rec = new SR();
     rec.lang = "es-CL"; rec.interimResults = false; rec.maxAlternatives = 1;
-    rec.onstart = () => { setListening(true); setState("escuchando"); push({ role: "domi", text: "Te escucho… dime qué necesitas." }); };
+    rec.onstart = () => setListening(true);
     rec.onerror = (ev: any) => {
-      setListening(false); setState("listo");
-      push({ role: "domi", text: ev?.error === "not-allowed" || ev?.error === "service-not-allowed"
-        ? "Necesito permiso del micrófono para escucharte. Actívalo en el navegador o escríbeme aquí abajo."
-        : "No alcancé a escucharte. ¿Me lo escribes?" });
+      setListening(false);
+      setVoiceNote(ev?.error === "not-allowed" || ev?.error === "service-not-allowed"
+        ? "No tengo permiso del micrófono. Toca una frase o escribe."
+        : "No te escuché bien. Toca una frase o escribe.");
     };
-    rec.onend = () => { setListening(false); setState((s) => (s === "escuchando" ? "listo" : s)); };
+    rec.onend = () => setListening(false);
     rec.onresult = (e: any) => {
       const text = e.results?.[0]?.[0]?.transcript || "";
-      if (text) handle(text);
-      else push({ role: "domi", text: "No te entendí bien. ¿Me lo escribes?" });
+      if (text) speakDemo(text);
+      else setVoiceNote("No te entendí. Toca una frase o escribe.");
     };
     recRef.current = rec;
-    try { rec.start(); } catch { setListening(false); push({ role: "domi", text: "No pude abrir el micrófono. Escríbeme aquí abajo." }); }
+    try { rec.start(); } catch { setListening(false); setVoiceNote("No pude abrir el micrófono. Toca una frase o escribe."); }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -130,8 +150,23 @@ export default function DomiCompanion({
 
       {/* ENTRADA UNIVERSAL */}
       <div className="composer">
+        {voiceOpen ? (
+          <div className="voicePanel">
+            <div className="voicePanelHead">
+              <span className={`voiceMic${listening ? " on" : ""}`}><MicIcon /></span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800 }}>{listening ? "Te escucho…" : "Hablar con Domi"}</div>
+                <div className="dcardMuted">{voiceNote || "Di algo, o toca una frase:"}</div>
+              </div>
+              <button className="composerBtn" aria-label="Cerrar" onClick={closeVoice}>✕</button>
+            </div>
+            <div className="suggRow" style={{ marginTop: 10 }}>
+              {DEMO_PHRASES.map((p) => <button key={p} className="suggChip" onClick={() => speakDemo(p)}>{p}</button>)}
+            </div>
+          </div>
+        ) : null}
         <div className="composerBar">
-          <button className={`composerBtn mic${listening ? " on" : ""}`} title="Hablar con Domi" aria-label="Hablar con Domi" onClick={toggleMic}>
+          <button className={`composerBtn mic${voiceOpen ? " on" : ""}`} title="Hablar con Domi" aria-label="Hablar con Domi" onClick={openVoice}>
             <MicIcon />
           </button>
           <button className="composerBtn" title="Subir documento" aria-label="Subir documento" onClick={() => fileRef.current?.click()}>
