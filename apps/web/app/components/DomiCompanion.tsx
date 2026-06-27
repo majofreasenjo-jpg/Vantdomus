@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import DomiCore from "./DomiCore";
 import type { DomiState } from "./DomiCore";
 import DomiCalm from "./DomiCalm";
+import DomiIcon from "./domiIcons";
 import { interpret } from "../../lib/domiIntents";
 import type { DomiCard, DomiCtx } from "../../lib/domiIntents";
 
@@ -39,12 +40,13 @@ const STATE_LABEL: Record<DomiState, string> = {
 };
 
 export default function DomiCompanion({
-  userName, greeting, summary, suggestions,
+  userName, greeting, summary, suggestions, cards,
 }: {
   userName?: string;
   greeting: string;
   summary: { title: string; lines: string[] };
   suggestions: { label: string; send: string }[];
+  cards: DomiCard[];
 }) {
   const [state, setState] = useState<DomiState>("listo");
   const [input, setInput] = useState("");
@@ -56,12 +58,12 @@ export default function DomiCompanion({
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<any>(null);
-  const ctx: DomiCtx = { summary, userName };
+  const ctx: DomiCtx = { summary, userName, cards };
 
-  // Tarjetas iniciales: resumen del día + acciones sugeridas
+  // Feed inicial: tarjetas de acción (propuestas de Domi) + acciones sugeridas
   useEffect(() => {
     setFeed([
-      { id: idRef.current++, role: "card", card: { kind: "summary", title: summary.title, lines: summary.lines } },
+      ...cards.map((card) => ({ id: idRef.current++, role: "card" as const, card })),
       { id: idRef.current++, role: "card", card: { kind: "suggestions", items: suggestions } },
     ]);
   }, []); // eslint-disable-line
@@ -159,8 +161,8 @@ export default function DomiCompanion({
     <div className="companion">
       {/* DOMI CENTRAL — fijo arriba (sticky) para que siempre se vea */}
       <div className="companionStage">
-        <DomiCore state={state} size={132} />
-        <div className="companionGreet">{greeting}{userName ? `, ${userName}` : ""}. Estoy atento a tu hogar.</div>
+        <DomiCore state={state} size={150} />
+        <div className="companionGreet">{greeting}{userName ? `, ${userName}` : ""}. Estoy contigo.</div>
         <div className="companionState">{STATE_LABEL[state]}</div>
       </div>
 
@@ -202,7 +204,7 @@ export default function DomiCompanion({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handle(input); }}
-            placeholder="Dile a Domi qué necesitas…"
+            placeholder="Habla con Domi o cuéntale qué necesitas…"
             aria-label="Escribir a Domi"
           />
           <button className="composerBtn send" title="Enviar" aria-label="Enviar" onClick={() => handle(input)}>
@@ -218,6 +220,22 @@ export default function DomiCompanion({
 
 function CardView({ card, onSend, onUpload }: { card: DomiCard; onSend: (t: string) => void; onUpload: () => void }) {
   const [done, setDone] = useState(false);
+  if (card.kind === "action") {
+    return (
+      <div className="dcard acard" style={{ ["--cat" as any]: card.color }}>
+        <span className="acardIcon"><DomiIcon name={card.icon} size={21} color={card.color} strokeWidth={2} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="acardKicker">{card.kicker}</div>
+          <div className="dcardTitle">{card.title}</div>
+          <div className="dcardText">{card.text}</div>
+          <div className="dcardActions">
+            <button className="dbtn dbtnPrimary" onClick={() => onSend(card.primary.send)}>{card.primary.label}</button>
+            {card.secondary ? <button className="dbtn dbtnGhost" onClick={() => onSend(card.secondary!.send)}>{card.secondary.label}</button> : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (card.kind === "summary") {
     return (
       <div className="dcard">

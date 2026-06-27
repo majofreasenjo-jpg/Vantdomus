@@ -70,10 +70,33 @@ export default async function HomeCompanion({ params }: { params: Promise<{ hous
 
   const summary = { title: "Esto es lo importante hoy", lines };
 
+  // Tarjetas de ACCIÓN (propuestas de Domi por categoría) desde datos reales.
+  const personName = new Map(persons.map((p: any) => [p.id, p.display_name]));
+  const medPerson = tonightMeds[0]?.person_id ? (personName.get(tonightMeds[0].person_id) || "tu familiar") : "tu familiar";
+  const studyNote = boardItems.find((p) => /prueba|examen|estudi|tarea|colegio|circular/i.test(`${p.title || ""} ${p.body || ""}`));
+  const cards: any[] = [];
+  if (persons.length === 0) {
+    cards.push({ kind: "action", cat: "config", color: "#4A7A6B", icon: "users", kicker: "Empezar", title: "Configura tu hogar", text: "Aún no hay integrantes. Domi te guía para agregar a tu familia en un minuto.", primary: { label: "Configurar hogar", send: "configurar mi hogar" } });
+  }
+  if (tonightMeds.length > 0) {
+    cards.push({ kind: "action", cat: "cuidado", color: "#E2856F", icon: "health", kicker: "Cuidado", title: `Cuidado de ${medPerson}`, text: "Hay una toma de medicamento con horario esta noche. Domi la recuerda, pero una persona debe confirmarla.", primary: { label: "Revisar cuidado", send: `medicamento de ${medPerson}` }, secondary: { label: "Avisar a la familia", send: "avisar a la familia" } });
+  }
+  if (studyNote?.title) {
+    cards.push({ kind: "action", cat: "estudio", color: "#6E97DA", icon: "clipboard", kicker: "Estudio", title: "Estudio en casa", text: `${studyNote.title}. Domi puede crear bloques de repaso y un paquete para revisar.`, primary: { label: "Preparar estudio", send: "prepara estudio para Diego" } });
+  }
+  if (shoppingPending.length > 0) {
+    cards.push({ kind: "action", cat: "compras", color: "#5FA088", icon: "shopping", kicker: "Compras", title: "Compras del hogar", text: `Faltan ${shoppingPending.length} productos (${shoppingInCart.length} en carro tentativo). Domi los organiza por lugar.`, primary: { label: "Preparar compras", send: "agrega leche, pan y paracetamol" } });
+  }
+  if (schoolNotice?.title) {
+    cards.push({ kind: "action", cat: "colegio", color: "#C29A57", icon: "file", kicker: "Colegio", title: "Circular del colegio", text: `${schoolNotice.title}. Domi puede leerla y proponer qué hacer con ella.`, primary: { label: "Leer con Domi", send: "subir documento" } });
+  }
+  // Bienestar siempre disponible (apoyo, no clínico).
+  cards.push({ kind: "action", cat: "bienestar", color: "#79B49F", icon: "calm", kicker: "Bienestar", title: "Un momento de calma", text: "Domi puede acompañarte con una respiración de 1 minuto o un sonido suave.", primary: { label: "Respirar 1 minuto", send: "respiración" }, secondary: { label: "Música tranquila", send: "música tranquila" } });
+
   const suggestions = [
     { label: "Ordenar mi día", send: "ordenar mi día" },
     { label: "Preparar compras", send: "agrega leche, pan y paracetamol" },
-    { label: "Confirmar salud", send: "medicamento de Elena para hoy" },
+    { label: "Confirmar salud", send: `medicamento de ${medPerson}` },
     { label: "Leer un documento", send: "subir documento" },
     { label: "Un momento de calma", send: "pon música tranquila" },
   ];
@@ -83,6 +106,7 @@ export default async function HomeCompanion({ params }: { params: Promise<{ hous
       userName={userName}
       greeting={pickGreeting()}
       summary={summary}
+      cards={cards}
       suggestions={suggestions}
     />
   );

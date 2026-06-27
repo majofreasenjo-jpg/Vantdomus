@@ -1,61 +1,79 @@
 /**
- * DomiCore — Domi vivo, la INTERFAZ del hogar (companion-first).
+ * DomiCore — presencia tecnológica cálida del hogar (no mascota).
  *
- * 100% CSS/SVG, sin foto ni raster. Núcleo ámbar cálido siempre; el ESTADO
- * cambia el acento del halo + el gesto del rostro. Sin dependencias ni assets.
- * Respeta prefers-reduced-motion (ver globals.css, bloque .dcore).
+ * Núcleo de vidrio con luz ámbar + halo ambiental emocional + órbitas 3D con
+ * puntos de energía + rostro MÍNIMO y elegante + chips de módulo sutiles.
+ * 100% CSS/SVG, sin foto ni assets. El estado cambia el acento de la luz y el
+ * gesto. Respeta prefers-reduced-motion (ver globals.css, bloque .dcore).
  */
 import React from "react";
+import DomiIcon, { ModuleKey, MODULE_COLOR } from "./domiIcons";
 
 export type DomiState =
   | "listo" | "escuchando" | "pensando" | "acompanando"
   | "proponiendo" | "esperando" | "calma" | "alerta";
 
+const CHIPS: ModuleKey[] = ["home", "health", "shopping", "message", "users", "shield"];
+
 export default function DomiCore({
   state = "listo",
-  size = 180,
+  size = 160,
   label,
+  constellation = true,
 }: {
   state?: DomiState;
   size?: number;
   label?: string;
+  constellation?: boolean;
 }) {
-  const withOrbits = size >= 92;
+  const rich = constellation && size >= 110; // órbitas + chips solo en tamaño protagonista
+  const cx = size / 2;
+  const chipR = size * 0.52;
+  const chipSize = Math.max(20, Math.round(size * 0.17));
+
   return (
     <div
-      className={`dcore dcore--${state}`}
+      className={`dcore dcore--${state}${rich ? " dcore--rich" : ""}`}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={label || `Domi, asistente del hogar (${state})`}
+      aria-label={label || `Domi, núcleo del hogar (${state})`}
     >
-      <span className="dcoreHalo" aria-hidden="true" />
-      {withOrbits ? (
-        <svg className="dcoreOrbits" viewBox="0 0 100 100" width={size} height={size} aria-hidden="true">
-          <ellipse className="dcoreOrbit o1" cx="50" cy="50" rx="47" ry="30" />
-          <ellipse className="dcoreOrbit o2" cx="50" cy="50" rx="36" ry="47" />
-          <circle className="dcoreDot" cx="93" cy="50" r="1.8" />
-          <circle className="dcoreDot" cx="12" cy="42" r="1.6" />
-          <circle className="dcoreDot" cx="62" cy="6" r="1.5" />
-        </svg>
+      <span className="dcoreAura" aria-hidden="true" />
+
+      {rich ? (
+        <span className="dcoreOrbits" aria-hidden="true">
+          <span className="dcoreRing dcoreRing1"><i /></span>
+          <span className="dcoreRing dcoreRing2"><i /></span>
+          <span className="dcoreRing dcoreRing3"><i /></span>
+        </span>
       ) : null}
-      <span className="dcoreBall" aria-hidden="true">
+
+      <span className="dcoreNucleus" aria-hidden="true">
         <span className="dcoreStars" />
-        <span className="dcoreSpecular" />
-        <svg className="dcoreFace" viewBox="0 0 100 70">
-          <g className="dcoreEyes">
-            {/* ojos cute abiertos (por defecto) con brillo */}
-            <circle className="eyeBall" cx="36" cy="33" r="4.6" />
-            <circle className="eyeBall" cx="64" cy="33" r="4.6" />
-            <circle className="eyeShine" cx="37.6" cy="31.3" r="1.5" />
-            <circle className="eyeShine" cx="65.6" cy="31.3" r="1.5" />
-            {/* ojos felices cerrados (solo calma/logro) */}
-            <path className="eyeHappy" d="M28 33 Q36 27 44 33" />
-            <path className="eyeHappy" d="M56 33 Q64 27 72 33" />
-          </g>
-          <path className="dcoreMouth" d="M40 46 Q50 54 60 46" />
+        <span className="dcoreGloss" />
+        <svg className="dcoreFace" viewBox="0 0 100 60">
+          <circle className="dEye" cx="38" cy="29" r="3.6" />
+          <circle className="dEye" cx="62" cy="29" r="3.6" />
+          <circle className="dShine" cx="39.2" cy="27.6" r="1.1" />
+          <circle className="dShine" cx="63.2" cy="27.6" r="1.1" />
+          <path className="dMouth" d="M42 39 Q50 44 58 39" />
         </svg>
-        <span className="dcoreThinkDots"><i /><i /><i /></span>
       </span>
+
+      {rich ? (
+        <span className="dcoreChips" aria-hidden="true">
+          {CHIPS.map((c, i) => {
+            const a = (-90 + i * (360 / CHIPS.length)) * (Math.PI / 180);
+            const x = cx + Math.cos(a) * chipR;
+            const y = cx + Math.sin(a) * chipR * 0.92;
+            return (
+              <span key={c} className="dcoreChip" style={{ left: x, top: y, width: chipSize, height: chipSize, ["--chip" as any]: MODULE_COLOR[c] }}>
+                <DomiIcon name={c} size={Math.round(chipSize * 0.5)} color={MODULE_COLOR[c]} strokeWidth={2} />
+              </span>
+            );
+          })}
+        </span>
+      ) : null}
     </div>
   );
 }

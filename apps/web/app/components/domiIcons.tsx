@@ -10,7 +10,7 @@ import React from "react";
 
 export type ModuleKey =
   | "home" | "health" | "shopping" | "calendar" | "message"
-  | "shield" | "users" | "clipboard" | "guide" | "book" | "file";
+  | "shield" | "users" | "clipboard" | "guide" | "book" | "file" | "calm";
 
 // Color de acento por módulo (vidrio/halo del chip)
 export const MODULE_COLOR: Record<ModuleKey, string> = {
@@ -25,12 +25,13 @@ export const MODULE_COLOR: Record<ModuleKey, string> = {
   guide: "#9CB07F",     // oliva suave
   book: "#C9A26B",      // arena
   file: "#A8B0BC",      // gris niebla
+  calm: "#86B8A6",      // verde calma
 };
 
 export const MODULE_LABEL: Record<ModuleKey, string> = {
   home: "Hogar", health: "Salud", shopping: "Compras", calendar: "Agenda",
   message: "Mensajes", shield: "Seguridad", users: "Familia", clipboard: "Tareas",
-  guide: "Guía", book: "Biblioteca", file: "Documentos",
+  guide: "Guía", book: "Biblioteca", file: "Documentos", calm: "Calma",
 };
 
 const PATHS: Record<ModuleKey, React.ReactNode> = {
@@ -45,6 +46,7 @@ const PATHS: Record<ModuleKey, React.ReactNode> = {
   guide: (<><circle cx="12" cy="12" r="9" /><path d="M16 8l-2.6 5.4L8 16l2.6-5.4z" /></>),
   book: (<><path d="M12 6.2C10.5 5 8 4.2 6 4.2H3v13h3c2 0 4.5.8 6 2 1.5-1.2 4-2 6-2h3v-13h-3c-2 0-4.5.8-6 2z" /><path d="M12 6.2v13" /></>),
   file: (<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></>),
+  calm: (<><path d="M4 9c2.2 0 2.2-2 4.4-2S10.6 9 12.8 9 15 7 17.2 7 19.4 9 21 9" /><path d="M3 14c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 3.8 2" /></>),
 };
 
 export default function DomiIcon({

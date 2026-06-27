@@ -9,7 +9,9 @@
  * IA real más adelante (mismo contrato de salida).
  */
 import type { DomiState } from "../app/components/DomiCore";
+import type { ModuleKey } from "../app/components/domiIcons";
 
+export type DomiAction = { label: string; send: string };
 export type DomiCard =
   | { kind: "domi"; text: string }
   | { kind: "summary"; title: string; lines: string[] }
@@ -17,10 +19,12 @@ export type DomiCard =
   | { kind: "proposal"; title: string; text: string; lines?: string[]; confirmLabel?: string; sensitive?: boolean }
   | { kind: "breathing"; title: string }
   | { kind: "music"; title: string }
-  | { kind: "info"; title: string; text: string };
+  | { kind: "info"; title: string; text: string }
+  // Tarjeta de acción premium (propuesta de Domi por categoría)
+  | { kind: "action"; cat: string; color: string; icon: ModuleKey; kicker: string; title: string; text: string; primary: DomiAction; secondary?: DomiAction };
 
 export type DomiResult = { speech: string; state: DomiState; cards: DomiCard[] };
-export type DomiCtx = { summary?: { title: string; lines: string[] }; userName?: string };
+export type DomiCtx = { summary?: { title: string; lines: string[] }; userName?: string; cards?: DomiCard[] };
 
 const PHARMACY = /paracetamol|ibuprofeno|remedio|medicament|pastilla|jarabe|vitamina|aspirina|amoxicilina|losart|antibi/i;
 
@@ -44,6 +48,7 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
 
   // Resumen / ordenar el día / pendientes
   if (/(qué falta|que falta|qué hay|que hay|resumen|ordenar mi día|ordenar mi dia|pendiente|mi día|mi dia|hoy)/.test(t)) {
+    if (ctx.cards?.length) return { speech: "Esto es lo importante en tu hogar hoy.", state: "proponiendo", cards: ctx.cards };
     const s = ctx.summary;
     return {
       speech: "Esto es lo que veo en tu hogar hoy.",
