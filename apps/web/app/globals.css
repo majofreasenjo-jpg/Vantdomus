@@ -786,27 +786,30 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
   background:radial-gradient(circle at 40% 35%, rgba(255,255,255,.92), rgba(255,255,255,0) 70%); filter:blur(.4px);
 }
 .dcoreFace{ position:relative; z-index:2; width:70%; height:70%; }
-.dcoreEyes, .eyeHappy, .eyeBall, .dcoreMouth{ transition:opacity .25s ease, transform .25s ease; }
-.eyeHappy{ fill:none; stroke:#7a4a16; stroke-width:5; stroke-linecap:round; }
-.eyeBall{ fill:#5e3a12; opacity:0; }
-.dcoreMouth{ fill:none; stroke:#7a4a16; stroke-width:5; stroke-linecap:round; opacity:.85; }
+.dcoreEyes, .eyeHappy, .eyeBall, .eyeShine, .dcoreMouth{ transition:opacity .25s ease, transform .25s ease; }
+.eyeBall{ fill:#5e3a12; opacity:1; transform-box:fill-box; transform-origin:center; animation:dcBlink 6s ease-in-out infinite; }
+.eyeShine{ fill:#fff; opacity:.92; }
+.eyeHappy{ fill:none; stroke:#6b3f12; stroke-width:5; stroke-linecap:round; opacity:0; }
+.dcoreMouth{ fill:none; stroke:#6b3f12; stroke-width:4.6; stroke-linecap:round; opacity:.9; transform-box:fill-box; transform-origin:center; }
 /* puntos de "pensando" sobre el núcleo */
 .dcoreThinkDots{ position:absolute; top:-12%; left:50%; transform:translateX(-50%); display:none; gap:4px; z-index:6; }
 .dcoreThinkDots i{ width:5px; height:5px; border-radius:50%; background:var(--dc-accent); display:inline-block; animation:dcDot 1s infinite; }
 .dcoreThinkDots i:nth-child(2){ animation-delay:.18s; } .dcoreThinkDots i:nth-child(3){ animation-delay:.36s; }
 
-/* ---- gestos por estado ---- */
+/* ---- gestos por estado (ojos cute por defecto; arcos solo en calma/logro) ---- */
 .dcore--listo .dcoreEyes{ animation:dcLook 7s ease-in-out infinite; }
-.dcore--escuchando .eyeHappy{ opacity:0; } .dcore--escuchando .eyeBall{ opacity:1; animation:dcWide 2s ease-in-out infinite; }
-.dcore--escuchando .dcoreMouth{ d:path("M42 49 Q50 53 58 49"); }
-.dcore--pensando .eyeHappy{ opacity:0; } .dcore--pensando .eyeBall{ opacity:1; transform:translateY(-3px); }
-.dcore--pensando .dcoreMouth{ opacity:0; } .dcore--pensando .dcoreThinkDots{ display:flex; }
+.dcore--escuchando .eyeBall{ animation:none; transform:scale(1.1); }
+.dcore--pensando .eyeBall{ animation:none; transform:translateY(-2px); }
+.dcore--pensando .eyeShine{ transform:translateY(-2px); }
+.dcore--pensando .dcoreMouth{ opacity:.5; transform:scale(.82); }
+.dcore--pensando .dcoreThinkDots{ display:flex; }
 .dcore--pensando .dcoreBall{ animation:dcThink 2.2s ease-in-out infinite; }
-.dcore--acompanando .dcoreMouth{ stroke-width:6; }
-.dcore--proponiendo .dcoreMouth{ stroke-width:6; transform:scale(1.05); }
-.dcore--esperando .dcoreMouth{ d:path("M43 50 L57 50"); }
-.dcore--calma .eyeHappy{ stroke-width:5.5; } .dcore--calma .dcoreBall{ animation:dcBreathe 6.5s ease-in-out infinite; }
-.dcore--alerta .eyeHappy{ opacity:0; } .dcore--alerta .eyeBall{ opacity:1; transform:scaleY(1.15); }
+.dcore--acompanando .dcoreMouth, .dcore--proponiendo .dcoreMouth{ stroke-width:5.4; }
+.dcore--esperando .dcoreMouth{ transform:scaleX(.72); }
+.dcore--calma .eyeBall, .dcore--calma .eyeShine, .dcore--logro .eyeBall, .dcore--logro .eyeShine{ opacity:0; }
+.dcore--calma .eyeHappy, .dcore--logro .eyeHappy{ opacity:1; }
+.dcore--calma .dcoreBall{ animation:dcBreathe 6.5s ease-in-out infinite; }
+.dcore--alerta .eyeBall{ animation:none; transform:scaleY(1.12); }
 
 @keyframes dcBreathe{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.035);} }
 @keyframes dcHalo{ 0%,100%{ opacity:.72; transform:scale(1);} 50%{ opacity:.96; transform:scale(1.06);} }
@@ -816,6 +819,7 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
 @keyframes dcLook{ 0%,70%,100%{ transform:translateX(0);} 80%{ transform:translateX(-3px);} 90%{ transform:translateX(3px);} }
 @keyframes dcWide{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.15);} }
 @keyframes dcThink{ 0%,100%{ transform:rotate(-3deg);} 50%{ transform:rotate(3deg);} }
+@keyframes dcBlink{ 0%,93%,100%{ transform:scaleY(1);} 96.5%{ transform:scaleY(.12);} }
 @media (prefers-reduced-motion: reduce){
   .dcoreHalo,.dcoreOrbits,.dcoreDot,.dcoreStars,.dcoreBall,.dcoreEyes,.eyeBall,.dcoreThinkDots i{ animation:none !important; }
 }

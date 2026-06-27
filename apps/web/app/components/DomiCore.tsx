@@ -43,14 +43,16 @@ export default function DomiCore({
         <span className="dcoreSpecular" />
         <svg className="dcoreFace" viewBox="0 0 100 70">
           <g className="dcoreEyes">
-            {/* ojos felices (cerrados) — por defecto */}
-            <path className="eyeHappy" d="M27 35 Q37 27 47 35" />
-            <path className="eyeHappy" d="M53 35 Q63 27 73 35" />
-            {/* ojos redondos (escucha/pensando/alerta) */}
-            <circle className="eyeBall" cx="37" cy="34" r="5.2" />
-            <circle className="eyeBall" cx="63" cy="34" r="5.2" />
+            {/* ojos cute abiertos (por defecto) con brillo */}
+            <circle className="eyeBall" cx="36" cy="33" r="4.6" />
+            <circle className="eyeBall" cx="64" cy="33" r="4.6" />
+            <circle className="eyeShine" cx="37.6" cy="31.3" r="1.5" />
+            <circle className="eyeShine" cx="65.6" cy="31.3" r="1.5" />
+            {/* ojos felices cerrados (solo calma/logro) */}
+            <path className="eyeHappy" d="M28 33 Q36 27 44 33" />
+            <path className="eyeHappy" d="M56 33 Q64 27 72 33" />
           </g>
-          <path className="dcoreMouth" d="M40 48 Q50 56 60 48" />
+          <path className="dcoreMouth" d="M40 46 Q50 54 60 46" />
         </svg>
         <span className="dcoreThinkDots"><i /><i /><i /></span>
       </span>
