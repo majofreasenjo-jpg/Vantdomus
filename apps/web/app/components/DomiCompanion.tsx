@@ -123,14 +123,25 @@ export default function DomiCompanion({
     setVoiceOpen(true); setVoiceNote("Pidiendo permiso del micrófono…"); setState("escuchando");
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { setVoiceNote("Tu navegador no permite voz. Toca una frase o escribe."); return; }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setVoiceNote("Este contexto no permite micrófono (¿no es localhost/https?). Toca una frase o escríbeme.");
+      return;
+    }
     try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((t) => t.stop()); // soltar el mic; el reconocedor lo reabre
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop()); // soltar el mic; el reconocedor lo reabre
       startRecognition();
-    } catch {
-      setVoiceNote("Activa el micrófono: toca el candado 🔒 de la barra → Micrófono → Permitir, y recarga. Mientras tanto, toca una frase o escríbeme.");
+    } catch (err: any) {
+      const name = err?.name || "error";
+      setVoiceNote(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? "Micrófono BLOQUEADO. Toca el 🔒 de la barra → Micrófono → Permitir, y recarga."
+          : name === "NotFoundError" || name === "DevicesNotFoundError"
+          ? "No detecté ningún micrófono conectado. Conéctalo o toca una frase."
+          : name === "NotReadableError"
+          ? "El micrófono está en uso por otra app. Ciérrala e intenta de nuevo."
+          : `No pude abrir el micrófono (${name}). Toca una frase o escríbeme.`
+      );
     }
   }
 
