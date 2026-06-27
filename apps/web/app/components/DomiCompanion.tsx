@@ -93,20 +93,16 @@ export default function DomiCompanion({
 
   function speakDemo(text: string) { closeVoice(); handle(text); }
 
-  // Abre el panel de voz: intenta el micrófono real (si hay permiso) y SIEMPRE
-  // ofrece frases demo (Opción B "mock premium"), sin spamear mensajes.
-  function openVoice() {
-    if (voiceOpen) { closeVoice(); return; }
-    setVoiceOpen(true); setVoiceNote(""); setState("escuchando");
+  function startRecognition() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { setVoiceNote("Tu navegador no permite micrófono. Toca una frase o escribe."); return; }
+    if (!SR) { setVoiceNote("Tu navegador no permite voz. Toca una frase o escribe."); return; }
     const rec = new SR();
     rec.lang = "es-CL"; rec.interimResults = false; rec.maxAlternatives = 1;
-    rec.onstart = () => setListening(true);
+    rec.onstart = () => { setListening(true); setVoiceNote(""); };
     rec.onerror = (ev: any) => {
       setListening(false);
       setVoiceNote(ev?.error === "not-allowed" || ev?.error === "service-not-allowed"
-        ? "No tengo permiso del micrófono. Toca una frase o escribe."
+        ? "El micrófono está bloqueado. Toca el candado 🔒 de la barra → Micrófono → Permitir, y recarga."
         : "No te escuché bien. Toca una frase o escribe.");
     };
     rec.onend = () => setListening(false);
@@ -117,6 +113,25 @@ export default function DomiCompanion({
     };
     recRef.current = rec;
     try { rec.start(); } catch { setListening(false); setVoiceNote("No pude abrir el micrófono. Toca una frase o escribe."); }
+  }
+
+  // Abre el panel de voz: pide permiso de micrófono EXPLÍCITAMENTE (provoca el
+  // cuadro del navegador), luego escucha de verdad. Si no hay permiso/soporte,
+  // SIEMPRE quedan las frases demo (Opción B "mock premium").
+  async function openVoice() {
+    if (voiceOpen) { closeVoice(); return; }
+    setVoiceOpen(true); setVoiceNote("Pidiendo permiso del micrófono…"); setState("escuchando");
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { setVoiceNote("Tu navegador no permite voz. Toca una frase o escribe."); return; }
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop()); // soltar el mic; el reconocedor lo reabre
+      }
+      startRecognition();
+    } catch {
+      setVoiceNote("Activa el micrófono: toca el candado 🔒 de la barra → Micrófono → Permitir, y recarga. Mientras tanto, toca una frase o escríbeme.");
+    }
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
