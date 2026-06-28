@@ -59,14 +59,18 @@ export default function DomiCore({
       <span className="dcoreNucleus" aria-hidden="true">
         <span className="dcoreStars" />
         <span className="dcoreGloss" />
-        <svg className="dcoreFace" viewBox="0 0 100 60">
-          <circle className="dEye" cx="38" cy="29" r="3.6" />
-          <circle className="dEye" cx="62" cy="29" r="3.6" />
-          <circle className="dShine" cx="39.2" cy="27.6" r="1.1" />
-          <circle className="dShine" cx="63.2" cy="27.6" r="1.1" />
-          <path className="dEyeClosed" d="M32 29 Q38 33 44 29" />
-          <path className="dEyeClosed" d="M56 29 Q62 33 68 29" />
-          <path className="dMouth" d="M42 39 Q50 44 58 39" />
+        <svg className="dcoreFace" viewBox="0 0 100 64">
+          <ellipse className="dCheek" cx="29" cy="41" rx="6.5" ry="3.8" />
+          <ellipse className="dCheek" cx="71" cy="41" rx="6.5" ry="3.8" />
+          <ellipse className="dEye" cx="37" cy="30" rx="4.7" ry="5.8" />
+          <ellipse className="dEye" cx="63" cy="30" rx="4.7" ry="5.8" />
+          <circle className="dShine" cx="38.9" cy="27.6" r="1.8" />
+          <circle className="dShine" cx="64.9" cy="27.6" r="1.8" />
+          <circle className="dShine dShineSm" cx="35.6" cy="31.6" r="0.9" />
+          <circle className="dShine dShineSm" cx="61.6" cy="31.6" r="0.9" />
+          <path className="dEyeClosed" d="M31 30 Q37 35 43 30" />
+          <path className="dEyeClosed" d="M57 30 Q63 35 69 30" />
+          <path className="dMouth" d="M41 42 Q50 49 59 42" />
         </svg>
       </span>
 

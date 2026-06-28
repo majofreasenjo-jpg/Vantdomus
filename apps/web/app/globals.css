@@ -787,11 +787,13 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
   background:radial-gradient(circle at 38% 34%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%); filter:blur(.4px);
 }
 /* rostro mínimo elegante (no infantil) */
-.dcoreFace{ position:relative; z-index:2; width:64%; height:64%; }
-.dEye{ fill:#6b3f12; opacity:.82; transform-box:fill-box; transform-origin:center; animation:dcBlink 6.5s ease-in-out infinite; transition:transform .25s ease, opacity .25s ease; }
-.dShine{ fill:#fff; opacity:.7; transition:opacity .25s ease; }
-.dEyeClosed{ fill:none; stroke:#6b3f12; stroke-width:3.4; stroke-linecap:round; opacity:0; transition:opacity .25s ease; }
-.dMouth{ fill:none; stroke:#6b3f12; stroke-width:3.2; stroke-linecap:round; opacity:.48; transform-box:fill-box; transform-origin:center; transition:all .25s ease; }
+.dcoreFace{ position:relative; z-index:2; width:62%; height:62%; }
+.dCheek{ fill:#FF7E72; opacity:.32; }
+.dEye{ fill:#46280a; opacity:1; transform-box:fill-box; transform-origin:center; animation:dcBlink 6.5s ease-in-out infinite; transition:transform .25s ease, opacity .25s ease; }
+.dShine{ fill:#fff; opacity:.95; transition:opacity .25s ease; }
+.dShineSm{ opacity:.6; }
+.dEyeClosed{ fill:none; stroke:#46280a; stroke-width:3.6; stroke-linecap:round; opacity:0; transition:opacity .25s ease; }
+.dMouth{ fill:none; stroke:#5a3410; stroke-width:3.4; stroke-linecap:round; opacity:.72; transform-box:fill-box; transform-origin:center; transition:all .25s ease; }
 /* FX por estado (escudo protector / ondas escuchando) */
 .dcoreFx{ position:absolute; inset:0; z-index:1; border-radius:50%; pointer-events:none; }
 
@@ -1047,7 +1049,10 @@ body[data-theme="family"]{
 .vdConfirmNote{ font-size:12px; color:#E6B566; margin-top:8px; } .vdConfirmNote.ok{ color:#5FD6A0; }
 
 /* BOTTOM: mini cards + dock */
-.vdBottom{ display:grid; grid-template-columns:1fr 2fr; gap:14px; align-items:end; margin-top:16px; }
+.vdBottom{ display:grid; grid-template-columns:minmax(150px,1fr) minmax(380px,2.2fr) minmax(150px,1fr); gap:14px; align-items:center; margin-top:18px; }
+.vdMiniRight{ justify-self:end; }
+.vdMiniMeta{ font-size:11px; color:var(--vd-muted,#9aa0c4); margin-top:1px; }
+.vdNodeSub{ font-size:9px; color:var(--vd-muted,#9aa0c4); opacity:.85; }
 .vdMini{ display:flex; flex-direction:column; gap:10px; }
 .vdMiniCard{ display:flex; align-items:center; gap:10px; padding:11px 13px; border-radius:14px; background:var(--vd-card,rgba(28,33,72,.6)); border:1px solid var(--vd-card-border,rgba(180,160,255,.16)); }
 .vdMiniIco{ width:30px; height:30px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; background:color-mix(in srgb, var(--cat,#888) 16%, transparent); border:1px solid color-mix(in srgb, var(--cat,#888) 45%, transparent); }

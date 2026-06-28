@@ -25,13 +25,13 @@ type Block =
   | { id: number; role: "domi"; text: string }
   | { id: number; role: "card"; card: DomiCard };
 
-const NODES: { icon: ModuleKey; label: string; send: string }[] = [
-  { icon: "health", label: "Salud", send: "medicamento de Elena" },
-  { icon: "message", label: "Mensajes", send: "qué hay hoy" },
-  { icon: "guide", label: "Servicios", send: "qué falta hoy" },
-  { icon: "calm", label: "Bienestar", send: "pon música tranquila" },
-  { icon: "shopping", label: "Compras", send: "agrega leche y pan" },
-  { icon: "clipboard", label: "Estudio", send: "prepara estudio para Diego" },
+const NODES: { icon: ModuleKey; label: string; sub: string; send: string }[] = [
+  { icon: "health", label: "Salud", sub: "Todo bien", send: "medicamento de Elena" },
+  { icon: "message", label: "Mensajes", sub: "3 sin leer", send: "qué hay hoy" },
+  { icon: "guide", label: "Servicios", sub: "Activos", send: "qué falta hoy" },
+  { icon: "calm", label: "Bienestar", sub: "Respirar 1 min", send: "pon música tranquila" },
+  { icon: "shopping", label: "Compras", sub: "9 por organizar", send: "agrega leche y pan" },
+  { icon: "clipboard", label: "Estudio", sub: "Pendiente hoy", send: "prepara estudio para Diego" },
 ];
 
 const DEMO_PHRASES = [
@@ -148,6 +148,7 @@ export default function DomiPremiumHome({
                 <button key={n.label} className="vdNode" style={{ left: `${x}%`, top: `${y}%`, ["--nc" as any]: MODULE_COLOR[n.icon] }} onClick={() => handle(n.send)} title={n.label}>
                   <DomiIcon name={n.icon} size={17} color={MODULE_COLOR[n.icon]} strokeWidth={2} />
                   <span className="vdNodeLabel">{n.label}</span>
+                  <span className="vdNodeSub">{n.sub}</span>
                 </button>
               );
             })}
@@ -191,10 +192,7 @@ export default function DomiPremiumHome({
 
         {/* Mini cards + dock de voz */}
         <section className="vdBottom">
-          <div className="vdMini">
-            <div className="vdMiniCard"><span className="vdMiniIco" style={{ ["--cat" as any]: "#8B6DFF" }}><DomiIcon name="calm" size={15} color="#8B6DFF" strokeWidth={2} /></span><div><div className="vdMiniK">Ambiente sugerido</div><div className="vdMiniT">Noche tranquila</div></div></div>
-            <div className="vdMiniCard"><span className="vdMiniIco" style={{ ["--cat" as any]: "#5FB98F" }}><DomiIcon name="shield" size={15} color="#5FB98F" strokeWidth={2} /></span><div><div className="vdMiniK">Protección del hogar</div><div className="vdMiniT">Todo en orden</div></div></div>
-          </div>
+          <div className="vdMiniCard"><span className="vdMiniIco" style={{ ["--cat" as any]: "#8B6DFF" }}><DomiIcon name="calm" size={15} color="#8B6DFF" strokeWidth={2} /></span><div><div className="vdMiniK">Ambiente sugerido</div><div className="vdMiniT">Noche tranquila</div><div className="vdMiniMeta">22:30 · 21°</div></div></div>
 
           <div className="vdDock">
             {voiceOpen ? (
@@ -212,6 +210,8 @@ export default function DomiPremiumHome({
             <div className={`vdListening${state === "escuchando" || listening ? " on" : ""}`}><span className="vdWave" /><span className="vdWave" /><span className="vdWave" /> ESCUCHANDO</div>
             <input ref={fileRef} type="file" hidden onChange={onFile} accept="image/*,.pdf,.txt" />
           </div>
+
+          <div className="vdMiniCard vdMiniRight"><span className="vdMiniIco" style={{ ["--cat" as any]: "#5FB98F" }}><DomiIcon name="shield" size={15} color="#5FB98F" strokeWidth={2} /></span><div><div className="vdMiniK">Protección del hogar</div><div className="vdMiniT">Todo en orden</div><div className="vdMiniMeta">Seguridad activa</div></div></div>
         </section>
       </div>
 
