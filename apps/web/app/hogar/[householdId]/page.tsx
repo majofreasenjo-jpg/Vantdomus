@@ -10,7 +10,7 @@ import { cookies } from "next/headers";
 import {
   getDashboard, familyBoardList, shoppingList, dailyActivitiesList, listUnitFunctions,
 } from "../../../lib/api";
-import DomiCompanion from "../../components/DomiCompanion";
+import DomiPremiumHome from "../../components/DomiPremiumHome";
 import DomiThemeShell from "../../components/DomiThemeShell";
 
 export const dynamic = "force-dynamic";
@@ -104,12 +104,12 @@ export default async function HomeCompanion({ params }: { params: Promise<{ hous
 
   return (
     <DomiThemeShell>
-      <DomiCompanion
+      <DomiPremiumHome
         userName={userName}
         greeting={pickGreeting()}
-        summary={summary}
         cards={cards}
         suggestions={suggestions}
+        hid={hid}
       />
     </DomiThemeShell>
   );
