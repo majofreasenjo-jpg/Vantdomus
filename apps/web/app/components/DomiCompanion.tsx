@@ -17,6 +17,7 @@ import DomiCalm from "./DomiCalm";
 import DomiIcon from "./domiIcons";
 import { interpret } from "../../lib/domiIntents";
 import type { DomiCard, DomiCtx } from "../../lib/domiIntents";
+import { DOMI_TOKENS, DOMI_STATES } from "../../lib/domiStateTokens";
 
 type Block =
   | { id: number; role: "user"; text: string }
@@ -33,12 +34,6 @@ const DEMO_PHRASES = [
   "¿Qué documentos faltan revisar?",
 ];
 
-const STATE_LABEL: Record<DomiState, string> = {
-  listo: "listo", escuchando: "escuchando", pensando: "pensando",
-  acompanando: "acompañando", proponiendo: "proponiendo",
-  esperando: "esperando confirmación", calma: "en calma", alerta: "atento",
-};
-
 export default function DomiCompanion({
   userName, greeting, summary, suggestions, cards,
 }: {
@@ -48,7 +43,8 @@ export default function DomiCompanion({
   suggestions: { label: string; send: string }[];
   cards: DomiCard[];
 }) {
-  const [state, setState] = useState<DomiState>("listo");
+  const [state, setState] = useState<DomiState>("atento");
+  const [visualQa, setVisualQa] = useState(false);
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -59,6 +55,16 @@ export default function DomiCompanion({
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<any>(null);
   const ctx: DomiCtx = { summary, userName, cards };
+
+  // Inspección manual: ?domiState= fija el estado; ?visualQa=1 muestra el panel QA.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const ds = q.get("domiState");
+      if (ds && (DOMI_STATES as string[]).includes(ds)) setState(ds as DomiState);
+      if (q.get("visualQa") === "1") setVisualQa(true);
+    } catch {}
+  }, []);
 
   // Feed inicial: tarjetas de acción (propuestas de Domi) + acciones sugeridas
   useEffect(() => {
@@ -151,7 +157,7 @@ export default function DomiCompanion({
     const f = e.target.files?.[0];
     if (!f) return;
     push({ role: "user", text: `📎 ${f.name}` });
-    setState("proponiendo");
+    setState("pensando");
     push({ role: "domi", text: "Recibí tu documento. Lo revisaré y te propondré qué hacer." });
     push({ role: "card", card: { kind: "info", title: "Documento recibido", text: `“${f.name}”. Si detecto un medicamento o una cuenta, quedará pendiente de confirmación humana antes de actuar.` } });
     e.target.value = "";
@@ -163,8 +169,20 @@ export default function DomiCompanion({
       <div className="companionStage">
         <DomiCore state={state} size={150} />
         <div className="companionGreet">{greeting}{userName ? `, ${userName}` : ""}. Estoy contigo.</div>
-        <div className="companionState">{STATE_LABEL[state]}</div>
+        <div className="companionSub">{DOMI_TOKENS[state].shortMessage}</div>
+        <div className="companionState">{DOMI_TOKENS[state].label}</div>
       </div>
+
+      {visualQa ? (
+        <div className="vdQaPanel">
+          <div className="vdQaTitle">QA visual · estado de Domi</div>
+          <div className="suggRow">
+            {DOMI_STATES.map((s) => (
+              <button key={s} className={`suggChip${state === s ? " on" : ""}`} onClick={() => setState(s)}>{DOMI_TOKENS[s].label}</button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* FEED DE TARJETAS */}
       <div className="cardFeed">

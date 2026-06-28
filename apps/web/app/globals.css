@@ -739,14 +739,8 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
   position:relative; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; perspective:640px;
   --dc-accent:#E8B04B; --dc-hi:#FFF6E2; --dc-core:#FFCC80; --dc-deep:#9A5310;
 }
-.dcore--listo{ --dc-accent:#E8B04B; }
-.dcore--escuchando{ --dc-accent:#7FA8E0; }
-.dcore--pensando{ --dc-accent:#B7A9E6; }
-.dcore--acompanando{ --dc-accent:#E8917E; }
-.dcore--proponiendo{ --dc-accent:#F0B84E; }
-.dcore--esperando{ --dc-accent:#E0A23C; }
-.dcore--calma{ --dc-accent:#7FB49C; }
-.dcore--alerta{ --dc-accent:#9B8CD4; }
+/* El color (--dc-accent/--dc-core/--dc-hi/--dc-halo) llega por estilo en línea
+   desde los tokens emocionales (lib/domiStateTokens). Aquí solo gestos/FX. */
 
 /* halo ambiental emocional */
 .dcoreAura{
@@ -794,9 +788,12 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
 }
 /* rostro mínimo elegante (no infantil) */
 .dcoreFace{ position:relative; z-index:2; width:64%; height:64%; }
-.dEye{ fill:#6b3f12; opacity:.82; transform-box:fill-box; transform-origin:center; animation:dcBlink 6.5s ease-in-out infinite; transition:transform .25s ease; }
-.dShine{ fill:#fff; opacity:.7; }
+.dEye{ fill:#6b3f12; opacity:.82; transform-box:fill-box; transform-origin:center; animation:dcBlink 6.5s ease-in-out infinite; transition:transform .25s ease, opacity .25s ease; }
+.dShine{ fill:#fff; opacity:.7; transition:opacity .25s ease; }
+.dEyeClosed{ fill:none; stroke:#6b3f12; stroke-width:3.4; stroke-linecap:round; opacity:0; transition:opacity .25s ease; }
 .dMouth{ fill:none; stroke:#6b3f12; stroke-width:3.2; stroke-linecap:round; opacity:.48; transform-box:fill-box; transform-origin:center; transition:all .25s ease; }
+/* FX por estado (escudo protector / ondas escuchando) */
+.dcoreFx{ position:absolute; inset:0; z-index:1; border-radius:50%; pointer-events:none; }
 
 /* chips de módulo sutiles orbitando */
 .dcoreChips{ position:absolute; inset:0; z-index:4; pointer-events:none; }
@@ -808,15 +805,32 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
 }
 .dcoreChip:nth-child(even){ animation-delay:1.2s; } .dcoreChip:nth-child(3n){ animation-delay:2.1s; }
 
-/* gestos por estado */
-.dcore--escuchando .dEye{ animation:none; transform:scale(1.12); }
-.dcore--escuchando .dMouth{ opacity:.68; }
+/* ---- expresión + gesto por estado emocional ---- */
+/* SERENO: ojos cerrados, respiración lenta */
+.dcore--sereno .dEye, .dcore--sereno .dShine{ opacity:0; }
+.dcore--sereno .dEyeClosed{ opacity:.82; }
+.dcore--sereno .dcoreNucleus{ animation:dcBreathe 7s ease-in-out infinite; }
+/* ATENTO: ojos abiertos suaves (por defecto) */
+/* ESCUCHANDO: mirada concentrada + ondas de audio */
+.dcore--escuchando .dEye{ animation:none; transform:scale(1.1); }
+.dcore--escuchando .dMouth{ opacity:.6; }
+.dcore--escuchando .dcoreFx{ box-shadow:0 0 0 0 color-mix(in srgb, var(--dc-accent) 55%, transparent); animation:dcWaves 1.6s ease-out infinite; }
+/* CERCANO: sonrisa cálida, pulso suave tipo abrazo */
+.dcore--cercano .dMouth{ opacity:.72; stroke-width:3.8; transform:scale(1.08); }
+.dcore--cercano .dcoreNucleus{ animation:dcHug 3.4s ease-in-out infinite; }
+/* PROTECTOR: mirada firme + aro escudo externo */
+.dcore--protector .dEye{ animation:none; transform:scaleY(1.12); }
+.dcore--protector .dcoreFx{ border:1.5px solid color-mix(in srgb, var(--dc-accent) 55%, transparent); inset:-3%; animation:dcShield 3s ease-in-out infinite; }
+/* ALEGRE: sonrisa abierta + destellos */
+.dcore--alegre .dMouth{ opacity:.8; stroke-width:4; transform:scale(1.12); }
+.dcore--alegre .dcoreNucleus{ animation:dcPop 2.6s ease-in-out infinite; }
+/* PENSANDO: neutra, mirada arriba, órbitas alineándose */
 .dcore--pensando .dEye{ animation:none; transform:translateY(-1.5px); }
 .dcore--pensando .dMouth{ opacity:.3; }
 .dcore--pensando .dcoreNucleus{ animation:dcThink 2.4s ease-in-out infinite; }
-.dcore--acompanando .dMouth, .dcore--proponiendo .dMouth{ opacity:.68; stroke-width:3.6; }
-.dcore--calma .dEye{ animation:none; transform:scaleY(.42); }
-.dcore--alerta .dEye{ animation:none; transform:scaleY(1.15); }
+/* ESPERANDO CONFIRMACIÓN: atenta y prudente, pulso controlado */
+.dcore--esperando_confirmacion .dMouth{ opacity:.5; transform:scaleX(.78); }
+.dcore--esperando_confirmacion .dcoreFx{ border:1.4px solid color-mix(in srgb, var(--dc-accent) 50%, transparent); inset:-2%; animation:dcShield 1.8s ease-in-out infinite; }
 
 @keyframes dcBreathe{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.03);} }
 @keyframes dcAura{ 0%,100%{ opacity:.78; transform:scale(1);} 50%{ opacity:1; transform:scale(1.07);} }
@@ -826,6 +840,10 @@ body[data-theme="family"] .skel{ background:rgba(120,95,60,.10); }
 @keyframes dcTwinkle{ 0%,100%{ opacity:.4;} 50%{ opacity:1;} }
 @keyframes dcThink{ 0%,100%{ transform:rotate(-2.5deg);} 50%{ transform:rotate(2.5deg);} }
 @keyframes dcBlink{ 0%,93%,100%{ transform:scaleY(1);} 96.5%{ transform:scaleY(.12);} }
+@keyframes dcWaves{ 0%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--dc-accent) 50%, transparent);} 100%{ box-shadow:0 0 0 16px color-mix(in srgb, var(--dc-accent) 0%, transparent);} }
+@keyframes dcHug{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.05);} }
+@keyframes dcShield{ 0%,100%{ opacity:.55; transform:scale(1);} 50%{ opacity:.9; transform:scale(1.03);} }
+@keyframes dcPop{ 0%,100%{ transform:scale(1);} 35%{ transform:scale(1.06);} 55%{ transform:scale(.99);} }
 @keyframes dcFloat{ 0%,100%{ transform:translate(-50%,-50%) translateY(0);} 50%{ transform:translate(-50%,-50%) translateY(-5%);} }
 @media (prefers-reduced-motion: reduce){
   .dcoreAura,.dcoreRing,.dcoreNucleus,.dcoreStars,.dEye,.dcoreChip{ animation:none !important; }
@@ -946,3 +964,8 @@ body[data-theme="family"]{
 .vdt-sunset .vdThemeDot{ background:linear-gradient(135deg, #5c3330 40%, #f0853c); }
 .vdt-night .vdThemeDot{ background:linear-gradient(135deg, #161b40 40%, #8B6DFF); }
 @media (max-width:760px){ .vdThemePicker{ top:auto; bottom:92px; right:10px; } }
+
+/* ===================== Panel QA visual (solo ?visualQa=1) ===== */
+.vdQaPanel{ background:var(--vd-card, rgba(255,255,255,.9)); border:1px dashed var(--vd-card-border, rgba(0,0,0,.2)); border-radius:14px; padding:10px 12px; margin:6px 0 10px; }
+.vdQaTitle{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--vd-muted,#888); margin-bottom:8px; }
+.suggChip.on{ background:color-mix(in srgb, var(--vd-glow,#E8B04B) 32%, transparent); border-color:var(--vd-glow,#E8B04B); color:var(--vd-text,#473722); }

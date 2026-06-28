@@ -43,16 +43,16 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
 
   // Saludo
   if (/^(hola|hey|buenos|buenas|qué tal|que tal)\b/.test(t)) {
-    return { speech: `Hola${ctx.userName ? `, ${ctx.userName}` : ""}. Me alegra acompañarte. ¿Qué necesita tu hogar hoy?`, state: "acompanando", cards: [] };
+    return { speech: `Hola${ctx.userName ? `, ${ctx.userName}` : ""}. Me alegra acompañarte. ¿Qué necesita tu hogar hoy?`, state: "cercano", cards: [] };
   }
 
   // Resumen / ordenar el día / pendientes
   if (/(qué falta|que falta|qué hay|que hay|resumen|ordenar mi día|ordenar mi dia|pendiente|mi día|mi dia|hoy)/.test(t)) {
-    if (ctx.cards?.length) return { speech: "Esto es lo importante en tu hogar hoy.", state: "proponiendo", cards: ctx.cards };
+    if (ctx.cards?.length) return { speech: "Esto es lo importante en tu hogar hoy.", state: "atento", cards: ctx.cards };
     const s = ctx.summary;
     return {
       speech: "Esto es lo que veo en tu hogar hoy.",
-      state: "proponiendo",
+      state: "atento",
       cards: [s ? { kind: "summary", title: s.title, lines: s.lines } : { kind: "domi", text: "Por ahora está todo tranquilo en casa." }],
     };
   }
@@ -68,7 +68,7 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
       if (farm.length) lines.push(`Farmacia: ${farm.join(", ")}`);
       return {
         speech: "Puedo agregar esto a tu lista de compras. ¿Lo confirmas?",
-        state: "esperando",
+        state: "esperando_confirmacion",
         cards: [{ kind: "proposal", title: "Agregar a compras", text: "Domi clasificó tus productos:", lines, confirmLabel: "Confirmar lista" }],
       };
     }
@@ -78,7 +78,7 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
   if (/medicament|medicina|remedio|toma|losart|pastilla/.test(t)) {
     return {
       speech: "Te ayudo con el recordatorio, pero la toma la confirma una persona.",
-      state: "alerta",
+      state: "protector",
       cards: [{
         kind: "proposal", sensitive: true, title: "Recordatorio de medicamento",
         text: "Puedo recordar la toma y avisar a quien cuida. La confirmación de la toma siempre la hace una persona.",
@@ -89,18 +89,18 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
 
   // Música / calma
   if (/música|musica|canción|cancion|relaj|tranquil|calma/.test(t)) {
-    return { speech: "Puedo poner un sonido tranquilo para acompañarte.", state: "calma", cards: [{ kind: "music", title: "Sonido tranquilo" }] };
+    return { speech: "Puedo poner un sonido tranquilo para acompañarte.", state: "sereno", cards: [{ kind: "music", title: "Sonido tranquilo" }] };
   }
   // Respiración
   if (/respir|respira/.test(t)) {
-    return { speech: "Respiremos juntos un minuto. Sigue el círculo.", state: "calma", cards: [{ kind: "breathing", title: "Respiración de 1 minuto" }] };
+    return { speech: "Respiremos juntos un minuto. Sigue el círculo.", state: "sereno", cards: [{ kind: "breathing", title: "Respiración de 1 minuto" }] };
   }
 
   // Documento
   if (/documento|receta|boleta|circular|cuenta|sub(e|í|ir)/.test(t)) {
     return {
       speech: "Puedo revisar un documento y proponerte qué hacer con él.",
-      state: "proponiendo",
+      state: "atento",
       cards: [{ kind: "info", title: "Subir documento", text: "Toca el clip de la barra para subir una receta, boleta o circular. Si detecto un medicamento, quedará pendiente de confirmación humana." }],
     };
   }
@@ -109,7 +109,7 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
   if (/estudio|prueba|tarea|materia|temario/.test(t)) {
     return {
       speech: "Puedo preparar un plan de estudio. ¿Lo armo?",
-      state: "esperando",
+      state: "esperando_confirmacion",
       cards: [{ kind: "proposal", title: "Preparar estudio", text: "Puedo crear un plan por bloques y preparar un paquete para revisar. ¿Quieres que lo arme?", confirmLabel: "Preparar plan" }],
     };
   }
@@ -118,7 +118,7 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
   if (/ayuda|auxilio|emergencia|me siento mal|necesito ayuda/.test(t)) {
     return {
       speech: "Estoy contigo. Puedo avisar a tu familia.",
-      state: "alerta",
+      state: "protector",
       cards: [{ kind: "proposal", sensitive: true, title: "Avisar a la familia", text: "Puedo enviar un aviso a quienes te cuidan. ¿Confirmas?", confirmLabel: "Avisar a la familia" }],
     };
   }
@@ -126,7 +126,7 @@ export function interpret(raw: string, ctx: DomiCtx = {}): DomiResult {
   // Por defecto
   return {
     speech: "Puedo ayudarte con las compras, la salud, los documentos, el estudio o un resumen del hogar. ¿Qué necesitas?",
-    state: "proponiendo",
+    state: "atento",
     cards: [],
   };
 }

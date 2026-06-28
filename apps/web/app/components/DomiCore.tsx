@@ -1,22 +1,20 @@
 /**
- * DomiCore — presencia tecnológica cálida del hogar (no mascota).
+ * DomiCore — "Tu compañía IA": presencia cálida y viva del hogar (no mascota).
  *
- * Núcleo de vidrio con luz ámbar + halo ambiental emocional + órbitas 3D con
- * puntos de energía + rostro MÍNIMO y elegante + chips de módulo sutiles.
- * 100% CSS/SVG, sin foto ni assets. El estado cambia el acento de la luz y el
- * gesto. Respeta prefers-reduced-motion (ver globals.css, bloque .dcore).
+ * Núcleo de vidrio con luz + halo + órbitas 3D + chips sutiles + rostro mínimo.
+ * El color/expresión/movimiento vienen de los tokens emocionales
+ * (lib/domiStateTokens) — una sola fuente de verdad. 100% CSS/SVG, sin foto.
  */
 import React from "react";
 import DomiIcon, { ModuleKey, MODULE_COLOR } from "./domiIcons";
+import { DOMI_TOKENS, type DomiState } from "../../lib/domiStateTokens";
 
-export type DomiState =
-  | "listo" | "escuchando" | "pensando" | "acompanando"
-  | "proponiendo" | "esperando" | "calma" | "alerta";
+export type { DomiState };
 
 const CHIPS: ModuleKey[] = ["home", "health", "shopping", "message", "users", "shield"];
 
 export default function DomiCore({
-  state = "listo",
+  state = "atento",
   size = 160,
   label,
   constellation = true,
@@ -26,7 +24,8 @@ export default function DomiCore({
   label?: string;
   constellation?: boolean;
 }) {
-  const rich = constellation && size >= 110; // órbitas + chips solo en tamaño protagonista
+  const tk = DOMI_TOKENS[state] || DOMI_TOKENS.atento;
+  const rich = constellation && size >= 110;
   const cx = size / 2;
   const chipR = size * 0.52;
   const chipSize = Math.max(20, Math.round(size * 0.17));
@@ -34,9 +33,15 @@ export default function DomiCore({
   return (
     <div
       className={`dcore dcore--${state}${rich ? " dcore--rich" : ""}`}
-      style={{ width: size, height: size }}
+      style={{
+        width: size, height: size,
+        ["--dc-accent" as any]: tk.accent,
+        ["--dc-core" as any]: tk.core,
+        ["--dc-hi" as any]: tk.coreLight,
+        ["--dc-halo" as any]: tk.halo,
+      }}
       role="img"
-      aria-label={label || `Domi, núcleo del hogar (${state})`}
+      aria-label={label || `Domi (${tk.label}): ${tk.shortMessage}`}
     >
       <span className="dcoreAura" aria-hidden="true" />
 
@@ -48,6 +53,9 @@ export default function DomiCore({
         </span>
       ) : null}
 
+      {/* anillo escudo (protector) / ondas (escuchando) — decorativo por estado */}
+      <span className="dcoreFx" aria-hidden="true" />
+
       <span className="dcoreNucleus" aria-hidden="true">
         <span className="dcoreStars" />
         <span className="dcoreGloss" />
@@ -56,6 +64,8 @@ export default function DomiCore({
           <circle className="dEye" cx="62" cy="29" r="3.6" />
           <circle className="dShine" cx="39.2" cy="27.6" r="1.1" />
           <circle className="dShine" cx="63.2" cy="27.6" r="1.1" />
+          <path className="dEyeClosed" d="M32 29 Q38 33 44 29" />
+          <path className="dEyeClosed" d="M56 29 Q62 33 68 29" />
           <path className="dMouth" d="M42 39 Q50 44 58 39" />
         </svg>
       </span>
