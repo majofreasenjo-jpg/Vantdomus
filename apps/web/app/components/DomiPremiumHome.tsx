@@ -72,7 +72,7 @@ export default function DomiPremiumHome({
   }, []);
   useEffect(() => { if (feed.length) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [feed]);
 
-  function push(b: Omit<Block, "id">) { setFeed((f) => [...f, { ...(b as any), id: idRef.current++ }]); }
+  function push(b: { role: "user"; text: string } | { role: "domi"; text: string } | { role: "card"; card: DomiCard }) { setFeed((f) => [...f, { ...(b as any), id: idRef.current++ } as Block]); }
 
   function handle(text: string) {
     const q = text.trim(); if (!q) return;
