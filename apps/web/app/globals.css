@@ -1107,3 +1107,9 @@ body:has(.vdHome) .nav{ display:none !important; }
 body:has(.vdHome) .bottomNav{ display:none !important; }
 body:has(.vdHome) .container{ max-width:none !important; padding:0 !important; }
 body:has(.vdHome) .vdThemePicker{ top:14px; }
+
+/* CP1b Google Visual Port: la home portada (#vantdomus-app) trae su propio
+   header y dock; ocultar el chrome global SOLO en esa vista. */
+body:has(#vantdomus-app) .nav{ display:none !important; }
+body:has(#vantdomus-app) .bottomNav{ display:none !important; }
+body:has(#vantdomus-app) .container{ max-width:none !important; padding:0 !important; }

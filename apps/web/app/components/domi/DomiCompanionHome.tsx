@@ -63,7 +63,14 @@ import { generateDomiReply } from "./domiIntents";
 // If false, it's completely hidden from the user interface and DOM unless the query param ?dev=1 is specified.
 const DEV_PANEL_ENABLED = false;
 
-export default function DomiCompanionHome() {
+export interface DomiHomeData {
+  /** Datos reales del hogar (opcionales). Si faltan, se usa el fallback demo
+   *  del prototipo aprobado — marcado como demo, no como dato real. */
+  shoppingItems?: ShoppingItem[];
+  familyMembers?: FamilyMember[];
+}
+
+export default function DomiCompanionHome({ data }: { data?: DomiHomeData }) {
   // --- DEV PANEL STATES ---
   const [devModeActive, setDevModeActive] = useState(() => {
     // Port: dev panel oculto por defecto; solo ?dev=1 (o Ctrl+Shift+D en local).
@@ -162,7 +169,7 @@ export default function DomiCompanionHome() {
   const [studyPrepared, setStudyPrepared] = useState(false);
   
   // Default shopping list (Faltan 9 productos)
-  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : [
     { id: "1", name: "Leche semidescremada", checked: false, qty: "2 L", category: "Supermercado" },
     { id: "2", name: "Plátanos maduros", checked: false, qty: "1 Kg", category: "Frutería" },
     { id: "3", name: "Pan de molde integral", checked: false, qty: "1 ud", category: "Panadería" },
@@ -182,7 +189,7 @@ export default function DomiCompanionHome() {
   ]);
 
   // Family members list
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : [
     { id: "mama", name: "Mamá (Gabriela)", role: "Madre", avatar: "G", status: "En el trabajo" },
     { id: "papa", name: "Papá (Carlos)", role: "Padre", avatar: "C", status: "Preparando la cena" },
     { id: "diego", name: "Diego", role: "Hijo - Estudiante", avatar: "D", status: "Estudiando matemáticas" },
