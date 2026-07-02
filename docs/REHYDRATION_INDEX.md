@@ -103,3 +103,13 @@ No deploy fuera de sprint · no crear servicios sin permiso · no pedir/imprimir
 secretos · no usar deploy viejo ni secretos quemados · no reabrir arquitectura
 VantGuide · no agregar features fuera de alcance · no inflar marketing · no IP de
 terceros · no activar IA plena/OCR de fotos si están fuera de alcance.
+
+---
+
+## CP1b Google Visual Port — companion-first Domi (2026-07-02)
+
+Branch `u1-cp1b-google-visual-port`. Fuente: `vantdomus-hogar (6).zip` (Google
+AI Studio, aprobado visualmente por el owner). Port en
+`apps/web/app/components/domi/` — ver `DEMO_LOCAL_VANTDOMUS_HOGAR.md` (sección
+CP1b) para URLs de prueba (`?theme=`, `?domiState=`, `?dev=1`) y real-vs-demo.
+Regla vigente: no rediseñar; Domi propone, una persona confirma lo sensible.

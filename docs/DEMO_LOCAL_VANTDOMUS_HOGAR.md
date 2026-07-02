@@ -110,3 +110,38 @@ total estimado + disclaimer. 14. Actividades del día visibles por integrante.
 Bandeja Inteligente flujo de receta funciona. 18. Salud carga con empty state
 útil. 19. Presupuesto carga. 20. No aparecen UUIDs visibles. 21. No aparece copy
 B2B (Dirección Ejecutiva, ESG, Wealth Guard, "VantGuide" en family).
+
+---
+
+## CP1b Google Visual Port — companion-first Domi (2026-07-02)
+
+La home `/hogar/[householdId]` ahora es el **port del prototipo aprobado de
+Google AI Studio** (`vantdomus-hogar (6).zip`): Domi protagonista central con
+órbitas y nodos, panel "Tu hogar hoy", cards principales, dock de voz y temas
+por hora. Branch: `u1-cp1b-google-visual-port`.
+
+### Cómo probar (local)
+1. Arrancar API + web (`Iniciar_VantDomus.bat` o manual). Login demo habitual.
+2. Abrir `http://localhost:3000/hogar/<householdId>`.
+
+### Temas (auto por hora local; override por query)
+- `?theme=dawn` · `?theme=day` · `?theme=sunset` · `?theme=night`
+- Auto: 06-09 dawn · 09-18 day · 18-21 sunset · resto night.
+
+### Estados de Domi (override por query)
+`?domiState=` + `listo | escuchando | pensando | proponiendo |
+esperando_confirmacion | protector | calma | cercano | alegre | descanso`
+- Combinables: `?theme=day&domiState=pensando` · `?theme=sunset&domiState=alegre`
+
+### Dev panel (solo local)
+- Oculto por defecto (`DEV_PANEL_ENABLED=false`).
+- Activar con `?dev=1` (o `Ctrl+Shift+D` una vez activo el modo dev).
+- `?domiAppearance=` existe como arquitectura interna (no es feature visible).
+
+### Real vs demo
+- **Real:** integrantes (getDashboard→persons) y lista de compras
+  (shoppingList) mapeados a los tipos del prototipo.
+- **Demo (fallback del prototipo, marcado en código):** bloques de estudio,
+  documentos del workspace, notificaciones, ambiente/temperatura, y el chat —
+  que responde por REGLAS locales (`components/domi/domiIntents.ts`), sin red
+  ni IA externa. Medicamentos NUNCA se auto-confirman desde el chat.
