@@ -133,7 +133,15 @@ function createMotionComponent(tag: string) {
     }, [JSON.stringify(animate), JSON.stringify(transition)]);
 
     const clean: Dict = {};
-    for (const [k, v] of Object.entries(rest)) if (!MOTION_ONLY_PROPS.has(k)) clean[k] = v;
+    for (const [k, v] of Object.entries(rest)) {
+      if (MOTION_ONLY_PROPS.has(k)) continue;
+      // Eventos de motion → eventos nativos (conserva el comportamiento hover/tap
+      // del prototipo sin warnings de React por props desconocidas).
+      if (k === "onHoverStart") { clean.onMouseEnter = v; continue; }
+      if (k === "onHoverEnd") { clean.onMouseLeave = v; continue; }
+      if (k === "onTap") { clean.onClick = v; continue; }
+      clean[k] = v;
+    }
 
     return React.createElement(tag, {
       ...clean,
