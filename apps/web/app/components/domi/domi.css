@@ -1,0 +1,23 @@
+/**
+ * domi.css — entry Tailwind v4 AISLADO al árbol Domi (CP1b Google Visual Port).
+ *
+ * Aislamiento deliberado:
+ *  - SIN preflight (no importamos tailwindcss/preflight): cero reset global,
+ *    los estilos existentes del resto de VantDomus no cambian.
+ *  - source(none) + @source "./": las utilidades se generan SOLO desde los
+ *    archivos de app/components/domi/ (evita colisiones tipo `.container`).
+ *  - Este archivo se importa desde los componentes Domi, no desde el layout
+ *    raíz → Next lo sirve solo en las rutas que montan Domi.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@source "./";
+
+/* Tipografías del prototipo (se cargan vía next/font en la ruta; aquí solo
+   registramos los alias que usan las clases font-sans/font-display/font-mono). */
+@theme {
+  --font-sans: var(--domi-font-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--domi-font-grotesk, "Space Grotesk"), sans-serif;
+  --font-mono: var(--domi-font-jetbrains, "JetBrains Mono"), ui-monospace, SFMono-Regular, monospace;
+}
