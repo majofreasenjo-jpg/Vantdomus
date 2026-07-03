@@ -9,7 +9,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const error = params.error || "";
   const email = params.email || "";
-  const next = params.next || "/dashboard";
+  const next = params.next || "/inicio";
   const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
 
   return (

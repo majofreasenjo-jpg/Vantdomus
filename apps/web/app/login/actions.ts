@@ -39,7 +39,9 @@ function cookieSecure() {
  *  - anything that doesn't start with a single forward slash
  */
 function safeNextPath(raw: string): string {
-  const fallback = "/dashboard";
+  // Por defecto se aterriza en la home companion de Domi (vía /inicio, que
+  // resuelve el hogar), no en la pantalla técnica /dashboard.
+  const fallback = "/inicio";
   if (!raw || typeof raw !== "string") return fallback;
   const trimmed = raw.trim();
   if (!trimmed.startsWith("/")) return fallback;
@@ -55,7 +57,7 @@ export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const mfaCode = String(formData.get("mfa_code") || "").trim();
-  const nextPath = String(formData.get("next") || "/dashboard");
+  const nextPath = String(formData.get("next") || "/inicio");
   if (!email || !password) {
     redirect(`/login?error=${encodeURIComponent("Ingresa email y contrasena")}`);
   }
