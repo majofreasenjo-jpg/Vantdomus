@@ -120,6 +120,22 @@ export function generateDomiReply(rawText: string, ctx: DomiIntentContext): Domi
     };
   }
 
+  // — Documento / colegio (apunta al flujo de Documentos que ya existe) —
+  if (/documento|circular|colegio|pdf|boleta|receta|archivo|adjunt/.test(text)) {
+    return {
+      text: "En la pestaña Documentos tienes lo del hogar (recetas, circulares del colegio y más). Ábrela y te ayudo a leer o clasificar lo que necesites. Nada se comparte sin que tú lo decidas.",
+      action: { type: "NONE" },
+    };
+  }
+
+  // — Ayuda / qué puede hacer Domi —
+  if (/ayuda|ayúdame|qu[eé] puedes|que puedes|c[oó]mo funciona|como funciona|para qu[eé] sirves|qu[eé] haces|no s[eé] qu[eé]/.test(text)) {
+    return {
+      text: "Puedo acompañarte con varias cosas del hogar: cuidado de Elena (propongo y una persona confirma), estudio de Diego, la lista de compras, un momento de calma, un resumen del día o revisar documentos. Dime en tus palabras qué necesitas.",
+      action: { type: "NONE" },
+    };
+  }
+
   // — Saludo —
   if (/^(hola|buenas|buenos|hey|qu[eé] tal)/.test(text)) {
     return {

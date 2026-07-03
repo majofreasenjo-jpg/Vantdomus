@@ -475,6 +475,18 @@ export default function DomiCompanionHome({
     }
   };
 
+  // CANON DE SEGURIDAD (CP1c): "Avisar a la familia" NOTIFICA, no confirma. La
+  // toma de Elena queda PENDIENTE hasta que una persona la confirme de forma
+  // explícita en el panel de Cuidado. Salud/medicamentos nunca se auto-ejecutan.
+  const notifyFamilyForCare = () => {
+    addNotification(
+      "Aviso enviado a la familia",
+      "Se pidió a un familiar que revise y confirme la toma de Elena. Queda pendiente de confirmación humana.",
+      "care"
+    );
+    setDomiState("esperando_confirmacion");
+  };
+
   const handleToggleShoppingItem = (id: string) => {
     setShoppingItems(prev => prev.map(item => {
       if (item.id === id) {
@@ -623,7 +635,9 @@ export default function DomiCompanionHome({
       } else if (lowerText.includes("proteg") || lowerText.includes("seguridad") || lowerText.includes("puerta") || lowerText.includes("cerrar")) {
         setDomiState("protector");
       } else if (lowerText.includes("tomó") || lowerText.includes("medicina") || lowerText.includes("médic") || lowerText.includes("confirmar")) {
-        setDomiState("alegre");
+        // Canon: salud/medicamentos = a la espera de confirmación humana, no
+        // "alegre". Domi propone/recuerda; una persona confirma en Cuidado.
+        setDomiState("esperando_confirmacion");
       } else if (lowerText.includes("estudio") || lowerText.includes("matemát") || lowerText.includes("diego") || lowerText.includes("prepara")) {
         setDomiState("proponiendo");
       } else if (lowerText.includes("compras") || lowerText.includes("leche") || lowerText.includes("frut")) {
@@ -664,7 +678,16 @@ export default function DomiCompanionHome({
   const executeAIAction = (actionType: string, payload?: string) => {
     switch (actionType) {
       case "CONFIRM_MEDICATION":
-        confirmMedicine(true, "Domi (Asistente)");
+        // Defensa en profundidad: aunque el motor de intents local nunca emite
+        // esta acción, si llegara, NO se confirma sola. Se enruta a confirmación
+        // humana en el panel de Cuidado (Domi solo propone).
+        setModals(prev => ({ ...prev, care: true }));
+        setDomiState("esperando_confirmacion");
+        addNotification(
+          "Confirmación requerida",
+          "La toma de Elena necesita que una persona la confirme en el panel de Cuidado.",
+          "care"
+        );
         break;
       case "PREPARE_STUDY":
         handlePrepareStudy();
@@ -1203,14 +1226,7 @@ export default function DomiCompanionHome({
                         setModals(prev => ({ ...prev, care: true }));
                         setDomiState("esperando_confirmacion");
                       }}
-                      onNotifyFamily={() => {
-                        confirmMedicine(true, "Abuela (Notificado)");
-                        addNotification("Notificación Familiar", "Se envió un aviso urgente confirmando cuidado de Elena.", "care");
-                        setDomiState("alegre");
-                        setTimeout(() => {
-                          setDomiState(activeTheme === "night" ? "descanso" : "listo");
-                        }, 4000);
-                      }}
+                      onNotifyFamily={notifyFamilyForCare}
                       onPrepareStudy={handlePrepareStudy}
                       onViewStudyPlan={() => {
                         setModals(prev => ({ ...prev, study: true }));
@@ -1318,14 +1334,7 @@ export default function DomiCompanionHome({
                         setModals(prev => ({ ...prev, care: true }));
                         setDomiState("esperando_confirmacion");
                       }}
-                      onNotifyFamily={() => {
-                        confirmMedicine(true, "Abuela (Notificado)");
-                        addNotification("Notificación Familiar", "Se envió un aviso urgente confirmando cuidado de Elena.", "care");
-                        setDomiState("alegre");
-                        setTimeout(() => {
-                          setDomiState(activeTheme === "night" ? "descanso" : "listo");
-                        }, 4000);
-                      }}
+                      onNotifyFamily={notifyFamilyForCare}
                       onPrepareStudy={handlePrepareStudy}
                       onViewStudyPlan={() => {
                         setModals(prev => ({ ...prev, study: true }));
@@ -1361,14 +1370,7 @@ export default function DomiCompanionHome({
                       setModals(prev => ({ ...prev, care: true }));
                       setDomiState("esperando_confirmacion");
                     }}
-                    onNotifyFamily={() => {
-                      confirmMedicine(true, "Abuela (Notificado)");
-                      addNotification("Notificación Familiar", "Se envió un aviso urgente confirmando cuidado de Elena.", "care");
-                      setDomiState("alegre");
-                      setTimeout(() => {
-                        setDomiState(activeTheme === "night" ? "descanso" : "listo");
-                      }, 4000);
-                    }}
+                    onNotifyFamily={notifyFamilyForCare}
                     onPrepareStudy={handlePrepareStudy}
                     onViewStudyPlan={() => {
                       setModals(prev => ({ ...prev, study: true }));
