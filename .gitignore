@@ -11,6 +11,10 @@ build/
 *.tsbuildinfo
 bundle.js
 
+# Next.js autogenera next-env.d.ts (y reescribe su import entre .next/types y
+# .next/dev/types según dev/build). No se versiona: Next lo regenera solo.
+next-env.d.ts
+
 # Python
 __pycache__/
 *.pyc
