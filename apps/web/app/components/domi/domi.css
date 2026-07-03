@@ -2,16 +2,21 @@
  * domi.css — entry Tailwind v4 AISLADO al árbol Domi (CP1b Google Visual Port).
  *
  * Aislamiento deliberado:
- *  - SIN preflight (no importamos tailwindcss/preflight): cero reset global,
- *    los estilos existentes del resto de VantDomus no cambian.
  *  - source(none) + @source "./": las utilidades se generan SOLO desde los
  *    archivos de app/components/domi/ (evita colisiones tipo `.container`).
+ *  - Las utilidades se importan SIN capa (@layer): las reglas legacy de
+ *    globals.css no tienen capa y, por cascada, le ganarían a cualquier regla
+ *    dentro de @layer. Al dejarlas sin capa, este archivo (que carga después
+ *    de globals en la ruta) gana por orden de aparición — solo aquí.
+ *  - El preflight de Tailwind NO se importa global: se replica abajo ENCERRADO
+ *    en #vantdomus-app (@layer base), así el reset que el prototipo necesita
+ *    existe dentro del árbol Domi y el resto de VantDomus no cambia.
  *  - Este archivo se importa desde los componentes Domi, no desde el layout
  *    raíz → Next lo sirve solo en las rutas que montan Domi.
  */
-@layer theme, base, components, utilities;
+@layer theme, base;
 @import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "tailwindcss/utilities.css" source(none);
 @source "./";
 
 /* Tipografías del prototipo (se cargan vía next/font en la ruta; aquí solo
@@ -20,6 +25,68 @@
   --font-sans: var(--domi-font-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--domi-font-grotesk, "Space Grotesk"), sans-serif;
   --font-mono: var(--domi-font-jetbrains, "JetBrains Mono"), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ===== Preflight SCOPED al árbol Domi (réplica de tailwindcss/preflight,
+   solo dentro de #vantdomus-app). Va en @layer base para que TODA utilidad
+   (sin capa) pueda sobreescribirlo. El prototipo de Google corre con preflight
+   completo; sin esto los <button> muestran el gris nativo del navegador y las
+   clases `border-*` no pintan (falta border-style). ===== */
+@layer base {
+  #vantdomus-app, #vantdomus-app *, #vantdomus-app *::before, #vantdomus-app *::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: currentColor;
+  }
+  #vantdomus-app h1, #vantdomus-app h2, #vantdomus-app h3, #vantdomus-app h4,
+  #vantdomus-app h5, #vantdomus-app h6, #vantdomus-app p, #vantdomus-app figure,
+  #vantdomus-app blockquote, #vantdomus-app dl, #vantdomus-app dd, #vantdomus-app pre {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  #vantdomus-app ol, #vantdomus-app ul, #vantdomus-app menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  #vantdomus-app button, #vantdomus-app input, #vantdomus-app optgroup,
+  #vantdomus-app select, #vantdomus-app textarea {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+  }
+  #vantdomus-app button, #vantdomus-app [role="button"] {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  #vantdomus-app a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+  #vantdomus-app img, #vantdomus-app svg, #vantdomus-app video,
+  #vantdomus-app canvas, #vantdomus-app audio, #vantdomus-app iframe {
+    display: block;
+    vertical-align: middle;
+  }
+  #vantdomus-app img, #vantdomus-app video {
+    max-width: 100%;
+    height: auto;
+  }
+  #vantdomus-app input::placeholder, #vantdomus-app textarea::placeholder {
+    opacity: 1;
+    color: color-mix(in srgb, currentColor 50%, transparent);
+  }
+  #vantdomus-app small { font-size: 80%; }
+  #vantdomus-app table { border-collapse: collapse; border-color: inherit; }
 }
 
 /* ===== CSS custom del prototipo (port literal de src/index.css; el body
