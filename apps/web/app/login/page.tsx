@@ -50,14 +50,11 @@ export default async function LoginPage({
           box-shadow: 0 30px 70px -25px rgba(90,70,120,.45), 0 2px 8px rgba(90,70,120,.08);
         }
         #vantdomus-login .vdl-orb {
-          width: 64px; height: 64px; border-radius: 50%; position: relative; margin: 0 auto 16px;
-          background: radial-gradient(circle at 35% 30%, #FFF4D6 0%, #F8B84E 42%, #E58A1F 100%);
-          box-shadow: 0 0 0 8px rgba(248,184,78,.12), 0 10px 26px rgba(229,138,31,.38);
+          width: 82px; height: 82px; border-radius: 50%; position: relative; margin: 0 auto 16px;
+          background: radial-gradient(circle at 35% 28%, #FFF4D6 0%, #F8B84E 45%, #E58A1F 100%);
+          box-shadow: 0 0 0 9px rgba(248,184,78,.12), 0 12px 30px rgba(229,138,31,.4);
         }
-        #vantdomus-login .vdl-orb::after {
-          content: ""; position: absolute; top: 12px; left: 15px; width: 16px; height: 12px;
-          border-radius: 50%; background: rgba(255,255,255,.85); filter: blur(1px);
-        }
+        #vantdomus-login .vdl-face { position: absolute; inset: 0; width: 100%; height: 100%; }
         #vantdomus-login h1 {
           font-family: var(--vdl-grotesk), var(--vdl-inter), sans-serif;
           font-size: 26px; font-weight: 700; color: var(--vdl-ink); margin: 0; text-align: center;
@@ -106,7 +103,22 @@ export default async function LoginPage({
       `}</style>
 
       <section className="vdl-card">
-        <div className="vdl-orb" aria-hidden="true" />
+        <div className="vdl-orb" aria-hidden="true">
+          <svg className="vdl-face" viewBox="0 0 100 100">
+            {/* brillo */}
+            <ellipse cx="34" cy="30" rx="11" ry="8" fill="rgba(255,255,255,.85)" />
+            {/* cachetes */}
+            <ellipse cx="30" cy="60" rx="9" ry="6" fill="#FF9EB0" opacity="0.55" />
+            <ellipse cx="70" cy="60" rx="9" ry="6" fill="#FF9EB0" opacity="0.55" />
+            {/* ojos */}
+            <ellipse cx="38" cy="49" rx="5.4" ry="7.6" fill="#2b1d08" />
+            <ellipse cx="62" cy="49" rx="5.4" ry="7.6" fill="#2b1d08" />
+            <circle cx="36.2" cy="45.8" r="1.7" fill="#fff" />
+            <circle cx="60.2" cy="45.8" r="1.7" fill="#fff" />
+            {/* sonrisa feliz */}
+            <path d="M39 61 Q50 76 61 61 Z" fill="#2b1d08" />
+          </svg>
+        </div>
         <h1>Entrar a VantDomus</h1>
         <p className="vdl-sub">Tu hogar, en calma y conexión 💛</p>
 
