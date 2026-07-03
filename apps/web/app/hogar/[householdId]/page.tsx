@@ -97,6 +97,20 @@ export default async function HogarCompanionPage({
     }));
   }
 
+  // CP1c — fallback NO silencioso (documentación operacional): si la sesión
+  // server-side no trae datos (401/expirada), la home usa datos DEMO del
+  // prototipo. Se registra en el log del servidor para que QA/captura/negocio
+  // detecten el fallback sin ambigüedad. TODO CP1c-FUNC-MIN-2: además marcarlo
+  // visible en la UI (o en el modo QA ?dev=1), o redirigir a /login según el caso.
+  const familyIsDemo = persons.length === 0;
+  const shoppingIsDemo = items.length === 0;
+  if (familyIsDemo || shoppingIsDemo) {
+    console.warn(
+      `[hogar] datos DEMO/fallback en uso — familia:${familyIsDemo ? "DEMO" : "real"} ` +
+      `compras:${shoppingIsDemo ? "DEMO" : "real"} (sesión server-side sin datos válidos)`
+    );
+  }
+
   return (
     <div className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}>
       <DomiCompanionHome
