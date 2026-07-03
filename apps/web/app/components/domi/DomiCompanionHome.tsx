@@ -54,7 +54,7 @@ import StatusCards from "./StatusCards";
 import Modals from "./Modals";
 import DomiChat from "./DomiChat";
 import EquilibrioChart from "./EquilibrioChart";
-import { themesConfig, getInitialTheme } from "./domiThemes";
+import { themesConfig } from "./domiThemes";
 import { generateDomiReply } from "./domiIntents";
 
 
@@ -70,33 +70,34 @@ export interface DomiHomeData {
   familyMembers?: FamilyMember[];
 }
 
-export default function DomiCompanionHome({ data }: { data?: DomiHomeData }) {
+export default function DomiCompanionHome({
+  data,
+  initialTheme,
+  initialDomiState,
+  initialAppearance,
+  initialDev,
+}: {
+  data?: DomiHomeData;
+  // Estado inicial resuelto en el servidor (page.tsx) desde los query params,
+  // para que server y cliente rendericen idéntico y no haya hydration mismatch.
+  initialTheme?: "dawn" | "day" | "sunset" | "night";
+  initialDomiState?: DomiState;
+  initialAppearance?: string;
+  initialDev?: boolean;
+}) {
   // --- DEV PANEL STATES ---
-  const [devModeActive, setDevModeActive] = useState(() => {
-    // Port: dev panel oculto por defecto; solo ?dev=1 (o Ctrl+Shift+D en local).
-    if (typeof window === "undefined") return DEV_PANEL_ENABLED;
-    const q = new URLSearchParams(window.location.search).get("dev");
-    return DEV_PANEL_ENABLED || q === "1" || q === "true";
-  });
+  // Estado inicial desde props del servidor (page.tsx lee ?dev=). Nada de
+  // window en el initializer → server y cliente coinciden (sin hydration mismatch).
+  const [devModeActive, setDevModeActive] = useState(DEV_PANEL_ENABLED || initialDev === true);
   const [devPanelOpen, setDevPanelOpen] = useState(false);
 
   // --- APPLICATION STATES ---
-  const [activeTheme, setActiveTheme] = useState<"dawn" | "day" | "sunset" | "night">(getInitialTheme());
+  const [activeTheme, setActiveTheme] = useState<"dawn" | "day" | "sunset" | "night">(
+    initialTheme ?? "day"
+  );
   const [domiAppearance, setDomiAppearance] = useState<
     "original" | "estudio" | "calma" | "protector" | "cercano" | "noche" | "senior" | "chef" | "astronaut" | "detective" | "wizard"
-  >(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const appearanceParam = params.get("domiAppearance") || params.get("domiCostume");
-      if (appearanceParam && [
-        "original", "estudio", "calma", "protector", "cercano", "noche", "senior",
-        "chef", "astronaut", "detective", "wizard"
-      ].includes(appearanceParam)) {
-        return appearanceParam as any;
-      }
-    }
-    return "original";
-  });
+  >((initialAppearance as any) ?? "original");
 
   // --- FULLSCREEN STATES & HANDLERS ---
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -151,19 +152,9 @@ export default function DomiCompanionHome({ data }: { data?: DomiHomeData }) {
     }
   };
   
-  const [domiState, setDomiState] = useState<DomiState>(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const stateParam = params.get("domiState") as DomiState;
-      if (stateParam && [
-        "listo", "escuchando", "pensando", "proponiendo", "esperando_confirmacion",
-        "protector", "calma", "cercano", "alegre", "descanso"
-      ].includes(stateParam)) {
-        return stateParam;
-      }
-    }
-    return "listo";
-  });
+  // Estado inicial desde props del servidor (page.tsx lee ?domiState=). Sin
+  // window en el initializer → server y cliente coinciden.
+  const [domiState, setDomiState] = useState<DomiState>(initialDomiState ?? "listo");
   const [activeTab, setActiveTab] = useState<"inicio" | "hoy" | "documentos" | "mas">("inicio");
   const [medicineConfirmed, setMedicineConfirmed] = useState(false);
   const [studyPrepared, setStudyPrepared] = useState(false);

@@ -52,15 +52,25 @@ export const themesConfig = {
   }
 };
 
-export const getInitialTheme = (): "dawn" | "day" | "sunset" | "night" => {
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    const themeParam = params.get("theme") as "dawn" | "day" | "sunset" | "night";
-    if (themeParam && ["dawn", "day", "sunset", "night"].includes(themeParam)) {
-      return themeParam;
-    }
+/**
+ * Resuelve el tema inicial de forma determinista y SSR-safe.
+ * Acepta un `themeParam` explícito (del `?theme=`, leído en el servidor desde
+ * searchParams) y una `hour` explícita, para que servidor y cliente calculen
+ * EXACTAMENTE lo mismo y no haya mismatch de hidratación. Sin argumentos, cae
+ * al comportamiento cliente (lee `window` + hora local) por compatibilidad.
+ */
+export const getInitialTheme = (
+  themeParam?: string | null,
+  hour?: number
+): "dawn" | "day" | "sunset" | "night" => {
+  let param = themeParam ?? null;
+  if (param === null && typeof window !== "undefined") {
+    param = new URLSearchParams(window.location.search).get("theme");
   }
-  const hrs = new Date().getHours();
+  if (param && ["dawn", "day", "sunset", "night"].includes(param)) {
+    return param as "dawn" | "day" | "sunset" | "night";
+  }
+  const hrs = hour ?? new Date().getHours();
   if (hrs >= 6 && hrs < 9) return "dawn";
   if (hrs >= 9 && hrs < 18) return "day";
   if (hrs >= 18 && hrs < 21) return "sunset";
