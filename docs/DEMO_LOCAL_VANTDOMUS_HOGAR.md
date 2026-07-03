@@ -133,9 +133,23 @@ por hora. Branch: `u1-cp1b-google-visual-port`.
 esperando_confirmacion | protector | calma | cercano | alegre | descanso`
 - Combinables: `?theme=day&domiState=pensando` · `?theme=sunset&domiState=alegre`
 
-### Dev panel (solo local)
-- Oculto por defecto (`DEV_PANEL_ENABLED=false`).
+### Estado del gate visual (ChatGPT, 2026-07-03)
+- **APROBADO como base visual de integración, condicionado.** El drift de grises
+  (pills/nodos/botones) se corrigió: preflight de Tailwind *scoped* a
+  `#vantdomus-app` + utilidades sin capa (commit `2cb92af`).
+- **Referencia visual CONGELADA** = prototipo Google AI Studio. Claude queda como
+  integrador del repo, no como diseñador. Cualquier cambio visual grande se
+  detiene y se consulta.
+- Estado base recomendado para comparar: `?theme=day` · `domiState=listo` (default)
+  · `appearance=original` (default).
+
+### Dev panel / Domi Lab (solo QA local)
+- Oculto por defecto (`DEV_PANEL_ENABLED=false`). Verificado: sin `?dev=1` no hay
+  ningún control de desarrollo en el DOM.
 - Activar con `?dev=1` (o `Ctrl+Shift+D` una vez activo el modo dev).
+- El disparador se rotula **"Domi Lab · QA (dev)"** — es una herramienta de QA
+  visual (temas/estados/disfraces), **no** una función del usuario ni el futuro
+  "Selector de Domi" (ese es feature aparte, aún en tokens).
 - `?domiAppearance=` existe como arquitectura interna (no es feature visible).
 
 ### Real vs demo

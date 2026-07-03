@@ -113,3 +113,9 @@ AI Studio, aprobado visualmente por el owner). Port en
 `apps/web/app/components/domi/` — ver `DEMO_LOCAL_VANTDOMUS_HOGAR.md` (sección
 CP1b) para URLs de prueba (`?theme=`, `?domiState=`, `?dev=1`) y real-vs-demo.
 Regla vigente: no rediseñar; Domi propone, una persona confirma lo sensible.
+
+**Estado (2026-07-03):** ChatGPT aprobó la base visual **condicionada**; drift de
+grises corregido (preflight scoped a `#vantdomus-app` + utilidades sin capa,
+commit `2cb92af`). **Referencia Google AI Studio = CONGELADA.** Siguiente fase:
+integración funcional mínima sobre esta vista, sin rediseño. Domi Lab (temas/
+estados/disfraces) es solo QA tras `?dev=1`, no feature de usuario.

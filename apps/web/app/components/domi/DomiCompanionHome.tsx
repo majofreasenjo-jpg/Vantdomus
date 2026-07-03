@@ -2225,10 +2225,10 @@ export default function DomiCompanionHome({ data }: { data?: DomiHomeData }) {
                   ? "bg-white/90 hover:bg-white border-slate-200 text-slate-600 hover:text-slate-800"
                   : "bg-slate-900/80 hover:bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
             }`}
-            title="Abrir Personalización de Domi (Ctrl+Shift+D)"
+            title="Domi Lab — panel de QA visual (solo dev=1 / Ctrl+Shift+D). No es una función del usuario."
           >
             <Wand2 className={`w-3.5 h-3.5 ${devPanelOpen ? "text-amber-500 animate-pulse" : "text-amber-400"}`} />
-            <span>Personalizar a Domi ✨</span>
+            <span>Domi Lab · QA (dev)</span>
           </button>
         </div>
       )}
