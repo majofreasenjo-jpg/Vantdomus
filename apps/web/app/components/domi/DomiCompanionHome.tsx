@@ -694,9 +694,19 @@ export default function DomiCompanionHome({
       case "PREPARE_STUDY":
         handlePrepareStudy();
         break;
-      case "ADD_SHOPPING_ITEM":
-        handleAddShoppingItem(payload || "Nuevo producto", "1 ud");
+      case "ADD_SHOPPING_ITEM": {
+        // payload puede traer varios productos separados por '|'. Se agregan
+        // TODOS los nuevos, con dedup vs la lista actual (nada de duplicados).
+        const names = (payload || "Nuevo producto").split("|").map((s) => s.trim()).filter(Boolean);
+        const existing = new Set(shoppingItems.map((i) => i.name.trim().toLowerCase()));
+        names.forEach((n) => {
+          if (!existing.has(n.toLowerCase())) {
+            existing.add(n.toLowerCase());
+            handleAddShoppingItem(n, "1 ud");
+          }
+        });
         break;
+      }
       case "TOGGLE_SHOPPING_ITEM":
         const itemToToggle = shoppingItems.find(i => i.name.toLowerCase().includes((payload || "").toLowerCase()));
         if (itemToToggle) handleToggleShoppingItem(itemToToggle.id);

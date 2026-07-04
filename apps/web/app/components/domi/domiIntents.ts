@@ -79,11 +79,36 @@ export function generateDomiReply(rawText: string, ctx: DomiIntentContext): Domi
   const products = rawText.match(PRODUCT_WORDS);
   if (/compra|lista|falta|agrega|añade|supermercado|feria/.test(text) || products) {
     if (products && products.length > 0) {
-      const first = products[0];
-      const extra = products.length > 1 ? ` También anoté: ${products.slice(1).join(", ")}.` : "";
+      // Honestidad canónica: Domi NO puede decir que agregó algo que no agregó.
+      // Se separa lo NUEVO de lo que YA estaba (dedup vs la lista real y vs el
+      // propio input), se agregan TODOS los nuevos, y el mensaje reporta con
+      // exactitud qué se agregó y qué ya existía.
+      const norm = (s: string) => s.trim().toLowerCase();
+      const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+      const existing = new Set(ctx.shoppingItems.map((i) => norm(i.name)));
+      const requested: string[] = [];
+      const seen = new Set<string>();
+      for (const p of products) {
+        const k = norm(p);
+        if (!seen.has(k)) { seen.add(k); requested.push(norm(p)); }
+      }
+      const nuevos = requested.filter((p) => !existing.has(p));
+      const yaEstaban = requested.filter((p) => existing.has(p));
+
+      if (nuevos.length === 0) {
+        return {
+          text: `${yaEstaban.map(cap).join(" y ")} ya ${yaEstaban.length > 1 ? "estaban" : "estaba"} en tu lista de compras, así que no agregué duplicados. Puedes revisarla en la tarjeta de Compras.`,
+          action: { type: "NONE" },
+        };
+      }
+      const addedTxt = nuevos.map(cap).join(nuevos.length > 2 ? ", " : " y ");
+      const extraTxt = yaEstaban.length
+        ? ` (${yaEstaban.map(cap).join(" y ")} ya ${yaEstaban.length > 1 ? "estaban" : "estaba"} en la lista.)`
+        : "";
       return {
-        text: `Listo, agregué ${first} a la lista de compras.${extra} Puedes revisarla en la tarjeta de Compras.`,
-        action: { type: "ADD_SHOPPING_ITEM", payload: first[0].toUpperCase() + first.slice(1) },
+        text: `Agregué a la lista de compras: ${addedTxt}.${extraTxt} Puedes revisarla en la tarjeta de Compras.`,
+        // payload = lista de nuevos separada por '|' (executeAIAction los agrega uno a uno)
+        action: { type: "ADD_SHOPPING_ITEM", payload: nuevos.map(cap).join("|") },
       };
     }
     const pending = ctx.shoppingItems.filter((i) => !i.checked).length;
