@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { API_BASE, loginWithPassword } from "../../lib/public-api";
+import { getHouseholds } from "../../lib/api";
 import { CSRF_COOKIE, newCsrfToken } from "../../lib/csrf";
 
 /**
@@ -93,7 +94,22 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(message)}&email=${encodeURIComponent(email)}`);
   }
 
-  redirect(safeNextPath(nextPath));
+  // Aterrizaje: si el destino es el intermedio /inicio (default), resolvemos el
+  // hogar AQUÍ y redirigimos DIRECTO a /hogar/<hid> (que tiene loader cálido),
+  // saltándonos /inicio — así se elimina el flash del chrome antiguo en la
+  // transición. Si hay un `next` explícito distinto, se respeta.
+  const target = safeNextPath(nextPath);
+  if (target === "/inicio") {
+    let hid = "";
+    try {
+      const households = (await getHouseholds()) as { items?: Array<{ id?: string }> };
+      hid = households?.items?.[0]?.id || "";
+    } catch {
+      hid = "";
+    }
+    redirect(hid ? `/hogar/${hid}` : "/dashboard");
+  }
+  redirect(target);
 }
 
 export async function logoutAction() {
