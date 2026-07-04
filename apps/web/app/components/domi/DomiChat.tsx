@@ -127,19 +127,22 @@ export default function DomiChat({
   ];
 
   return (
-    <div className="w-full flex flex-col items-center z-20">
-      
-      {/* 1. COLLAPSIBLE CONVERSATION PANEL */}
+    <div className="w-full flex flex-col items-center z-20 relative">
+
+      {/* 1. COLLAPSIBLE CONVERSATION PANEL
+           Flota HACIA ARRIBA sobre Domi (absolute bottom-full) en vez de empujar
+           el input hacia abajo: así el campo de escritura queda SIEMPRE visible
+           (antes el panel de 320px empujaba el input fuera de pantalla). */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className={`w-full max-w-3xl rounded-3xl p-5 mb-4 flex flex-col h-[320px] shadow-2xl relative overflow-hidden backdrop-blur-md border ${
-              isLight 
-                ? "bg-white/95 border-amber-500/20 shadow-slate-300/50" 
+            className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-[calc(100%-1rem)] max-w-3xl rounded-3xl p-5 flex flex-col h-[320px] shadow-2xl overflow-hidden backdrop-blur-md border z-30 ${
+              isLight
+                ? "bg-white/95 border-amber-500/20 shadow-slate-300/50"
                 : "glass-panel border-amber-500/10 glow-gold"
             }`}
           >
