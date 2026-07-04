@@ -45,7 +45,8 @@ import {
   Wand2,
   Maximize2,
   Minimize2,
-  ExternalLink
+  ExternalLink,
+  LogOut
 } from "lucide-react";
 
 import { ShoppingItem, StudyBlock, ChatMessage, HomeNotification, FamilyMember, DomiState, domiStateTokens } from "./domiTypes";
@@ -56,6 +57,7 @@ import DomiChat from "./DomiChat";
 import EquilibrioChart from "./EquilibrioChart";
 import { themesConfig } from "./domiThemes";
 import { generateDomiReply } from "./domiIntents";
+import { logoutAction } from "../../login/actions";
 
 
 // Flag to control visibility of the dev switcher panel. 
@@ -1150,6 +1152,19 @@ export default function DomiCompanionHome({
                   {amb.mode} ({amb.temp})
                 </button>
               ))}
+
+              {/* Cerrar sesión: el navbar antiguo queda oculto en la home, así que
+                  la salida vive aquí, en el menú Más. Usa el server action existente. */}
+              <div className="my-1.5 h-px bg-white/10" />
+              <form action={logoutAction}>
+                <button
+                  type="submit"
+                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Cerrar sesión
+                </button>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>
