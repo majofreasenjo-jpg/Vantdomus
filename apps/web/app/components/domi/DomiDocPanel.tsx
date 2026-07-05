@@ -159,10 +159,14 @@ export default function DomiDocPanel({
       const sensitive = SENSITIVE_ROUTES.has(c.route_type || "");
       onDomiState(sensitive || c.requires_confirmation ? "esperando_confirmacion" : "proponiendo");
     } catch (e: any) {
-      const emsg = e?.message || "error";
-      setMsg(
-        `No pude analizar el documento (${emsg}). Si es una imagen escaneada, el OCR de imágenes es limitado en esta versión: prueba con un PDF con texto o pega el texto.`
-      );
+      const emsg = String(e?.message || "error");
+      if (emsg.includes("401") || emsg.toLowerCase().includes("unauthorized") || emsg.toLowerCase().includes("authentication")) {
+        setMsg("Tu sesión expiró. Entra de nuevo (Más → Cerrar sesión → iniciar sesión) y vuelve a intentarlo.");
+      } else if (emsg.includes("415") || emsg.toLowerCase().includes("unsupported")) {
+        setMsg("Ese tipo de archivo no se pudo leer. Prueba con un PDF con texto o pega el texto directamente.");
+      } else {
+        setMsg(`No pude analizar el documento (${emsg}). Si es una imagen escaneada, el OCR es limitado en esta versión: prueba con un PDF con texto o pega el texto.`);
+      }
       onDomiState("listo");
     } finally {
       setBusy(false);
