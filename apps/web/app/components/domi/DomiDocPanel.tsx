@@ -125,6 +125,10 @@ export default function DomiDocPanel({
   const [cand, setCand] = useState<Candidate | null>(null);
   // Tras confirmar, guarda la ruta creada para ofrecer "Ver en …".
   const [doneRoute, setDoneRoute] = useState<string | null>(null);
+  // Resumen de lo creado (para mostrarlo en Domi sin salir a otro módulo).
+  const [created, setCreated] = useState<{ route: string; merchant?: string; amount?: number; due_date?: string; title?: string; result_type?: string } | null>(null);
+  // Aviso de posible gasto duplicado (mismo comercio+monto+día).
+  const [dupWarn, setDupWarn] = useState(false);
 
   const card = isLight
     ? "bg-white/95 border-slate-200 text-slate-800"
@@ -139,6 +143,8 @@ export default function DomiDocPanel({
     setMsg("");
     setCand(null);
     setDoneRoute(null);
+    setCreated(null);
+    setDupWarn(false);
 
     if (mode === "url") {
       const v = validateDemoUrl(url);
@@ -187,7 +193,7 @@ export default function DomiDocPanel({
     }
   }
 
-  async function confirm() {
+  async function confirm(allowDuplicate = false) {
     if (!cand) return;
     if (cand._demo || !cand.id) {
       setMsg("Este enlace es una demo: no hay nada que crear todavía. Quedó registrado como fuente pendiente.");
@@ -212,14 +218,31 @@ export default function DomiDocPanel({
         if (file) fd.set("file", file);
         target = (await smartInboxAnalyze(hid, personId, fd)) as Candidate;
       }
-      const res = (await smartInboxConfirm(target.id as string, target.proposed_payload || {})) as { result_type?: string };
+      const pay = target.proposed_payload || {};
+      const res = (await smartInboxConfirm(target.id as string, pay, allowDuplicate)) as { result_type?: string };
       onNotify("Documento confirmado", `Domi creó: ${res?.result_type || "registro"}. Queda en el historial del hogar.`, "system");
       onDomiState("alegre");
       setDoneRoute(target.route_type || cand.route_type || "general_archive");
+      // Resumen para mostrar en Domi (sin salir a otro módulo).
+      setCreated({
+        route: target.route_type || "general_archive",
+        result_type: res?.result_type,
+        merchant: pay.merchant,
+        amount: pay.amount,
+        due_date: pay.due_date,
+        title: pay.med_title || pay.title,
+      });
+      setDupWarn(false);
       setCand(null); setFile(null); setText("");
-      setMsg("Listo, lo dejé creado y registrado. ✅");
+      setMsg("");
     } catch (e: any) {
-      setMsg("No pude confirmar: " + (e?.message || "error"));
+      const emsg = String(e?.message || "error");
+      if (emsg.includes("409") || emsg.toUpperCase().includes("DUPLICADO")) {
+        setDupWarn(true);
+        setMsg("Ya registraste hoy un gasto igual (mismo comercio y monto). ¿Lo creo de todos modos?");
+      } else {
+        setMsg("No pude confirmar: " + emsg);
+      }
     } finally {
       setBusy(false);
     }
@@ -405,7 +428,7 @@ export default function DomiDocPanel({
               <button
                 type="button"
                 disabled={busy}
-                onClick={confirm}
+                onClick={() => confirm(false)}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-base font-semibold disabled:opacity-60 cursor-pointer hover:brightness-105 transition-all"
               >
                 <Check className="w-4 h-4" /> {cand._demo ? "Entendido" : "Confirmar y crear"}
@@ -419,10 +442,44 @@ export default function DomiDocPanel({
                 {cand._demo ? "Cerrar" : "Rechazar"}
               </button>
             </div>
+
+            {/* Posible duplicado: Domi avisa y pide confirmación extra. */}
+            {dupWarn && (
+              <div className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+                <div className="flex items-start gap-1.5 text-sm text-amber-600 mb-2">
+                  <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>Ya hay un gasto igual hoy (mismo comercio y monto). Para no duplicar, no lo cree.</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => confirm(true)}
+                  className="w-full py-2 rounded-lg border border-amber-500/50 text-amber-600 text-sm font-semibold cursor-pointer hover:bg-amber-500/15"
+                >
+                  Crear de todos modos
+                </button>
+              </div>
+            )}
           </>
         )}
 
         {msg && <p className="text-base mt-3 opacity-85">{msg}</p>}
+
+        {/* Resumen de lo que Domi creó (visible sin salir a otro módulo). */}
+        {created && (
+          <div className={`mt-3 rounded-2xl border p-4 ${isLight ? "bg-emerald-50 border-emerald-200" : "bg-emerald-500/10 border-emerald-500/30"}`}>
+            <div className="flex items-center gap-1.5 text-emerald-500 font-semibold text-base mb-1.5">
+              <Check className="w-4 h-4" /> Creado y registrado
+            </div>
+            <div className="text-sm space-y-0.5 opacity-90">
+              <div><span className="opacity-60">Tipo:</span> {ROUTE_LABELS[created.route] || "Documento"}</div>
+              {created.merchant && <div><span className="opacity-60">Comercio:</span> <b>{created.merchant}</b></div>}
+              {created.amount != null && <div><span className="opacity-60">Monto:</span> <b>${Number(created.amount).toLocaleString("es-CL")}</b></div>}
+              {created.due_date && <div><span className="opacity-60">Fecha:</span> <b>{created.due_date}</b></div>}
+              {created.title && !created.merchant && <div><span className="opacity-60">Título:</span> {created.title}</div>}
+            </div>
+          </div>
+        )}
 
         {/* Tras crear, lleva directo a ver el resultado (sin copiar URLs). */}
         {doneRoute && hid && (

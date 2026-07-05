@@ -282,10 +282,10 @@ export const smartInboxAnalyze = (hid: string, pid: string, formData: FormData) 
 };
 export const smartInboxList = (hid: string, status = "pending") =>
   apiFetch(`/smart_inbox/candidates?household_id=${encodeURIComponent(hid)}&status=${encodeURIComponent(status)}`);
-export const smartInboxConfirm = (id: string, overrides: Record<string, any> = {}) =>
+export const smartInboxConfirm = (id: string, overrides: Record<string, any> = {}, allowDuplicate = false) =>
   apiFetch(`/smart_inbox/candidates/${encodeURIComponent(id)}/confirm`, {
     method: "POST",
-    body: JSON.stringify({ overrides }),
+    body: JSON.stringify({ overrides, allow_duplicate: allowDuplicate }),
   });
 export const smartInboxReject = (id: string, reason?: string) =>
   apiFetch(`/smart_inbox/candidates/${encodeURIComponent(id)}/reject`, {

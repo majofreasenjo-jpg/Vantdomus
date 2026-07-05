@@ -156,6 +156,23 @@ _MERCHANTS = [
 ]
 
 
+# Etiquetas que a veces preceden al nombre del comercio en una boleta.
+_MERCHANT_LABEL_RE = re.compile(
+    r"^\s*(comercio|tienda|local|sucursal|empresa|negocio|establecimiento|raz[oó]n\s+social)\s*[:\-]\s*",
+    re.IGNORECASE,
+)
+
+
+def _clean_merchant(s: str) -> str:
+    """Quita prefijos tipo 'Comercio: ', 'Tienda: ', 'Local: ' del nombre."""
+    s = (s or "").strip()
+    prev = None
+    while s and s != prev:
+        prev = s
+        s = _MERCHANT_LABEL_RE.sub("", s).strip()
+    return s[:40]
+
+
 def _detect_merchant(text: str) -> str:
     low = (text or "").lower()
     for key, label in _MERCHANTS:
@@ -170,8 +187,8 @@ def _detect_merchant(text: str) -> str:
         if up.startswith(("SUC", "RUT", "BOL", "FECHA", "HORA", "CODIGO", "CÓDIGO", "CAJA", "$")):
             continue
         if any(c.isalpha() for c in s):
-            return s[:40]
-    return _first_line(text)
+            return _clean_merchant(s)
+    return _clean_merchant(_first_line(text))
 
 
 def _parse_amount(text: str) -> Optional[float]:
@@ -181,7 +198,7 @@ def _parse_amount(text: str) -> Optional[float]:
     # Montos que vienen tras una etiqueta "total" (excluyendo subtotal/iva/etc.)
     for m in re.finditer(r"(total[^\n$]{0,22}?)\$?\s*([\d][\d.\,]{2,})", txt, re.IGNORECASE):
         label = m.group(1).lower()
-        if any(x in label for x in ("subtotal", "iva", "numero", "número", "acumulado", "exento", "artic")):
+        if any(x in label for x in ("subtotal", "iva", "numero", "número", "acumulado", "exento", "artic", "neto", "vuelto", "cambio", "propina")):
             continue
         v = _to_number(m.group(2))
         if v:
@@ -415,6 +432,7 @@ def list_candidates(
 
 class ConfirmBody(BaseModel):
     overrides: dict = {}
+    allow_duplicate: bool = False
 
 
 @router.post("/candidates/{candidate_id}/confirm")
@@ -502,12 +520,26 @@ def confirm_candidate(
         amount = payload.get("amount")
         if not amount or float(amount) <= 0:
             raise HTTPException(status_code=400, detail="Falta el monto del gasto — completalo")
+        merchant = payload.get("merchant")
+        # Dedup: mismo hogar + monto + comercio + mismo día = posible duplicado.
+        # Se bloquea salvo que el usuario confirme explícitamente (allow_duplicate).
+        if not body.allow_duplicate:
+            dup = db.execute(
+                "SELECT id FROM expenses WHERE household_id=? AND amount=? "
+                "AND IFNULL(merchant,'')=IFNULL(?,'') AND substr(expense_at,1,10)=substr(?,1,10) LIMIT 1",
+                (hid, float(amount), merchant, _now()),
+            ).fetchone()
+            if dup:
+                raise HTTPException(
+                    status_code=409,
+                    detail="DUPLICADO: ya registraste hoy un gasto igual (mismo comercio y monto).",
+                )
         eid = str(uuid.uuid4())
         db.execute(
             "INSERT INTO expenses (id,household_id,organization_id,amount,currency,category,merchant,expense_at,notes,person_id,created_at) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (eid, hid, org, float(amount), payload.get("currency", "CLP"),
-             payload.get("category", "groceries"), payload.get("merchant"),
+             payload.get("category", "groceries"), merchant,
              _now(), "Cargado desde Bandeja Inteligente", pid, _now()),
         )
         result_type = "expense"
