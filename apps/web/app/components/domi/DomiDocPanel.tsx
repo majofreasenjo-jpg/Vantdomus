@@ -48,6 +48,17 @@ const NEEDS_PERSON = new Set([
   "prescription_to_medication",
 ]);
 
+// Adónde llevar al usuario para VER lo que Domi acaba de crear, según el tipo.
+function moduleFor(route: string, hid: string): { label: string; href: string } {
+  if (route === "receipt_to_finance" || route === "bill_to_finance_or_deadline")
+    return { label: "Ver en Finanzas", href: `/finance/${hid}` };
+  if (route === "prescription_to_medication" || route === "doctor_document_to_health")
+    return { label: "Ver en Salud", href: `/health/${hid}` };
+  if (route === "shopping_list_to_items")
+    return { label: "Ver en Compras", href: `/compras/${hid}` };
+  return { label: "Ver en Recordatorios", href: `/recordatorios/${hid}` };
+}
+
 /**
  * Validación de URL para la DEMO controlada (sin fetch real). Solo http(s) y se
  * rechazan localhost / IPs privadas / loopback / link-local / red interna, para
@@ -112,6 +123,8 @@ export default function DomiDocPanel({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [cand, setCand] = useState<Candidate | null>(null);
+  // Tras confirmar, guarda la ruta creada para ofrecer "Ver en …".
+  const [doneRoute, setDoneRoute] = useState<string | null>(null);
 
   const card = isLight
     ? "bg-white/95 border-slate-200 text-slate-800"
@@ -125,6 +138,7 @@ export default function DomiDocPanel({
   async function analyze() {
     setMsg("");
     setCand(null);
+    setDoneRoute(null);
 
     if (mode === "url") {
       const v = validateDemoUrl(url);
@@ -201,6 +215,7 @@ export default function DomiDocPanel({
       const res = (await smartInboxConfirm(target.id as string, target.proposed_payload || {})) as { result_type?: string };
       onNotify("Documento confirmado", `Domi creó: ${res?.result_type || "registro"}. Queda en el historial del hogar.`, "system");
       onDomiState("alegre");
+      setDoneRoute(target.route_type || cand.route_type || "general_archive");
       setCand(null); setFile(null); setText("");
       setMsg("Listo, lo dejé creado y registrado. ✅");
     } catch (e: any) {
@@ -408,6 +423,16 @@ export default function DomiDocPanel({
         )}
 
         {msg && <p className="text-base mt-3 opacity-85">{msg}</p>}
+
+        {/* Tras crear, lleva directo a ver el resultado (sin copiar URLs). */}
+        {doneRoute && hid && (
+          <a
+            href={moduleFor(doneRoute, hid).href}
+            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-600 text-base font-semibold cursor-pointer hover:bg-amber-500/20 transition-colors"
+          >
+            {moduleFor(doneRoute, hid).label} →
+          </a>
+        )}
       </div>
     </div>
   );
