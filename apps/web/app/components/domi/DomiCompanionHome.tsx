@@ -58,6 +58,7 @@ import EquilibrioChart from "./EquilibrioChart";
 import { themesConfig } from "./domiThemes";
 import { generateDomiReply } from "./domiIntents";
 import { logoutAction } from "../../login/actions";
+import DomiDocPanel from "./DomiDocPanel";
 
 
 // Flag to control visibility of the dev switcher panel. 
@@ -74,12 +75,14 @@ export interface DomiHomeData {
 
 export default function DomiCompanionHome({
   data,
+  hid,
   initialTheme,
   initialDomiState,
   initialAppearance,
   initialDev,
 }: {
   data?: DomiHomeData;
+  hid?: string;
   // Estado inicial resuelto en el servidor (page.tsx) desde los query params,
   // para que server y cliente rendericen idéntico y no haya hydration mismatch.
   initialTheme?: "dawn" | "day" | "sunset" | "night";
@@ -202,6 +205,7 @@ export default function DomiCompanionHome({
   const [temperature, setTemperature] = useState("21°C");
   const [time, setTime] = useState("22:30");
   const [showAmbientMenu, setShowAmbientMenu] = useState(false);
+  const [showDocPanel, setShowDocPanel] = useState(false); // CP1c-MIN-2: Domi Documental
 
   // Domi visual expression/mood
   const [domiMood, setDomiMood] = useState<"happy" | "speaking" | "breathing" | "thinking">("happy");
@@ -1465,6 +1469,7 @@ export default function DomiCompanionHome({
                       onToggleListening={triggerListeningSimulation}
                       onAddSystemNotification={addNotification}
                       onSimulateAction={executeAIAction}
+                      onOpenDocPanel={() => setShowDocPanel(true)}
                       activeTheme={activeTheme}
                     />
                   </div>
@@ -2249,6 +2254,18 @@ export default function DomiCompanionHome({
             <span>Domi Lab · QA (dev)</span>
           </button>
         </div>
+      )}
+
+      {/* CP1c-MIN-2: Domi Documental — lee/clasifica documentos reales vía Smart Inbox */}
+      {showDocPanel && hid && (
+        <DomiDocPanel
+          hid={hid}
+          persons={familyMembers.map((m) => ({ id: m.id, name: m.name }))}
+          isLight={isLight}
+          onDomiState={setDomiState}
+          onNotify={addNotification}
+          onClose={() => setShowDocPanel(false)}
+        />
       )}
 
     </div>

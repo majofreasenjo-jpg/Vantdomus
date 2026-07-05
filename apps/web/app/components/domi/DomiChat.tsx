@@ -24,6 +24,7 @@ interface DomiChatProps {
   onToggleListening: () => void;
   onAddSystemNotification: (title: string, msg: string, type: string) => void;
   onSimulateAction: (actionType: string, payload?: string) => void;
+  onOpenDocPanel?: () => void;
   activeTheme?: "dawn" | "day" | "sunset" | "night";
 }
 
@@ -35,14 +36,13 @@ export default function DomiChat({
   onToggleListening,
   onAddSystemNotification,
   onSimulateAction,
+  onOpenDocPanel,
   activeTheme = "night"
 }: DomiChatProps) {
   const [inputText, setInputText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isLight = activeTheme === "dawn" || activeTheme === "day";
-  const [uploadingFile, setUploadingFile] = useState<{ name: string; size: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,45 +70,13 @@ export default function DomiChat({
     setIsDragging(false);
   };
 
-  const processUploadedFile = (file: File) => {
-    setUploadingFile({ name: file.name, size: (file.size / 1024).toFixed(1) + " KB" });
-    onAddSystemNotification("Archivo cargado", `Analizando "${file.name}"...`, "system");
-    
-    // Simulate smart processing of invoice / document
-    setTimeout(() => {
-      setUploadingFile(null);
-      if (file.name.toLowerCase().includes("compra") || file.name.toLowerCase().includes("ticket") || file.name.toLowerCase().includes("recibo")) {
-        onSimulateAction("ADD_SHOPPING_ITEM", "Leche entera");
-        onSimulateAction("ADD_SHOPPING_ITEM", "Manzanas rojas");
-        onAddSystemNotification(
-          "Ticket Analizado", 
-          "Domi ha identificado artículos faltantes en el recibo y los ha añadido a tu lista de compras.", 
-          "shopping"
-        );
-      } else if (file.name.toLowerCase().includes("tarea") || file.name.toLowerCase().includes("colegio") || file.name.toLowerCase().includes("estudio")) {
-        onSimulateAction("PREPARE_STUDY");
-        onAddSystemNotification(
-          "Plan de Estudio Creado", 
-          "Se ha analizado el temario de matemáticas y Domi ha preparado la sesión de Diego.", 
-          "study"
-        );
-      } else {
-        onAddSystemNotification("Análisis Completado", "Domi ha guardado el documento de forma segura en tus archivos.", "system");
-      }
-    }, 2200);
-  };
-
+  // CP1c-MIN-2: arrastrar un archivo abre Domi Documental (Smart Inbox real),
+  // ya no la simulación por nombre de archivo.
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processUploadedFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processUploadedFile(e.target.files[0]);
+      onOpenDocPanel?.();
     }
   };
 
@@ -290,17 +258,6 @@ export default function DomiChat({
           </div>
         )}
 
-        {/* Floating uploading spinner */}
-        {uploadingFile && (
-          <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 bg-slate-950/95 p-2 rounded-full border border-amber-500/30 flex items-center justify-between px-4 z-40">
-            <span className="text-xs text-slate-300 font-medium truncate">Cargando: {uploadingFile.name} ({uploadingFile.size})</span>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
-              <span className="text-[10px] text-amber-400 font-mono">Analizando con IA...</span>
-            </div>
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2 md:gap-3 px-1 md:px-2">
           {/* Microphone trigger (Voice simulation) */}
           <button
@@ -315,24 +272,17 @@ export default function DomiChat({
             <Mic className="w-4 h-4 font-bold" />
           </button>
 
-          {/* Paperclip attachment triggers hidden file input */}
+          {/* Clip = abre Domi Documental (Smart Inbox real): PDF/texto/URL. */}
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => onOpenDocPanel?.()}
+            title="Subir un documento para que Domi lo lea"
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
               isLight ? "text-slate-500 hover:text-slate-800 hover:bg-slate-100" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
             }`}
           >
             <Paperclip className="w-4.5 h-4.5" />
           </button>
-          
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            className="hidden" 
-            accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx"
-          />
 
           {/* Text Input area */}
           <input

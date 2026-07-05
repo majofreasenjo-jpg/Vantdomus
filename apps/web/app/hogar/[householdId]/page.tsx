@@ -115,6 +115,7 @@ export default async function HogarCompanionPage({
     <div className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}>
       <DomiCompanionHome
         data={data}
+        hid={hid}
         initialTheme={initialTheme}
         initialDomiState={initialDomiState}
         initialAppearance={initialAppearance}
