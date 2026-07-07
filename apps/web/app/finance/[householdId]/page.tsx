@@ -1,8 +1,13 @@
 import { revalidatePath } from "next/cache";
+import { Inter, Space_Grotesk } from "next/font/google";
 import { addExpense, listExpenses, getDashboard, getHouseholds } from "../../../lib/api";
 import DomiOrb from "../../components/DomiOrb";
 import { redirect } from "next/navigation";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
+
+// CP1c-MIN-7 (Finanzas, a pedido del owner): reskin al lenguaje de Domi.
+const vfInter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--vf-inter", display: "swap" });
+const vfGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--vf-grotesk", display: "swap" });
 
 export default async function Finance({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -91,7 +96,52 @@ export default async function Finance({ params }: { params: Promise<{ householdI
   };
 
   return (
-    <div className="grid" style={{ gap: 20 }}>
+    <div id="vantdomus-finance" className={`${vfInter.variable} ${vfGrotesk.variable}`}>
+      <style>{`
+        body:has(#vantdomus-finance) .nav,
+        body:has(#vantdomus-finance) .bottomNav { display:none !important; }
+        body:has(#vantdomus-finance) .container { max-width:none !important; padding:0 !important; }
+        #vantdomus-finance {
+          --vf-ink:#26224d; --vf-muted:#6b6795;
+          font-family: var(--vf-inter), ui-sans-serif, system-ui, sans-serif;
+          min-height:100dvh; color:var(--vf-ink); padding:26px 20px 48px;
+          background:
+            radial-gradient(1100px 640px at 15% 6%, rgba(255,176,136,.26), transparent 55%),
+            radial-gradient(900px 620px at 88% 18%, rgba(255,136,176,.20), transparent 55%),
+            linear-gradient(135deg,#E2E9FF 0%,#FFF1E0 46%,#FFEBEA 100%);
+          background-attachment:fixed;
+        }
+        #vantdomus-finance .vf-wrap { max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+        #vantdomus-finance .vf-back { display:inline-flex; align-items:center; gap:6px; color:#E58A1F; font-weight:600; text-decoration:none; font-size:14px; width:fit-content; }
+        #vantdomus-finance .vf-back:hover { text-decoration:underline; }
+        #vantdomus-finance .card {
+          background:rgba(255,255,255,.82); border:1px solid rgba(255,255,255,.7);
+          border-radius:24px; box-shadow:0 20px 50px -25px rgba(90,70,120,.4);
+          -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+        }
+        #vantdomus-finance .big { font-family:var(--vf-grotesk),sans-serif; color:var(--vf-ink); font-weight:700; }
+        #vantdomus-finance .cardTitle { color:#E58A1F; font-weight:700; text-transform:uppercase; font-size:12px; letter-spacing:.6px; }
+        #vantdomus-finance .small, #vantdomus-finance .footerNote { color:var(--vf-muted); }
+        #vantdomus-finance .sectionTitle { color:var(--vf-ink); font-weight:700; font-size:15px; }
+        #vantdomus-finance .input {
+          background:rgba(255,255,255,.9); border:1px solid rgba(120,110,160,.25); color:var(--vf-ink);
+          border-radius:12px; padding:10px 12px;
+        }
+        #vantdomus-finance .input:focus { border-color:rgba(245,158,11,.6); outline:none; box-shadow:0 0 0 3px rgba(245,158,11,.16); }
+        #vantdomus-finance .btn { border-radius:12px; border:1px solid rgba(120,110,160,.25); background:rgba(255,255,255,.75); color:var(--vf-ink); padding:10px 14px; cursor:pointer; }
+        #vantdomus-finance .btnPrimary { border:none; color:#3b2a06; background:linear-gradient(135deg,#FFD27A,#F8B84E 45%,#F59E0B); font-weight:600; box-shadow:0 8px 18px -6px rgba(245,158,11,.5); }
+        #vantdomus-finance .pill { border-radius:999px; padding:3px 10px; font-size:12px; border:1px solid; }
+        #vantdomus-finance .pill.good { color:#0f9d58; border-color:rgba(16,185,129,.35); background:rgba(16,185,129,.08); }
+        #vantdomus-finance .pill.warn { color:#c2410c; border-color:rgba(245,158,11,.4); background:rgba(245,158,11,.1); }
+        #vantdomus-finance .table { width:100%; border-collapse:collapse; }
+        #vantdomus-finance .table th { color:var(--vf-muted); font-weight:600; text-align:left; padding:12px 14px; font-size:13px; }
+        #vantdomus-finance .table td { padding:12px 14px; border-top:1px solid rgba(120,110,160,.14); }
+        #vantdomus-finance .vf-total { background:rgba(255,255,255,.85); border:1px solid rgba(245,158,11,.35); border-radius:18px; }
+        #vantdomus-finance .vf-thead { background:rgba(255,255,255,.55); }
+      `}</style>
+
+    <div className="vf-wrap">
+      <a href={`/hogar/${hid}`} className="vf-back">← Volver a Domi</a>
       {/* HEADER FINANCIERO */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -102,9 +152,9 @@ export default async function Finance({ params }: { params: Promise<{ householdI
           <div className="small">{isFamily ? "Organiza ingresos, gastos del hogar, supermercado, salud, colegio, seguros, beneficios y respaldos." : "Registro centralizado de proveedores, contratos, ordenes de compra, facturas y respaldos."}</div>
           </div>
         </div>
-        <div style={{ textAlign: "right", background: "rgba(0,0,0,0.2)", padding: "12px 18px", borderRadius: 8, border: "1px solid var(--line)" }}>
+        <div className="vf-total" style={{ textAlign: "right", padding: "14px 20px" }}>
            <div className="small" style={{ textTransform: "uppercase", letterSpacing: 1 }}>Total registrado (acumulado)</div>
-           <div className="big" style={{ color: "var(--good)", fontSize: 28 }}>$ {totalAmount.toLocaleString("en-US")}</div>
+           <div className="big" style={{ color: "#0f9d58", fontSize: 28 }}>$ {totalAmount.toLocaleString("en-US")}</div>
         </div>
       </div>
 
@@ -188,7 +238,7 @@ export default async function Finance({ params }: { params: Promise<{ householdI
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div className="sectionTitle" style={{ padding: "16px 16px 8px 16px", margin: 0, borderBottom: "1px solid var(--line)" }}>{isFamily ? "Movimientos y respaldos familiares" : "Libro mayor financiero"}</div>
         <table className="table" style={{ margin: 0 }}>
-          <thead style={{ background: "rgba(0,0,0,0.2)" }}>
+          <thead className="vf-thead">
             <tr>
               <th style={{ paddingLeft: 16 }}>Fecha</th>
               <th>{isFamily ? "Comercio / institucion" : "Proveedor / contraparte"}</th>
@@ -224,6 +274,7 @@ export default async function Finance({ params }: { params: Promise<{ householdI
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 }
