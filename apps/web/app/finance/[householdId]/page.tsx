@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { addExpense, listExpenses, getDashboard, getHouseholds } from "../../../lib/api";
-import DomiOrb from "../../components/DomiOrb";
+import DomiFaceMark from "../../components/domi/DomiFaceMark";
 import { redirect } from "next/navigation";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 
@@ -145,7 +145,7 @@ export default async function Finance({ params }: { params: Promise<{ householdI
       {/* HEADER FINANCIERO */}
       <div className="row" style={{ alignItems: "flex-end", marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {isFamily ? <DomiOrb state="sereno" size={48} showChips={false} /> : null}
+          {isFamily ? <DomiFaceMark size={52} /> : null}
           <div>
           <div className="cardTitle" style={{ color: "var(--primary)", fontWeight: "bold" }}>{isFamily ? "Finanzas del hogar" : "FINANZAS DE LA UNIDAD (VANTDOMUS)"}</div>
           <div className="big" style={{ fontSize: 26, margin: "4px 0" }}>{isFamily ? "Presupuesto familiar y vencimientos" : "Control presupuestario y gastos"}</div>
