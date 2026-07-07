@@ -61,6 +61,52 @@ def _extract_text(filename: str, data: bytes) -> str:
         return ""
 
 
+def _extract_receipt_items(data: bytes) -> list[dict]:
+    """Detalle de una boleta PDF (producto -> precio).
+
+    El texto plano separa el nombre y el precio en columnas distintas, así que
+    agrupamos por fila usando las coordenadas de cada palabra (get_text('words')).
+    Se saltan las líneas de totales/impuestos/encabezados.
+    """
+    try:
+        import fitz  # PyMuPDF (lazy)
+    except Exception:
+        return []
+    STOP = ("TOTAL", "SUBTOTAL", "IVA", "AFECTO", "EXENTO", "VUELTO", "DEBIT",
+            "ACUMULAD", "ARTIC", "CANJE", "CLIENTE", "CLUB", "BOLETA", "RUT",
+            "CAJA", "FECHA", "CODIGO", "CÓDIGO", "DESCUENTO")
+    items: list[dict] = []
+    try:
+        with fitz.open(stream=data, filetype="pdf") as doc:
+            for page in doc:
+                rows: dict = {}
+                for x0, y0, x1, y1, w, *_ in page.get_text("words"):
+                    rows.setdefault(round(y0 / 3), []).append((x0, w))
+                for k in sorted(rows):
+                    ws = sorted(rows[k])
+                    up = " ".join(w for _, w in ws).upper()
+                    if any(s in up for s in STOP):
+                        continue
+                    nums = [w for _, w in ws if re.fullmatch(r"\$?\d{1,3}(?:[.,]\d{3})+", w)]
+                    if not nums:
+                        continue
+                    price = _to_number(nums[-1])
+                    if not price or price < 200:
+                        continue
+                    # Nombre = tokens con >=2 letras (excluye códigos de barra y "3X1.550").
+                    name_tokens = [w for _, w in ws
+                                   if sum(c.isalpha() for c in w) >= 2 and not re.search(r"\d{6,}", w)]
+                    name = re.sub(r"^[\d.,xX$\s]+", "", " ".join(name_tokens)).strip()
+                    if len(name) < 3:
+                        continue
+                    items.append({"name": name[:40], "price": price})
+                    if len(items) >= 40:
+                        return items
+    except Exception:
+        return []
+    return items
+
+
 # ---------------------------------------------------------------------------
 # Clasificador por reglas (auditable). Devuelve la mejor ruta por conteo de
 # coincidencias de palabras clave. Sin match claro → general_archive.
@@ -385,6 +431,13 @@ async def analyze_document(
         }
     else:
         result = _classify(text, file.filename if file else "")
+        # Detalle de boleta (producto -> precio) desde el PDF, por coordenadas.
+        if result["route_type"] == "receipt_to_finance" and file is not None:
+            line_items = _extract_receipt_items(data)
+            if line_items:
+                result["proposed_payload"]["line_items"] = line_items
+                n = len(line_items)
+                result["summary"] = f"Boleta detectada con {n} producto{'s' if n != 1 else ''}. Revisá el detalle y el total."
 
     organization_id = get_household_organization_id(db, household_id)
     cid = str(uuid.uuid4())

@@ -394,8 +394,22 @@ export default function DomiDocPanel({
                 )}
                 {pay.med_title && <div><span className="opacity-60">Medicamento:</span> <b>{pay.med_title}</b></div>}
                 {pay.title && !pay.med_title && <div><span className="opacity-60">Título:</span> <b>{pay.title}</b></div>}
-                {pay.amount != null && <div><span className="opacity-60">Monto:</span> <b>{pay.amount}</b></div>}
                 {pay.merchant && <div><span className="opacity-60">Comercio:</span> <b>{pay.merchant}</b></div>}
+                {/* Detalle de la boleta: producto -> precio */}
+                {Array.isArray(pay.line_items) && pay.line_items.length > 0 && (
+                  <div className="pt-1">
+                    <span className="opacity-60">Detalle de la compra ({pay.line_items.length}):</span>
+                    <div className={`mt-1 rounded-lg p-2 space-y-0.5 ${isLight ? "bg-white/70" : "bg-slate-900/60"}`}>
+                      {(pay.line_items as Array<{ name: string; price: number }>).map((it, i) => (
+                        <div key={i} className="flex justify-between gap-3">
+                          <span className="truncate">{it.name}</span>
+                          <span className="font-mono shrink-0">${Number(it.price).toLocaleString("es-CL")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {pay.amount != null && <div className="pt-1"><span className="opacity-60">Total:</span> <b>${Number(pay.amount).toLocaleString("es-CL")}</b></div>}
                 {pay.due_date && <div><span className="opacity-60">Vence:</span> <b>{pay.due_date}</b></div>}
               </div>
             )}
