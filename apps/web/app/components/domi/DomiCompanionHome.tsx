@@ -76,6 +76,7 @@ export interface DomiHomeData {
 export default function DomiCompanionHome({
   data,
   hid,
+  dataState = "real",
   initialTheme,
   initialDomiState,
   initialAppearance,
@@ -83,6 +84,8 @@ export default function DomiCompanionHome({
 }: {
   data?: DomiHomeData;
   hid?: string;
+  // MIN-2.2: honestidad de datos — real | session (expirada) | api (caído) | demo.
+  dataState?: "real" | "session" | "api" | "demo";
   // Estado inicial resuelto en el servidor (page.tsx) desde los query params,
   // para que server y cliente rendericen idéntico y no haya hydration mismatch.
   initialTheme?: "dawn" | "day" | "sunset" | "night";
@@ -803,7 +806,26 @@ export default function DomiCompanionHome({
 
   return (
     <div id="vantdomus-app" className={`h-screen lg:h-[100dvh] lg:max-h-[100dvh] w-full ${bgConfig.bg} relative flex flex-col justify-between p-3 md:p-4 lg:py-4 lg:px-6 xl:px-8 overflow-y-auto lg:overflow-hidden select-none font-sans ${isLight ? "text-indigo-950" : "text-slate-100"} transition-all duration-1000`}>
-      
+
+      {/* MIN-2.2: honestidad de datos. Solo visible cuando NO hay datos reales del
+          hogar (sesión expirada / backend caído / demo). Copy humano, sin exponer
+          token ni IDs. Con datos reales no aparece (home intacta, sin ruido). */}
+      {dataState !== "real" && (
+        <div className={`shrink-0 w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 mb-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${
+          dataState === "api"
+            ? (isLight ? "bg-rose-500/12 text-rose-600 border-rose-500/35" : "bg-rose-500/15 text-rose-300 border-rose-500/30")
+            : (isLight ? "bg-amber-500/15 text-amber-800 border-amber-500/40" : "bg-amber-500/15 text-amber-300 border-amber-500/30")
+        }`}>
+          <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
+          <span>
+            {dataState === "session" && "Sesión expirada: estás viendo datos de ejemplo, no los de tu hogar."}
+            {dataState === "api" && "No pudimos conectar con tu hogar: estás viendo datos de ejemplo."}
+            {dataState === "demo" && "Modo demo: estos datos son de ejemplo."}
+          </span>
+          {dataState !== "api" && <a href="/login" className="underline font-semibold whitespace-nowrap">Iniciar sesión</a>}
+        </div>
+      )}
+
       {/* High-precision Compact Viewport Constraints on Desktop */}
       <style>{`
         @media (min-width: 1024px) and (max-height: 880px) {
@@ -2124,6 +2146,13 @@ export default function DomiCompanionHome({
                 </div>
 
                 <div className="space-y-3">
+                  {/* MIN-2.2: diagnóstico QA del estado de datos (solo dev=1) */}
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                    <span className="opacity-60 uppercase tracking-wider">Datos:</span>
+                    <span className={`px-1.5 py-0.5 rounded font-bold ${dataState === "real" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
+                      {dataState === "real" ? "REALES (autenticado)" : dataState === "session" ? "DEMO · sesión expirada" : dataState === "api" ? "DEMO · API caída" : "DEMO · fallback"}
+                    </span>
+                  </div>
                   {/* Themes Grid */}
                   <div>
                     <span className="text-[9px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
@@ -2262,6 +2291,7 @@ export default function DomiCompanionHome({
           hid={hid}
           persons={familyMembers.map((m) => ({ id: m.id, name: m.name }))}
           isLight={isLight}
+          isDemo={dataState !== "real"}
           onDomiState={setDomiState}
           onNotify={addNotification}
           onClose={() => setShowDocPanel(false)}

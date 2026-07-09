@@ -104,6 +104,7 @@ export default function DomiDocPanel({
   hid,
   persons,
   isLight,
+  isDemo = false,
   onDomiState,
   onNotify,
   onClose,
@@ -111,6 +112,8 @@ export default function DomiDocPanel({
   hid: string;
   persons: Person[];
   isLight: boolean;
+  // MIN-2.2: en demo/sesión inválida no se crean registros reales en el hogar.
+  isDemo?: boolean;
   onDomiState: (s: DomiState) => void;
   onNotify: (title: string, msg: string, type: string) => void;
   onClose: () => void;
@@ -294,7 +297,19 @@ export default function DomiDocPanel({
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"><X className="w-4 h-4 opacity-70" /></button>
         </div>
 
-        {!cand ? (
+        {isDemo ? (
+          /* MIN-2.2: en demo/sesión inválida NO se crean registros reales. */
+          <div className={`rounded-2xl border p-5 text-center ${isLight ? "bg-amber-50 border-amber-200" : "bg-amber-500/10 border-amber-500/30"}`}>
+            <ShieldAlert className="w-7 h-7 mx-auto mb-2 text-amber-500" />
+            <p className="text-base font-semibold mb-1">Estás en modo demo</p>
+            <p className="text-sm opacity-80 mb-4">
+              Domi no puede guardar documentos en tu hogar real sin una sesión válida. Inicia sesión para leer y registrar de verdad.
+            </p>
+            <a href="/login" className="inline-flex items-center justify-center gap-1.5 py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-base font-semibold cursor-pointer hover:brightness-105 transition-all">
+              Iniciar sesión
+            </a>
+          </div>
+        ) : !cand ? (
           <>
             {/* Selector de modo */}
             <div className="flex gap-2 mb-3">

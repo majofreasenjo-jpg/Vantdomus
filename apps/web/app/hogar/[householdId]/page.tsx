@@ -66,9 +66,12 @@ export default async function HogarCompanionPage({
     : "original";
   const initialDev = devParam === "1" || devParam === "true";
 
+  // Capturamos el error para clasificar el estado de datos (MIN-2.2).
+  let dashErr: any = null;
+  let shopErr: any = null;
   const [dash, shopping] = await Promise.all([
-    getDashboard(hid).catch(() => null),
-    shoppingList(hid).catch(() => null),
+    getDashboard(hid).catch((e) => { dashErr = e; return null; }),
+    shoppingList(hid).catch((e) => { shopErr = e; return null; }),
   ]);
 
   const data: DomiHomeData = {};
@@ -97,18 +100,25 @@ export default async function HogarCompanionPage({
     }));
   }
 
-  // CP1c — fallback NO silencioso (documentación operacional): si la sesión
-  // server-side no trae datos (401/expirada), la home usa datos DEMO del
-  // prototipo. Se registra en el log del servidor para que QA/captura/negocio
-  // detecten el fallback sin ambigüedad. TODO CP1c-FUNC-MIN-2: además marcarlo
-  // visible en la UI (o en el modo QA ?dev=1), o redirigir a /login según el caso.
-  const familyIsDemo = persons.length === 0;
-  const shoppingIsDemo = items.length === 0;
-  if (familyIsDemo || shoppingIsDemo) {
-    console.warn(
-      `[hogar] datos DEMO/fallback en uso — familia:${familyIsDemo ? "DEMO" : "real"} ` +
-      `compras:${shoppingIsDemo ? "DEMO" : "real"} (sesión server-side sin datos válidos)`
-    );
+  // CP1c-FUNC-MIN-2.2 — estado de datos honesto (fallback demo NO silencioso).
+  // Clasifica: real | session (401/expirada) | api (backend caído) | demo (sin datos).
+  // "real" si el hogar resolvió al menos integrantes reales; si no, se clasifica
+  // por el error para explicar HONESTAMENTE al usuario qué está viendo.
+  const gotReal = persons.length > 0;
+  const errMsg = String(dashErr?.message || shopErr?.message || "");
+  let dataState: "real" | "session" | "api" | "demo" = "real";
+  if (gotReal) {
+    dataState = "real";
+  } else if (/401|unauthorized|authentication|forbidden|403|expir|sesi[oó]n/i.test(errMsg)) {
+    dataState = "session";
+  } else if (/econnrefused|fetch failed|network|timeout|enotfound|econnreset|50[0-9]/i.test(errMsg)) {
+    dataState = "api";
+  } else {
+    dataState = "demo";
+  }
+  if (dataState !== "real") {
+    // Log operacional para QA (sin exponer token ni IDs largos).
+    console.warn(`[hogar] estado de datos = ${dataState} (sin datos reales del hogar)`);
   }
 
   return (
@@ -116,6 +126,7 @@ export default async function HogarCompanionPage({
       <DomiCompanionHome
         data={data}
         hid={hid}
+        dataState={dataState}
         initialTheme={initialTheme}
         initialDomiState={initialDomiState}
         initialAppearance={initialAppearance}
