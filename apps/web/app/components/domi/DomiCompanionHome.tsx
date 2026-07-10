@@ -310,15 +310,27 @@ export default function DomiCompanionHome({
     return () => clearInterval(interval);
   }, [studyTimerActive, studyTimeLeft]);
 
-  // Chat message logs with default greetings
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome-1",
-      role: "model",
-      content: "¡Buenas noches! Soy Domi, tu compañero inteligente en VantDomus Hogar. Estoy orquestando los flujos de calma y bienestar en tu casa hoy. Veo que Elena tiene pendiente la confirmación de su medicamento nocturno y faltan algunos artículos en la lista. ¿En qué te ayudo?",
-      timestamp: new Date()
-    }
-  ]);
+  // Chat message logs with default greetings.
+  // Fix (owner, validación MIN-3.1a): el prototipo CP1b traía "¡Buenas noches!"
+  // hardcodeado a toda hora. El saludo ahora sigue el tema del día, que ya viene
+  // resuelto del servidor (initialTheme) → determinista, sin hydration mismatch.
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    const saludos = {
+      dawn: "¡Buenos días!",
+      day: "¡Hola, buen día!",
+      sunset: "¡Buenas tardes!",
+      night: "¡Buenas noches!",
+    } as const;
+    const saludo = saludos[initialTheme ?? "day"];
+    return [
+      {
+        id: "welcome-1",
+        role: "model",
+        content: `${saludo} Soy Domi, tu compañero inteligente en VantDomus Hogar. Estoy orquestando los flujos de calma y bienestar en tu casa hoy. Veo que Elena tiene pendiente la confirmación de su medicamento nocturno y faltan algunos artículos en la lista. ¿En qué te ayudo?`,
+        timestamp: new Date()
+      }
+    ];
+  });
   const [isListening, setIsListening] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
