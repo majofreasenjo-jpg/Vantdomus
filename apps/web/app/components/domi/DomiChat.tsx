@@ -198,8 +198,10 @@ export default function DomiChat({
                       const confirmWithEdits = () => {
                         let overrides: Record<string, unknown> | undefined;
                         if (isEditing && editingProp) {
+                          // Separar por coma O por " y " (hablado natural: "bebida y chocolate"
+                          // son 2 productos) — mismo criterio que usa Domi al entender la frase.
                           overrides = editingProp.field === "items"
-                            ? { items: editingProp.text.split(",").map(s => s.trim()).filter(Boolean) }
+                            ? { items: editingProp.text.split(/,|\s+y\s+/i).map(s => s.trim()).filter(Boolean) }
                             : { title: editingProp.text.trim() };
                         }
                         setEditingProp(null);
@@ -235,7 +237,7 @@ export default function DomiChat({
                         {isEditing && (
                           <div className="mb-2">
                             <label className={`block text-[12px] font-bold mb-1 ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-                              {editingProp!.field === "items" ? "Productos (separados por coma):" : "Título:"}
+                              {editingProp!.field === "items" ? "Productos (separados por coma o con “y”):" : "Título:"}
                             </label>
                             <input
                               value={editingProp!.text}
