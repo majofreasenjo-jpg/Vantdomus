@@ -11,6 +11,7 @@
  */
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { getDashboard, shoppingList } from "../../../lib/api";
+import { isPurchased, isExcluded } from "../../../lib/shoppingContract";
 import DomiCompanionHome, { DomiHomeData } from "../../components/domi/DomiCompanionHome";
 import { getInitialTheme } from "../../components/domi/domiThemes";
 import type { DomiState } from "../../components/domi/domiTypes";
@@ -89,18 +90,17 @@ export default async function HogarCompanionPage({
   }
 
   // Compras reales → ShoppingItem del prototipo.
-  // MIN-3.2 (consistencia de conteos): estados canónicos del módulo son
-  // needed | in_cart | purchased | cancelled. "Por comprar" = needed + in_cart;
-  // purchased = checked; cancelled se excluye. (Antes se comparaba contra
-  // "bought", que no existe → lo comprado se contaba como pendiente.)
+  // MIN-3.3a: la clasificación usa el CONTRATO CANÓNICO (lib/shoppingContract,
+  // espejo del backend shopping_contract.py) — este archivo ya no define
+  // criterios propios de estados.
   const items = (shopping?.items || []) as any[];
   if (items.length > 0) {
     data.shoppingItems = items
-      .filter((s) => s.status !== "cancelled")
+      .filter((s) => !isExcluded(s.status))
       .map((s) => ({
         id: String(s.id),
         name: s.item_name || "Producto",
-        checked: s.status === "purchased",
+        checked: isPurchased(s.status),
         qty: `${s.quantity ?? 1}${s.unit ? ` ${s.unit}` : " ud"}`,
         category: s.place_hint || s.category || "Supermercado",
       }));

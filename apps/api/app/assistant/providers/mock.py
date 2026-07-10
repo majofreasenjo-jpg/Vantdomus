@@ -52,17 +52,16 @@ def _match_person(message: str, persons: list[dict]) -> str | None:
 
 
 def _extract_items(message: str) -> list[str]:
-    """Extrae productos tras 'agrega/añade ... a la lista'."""
+    """Extrae productos tras 'agrega/añade ... a la lista'.
+    MIN-3.3a: la separación/normalización la hace nl_lists (canónica)."""
+    from app.assistant.nl_lists import parse_list_text
     ml = message.lower()
     m = re.search(r"(?:agrega|agregar|añade|anade|a[ñn]adir|pon|agr[ée]game)\s+(.*)", ml)
     tail = m.group(1) if m else ml
     # Cortar en "a la lista / a compras / al carro"
     tail = re.split(r"\s+a\s+(la\s+lista|compras|el\s+carro|la\s+feria|el\s+super)", tail)[0]
-    # Separar por comas / "y"
-    parts = re.split(r"\s*,\s*|\s+y\s+", tail)
-    items = [re.sub(r"[^\wáéíóúñ\s]", "", p).strip() for p in parts]
-    items = [i for i in items if i and len(i) <= 40][:10]
-    return items
+    tail = re.sub(r"[^\wáéíóúñ,;\n\s]", "", tail)
+    return parse_list_text(tail)
 
 
 class MockProvider(Provider):

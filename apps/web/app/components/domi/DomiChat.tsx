@@ -15,6 +15,7 @@ import {
   UploadCloud
 } from "lucide-react";
 import { ChatMessage } from "./domiTypes";
+import { parseListText } from "../../../lib/nlList";
 
 interface DomiChatProps {
   messages: ChatMessage[];
@@ -198,10 +199,10 @@ export default function DomiChat({
                       const confirmWithEdits = () => {
                         let overrides: Record<string, unknown> | undefined;
                         if (isEditing && editingProp) {
-                          // Separar por coma O por " y " (hablado natural: "bebida y chocolate"
-                          // son 2 productos) — mismo criterio que usa Domi al entender la frase.
+                          // MIN-3.3a: separación vía el parser canónico (lib/nlList,
+                          // espejo del backend nl_lists.py — el servidor re-normaliza igual).
                           overrides = editingProp.field === "items"
-                            ? { items: editingProp.text.split(/,|\s+y\s+/i).map(s => s.trim()).filter(Boolean) }
+                            ? { items: parseListText(editingProp.text) }
                             : { title: editingProp.text.trim() };
                         }
                         setEditingProp(null);

@@ -80,7 +80,8 @@ def _person_brief(db, hid, p):
     name = p["display_name"]
     rel = (p["relation"] or "").strip()
     acts = [a for a in _activities_today(db, hid) if a["person_id"] == p["id"]]
-    shop = [s for s in _shopping(db, hid) if s["assigned_to_person_id"] == p["id"] and s["status"] in ("needed", "in_cart")]
+    from app.shopping_contract import is_por_comprar
+    shop = [s for s in _shopping(db, hid) if s["assigned_to_person_id"] == p["id"] and is_por_comprar(s["status"])]
     partes = [f"{name}" + (f" ({rel})" if rel else "") + "."]
     if acts:
         partes.append("Hoy: " + "; ".join(a["title"] for a in acts[:5]) + ".")
@@ -122,23 +123,23 @@ def answer_domi(question: str, db, household_id: str) -> str:
         return _person_brief(db, household_id, p)
 
     # --- Compras ---
-    # MIN-3.2 (consistencia de conteos): única fuente de verdad = "por comprar"
-    # = needed + in_cart (mismo criterio que la card de la home). El desglose
-    # explica el carro para que 14 nunca parezca contradecir a 11+3.
+    # MIN-3.3a: los números salen del CONTRATO CANÓNICO (shopping_contract),
+    # nunca de criterios propios. Home, Domi y módulo muestran lo mismo.
     if has("compra", "comprar", "falta", "lista", "supermercado", "carro", "feria", "mercado"):
-        items = _shopping(db, household_id)
-        needed = [r for r in items if r["status"] == "needed"]
-        in_cart = [r for r in items if r["status"] == "in_cart"]
-        por_comprar = len(needed) + len(in_cart)
-        if por_comprar == 0:
+        from app.shopping_contract import shopping_summary, STATUS_NEEDED, STATUS_IN_CART
+        s = shopping_summary(db, household_id)
+        if s["por_comprar"] == 0:
             return "No hay nada pendiente de comprar por ahora. 🛒"
-        partes = [f"Hay {por_comprar} productos por comprar."]
-        if needed:
-            partes.append(f"Pendientes ({len(needed)}): " + ", ".join(r["item_name"] for r in needed[:8]) + ".")
-        if in_cart:
-            total = sum((r["estimated_price"] or 0) for r in in_cart)
+        items = _shopping(db, household_id)
+        needed_names = [r["item_name"] for r in items if r["status"] == STATUS_NEEDED]
+        cart_rows = [r for r in items if r["status"] == STATUS_IN_CART]
+        partes = [f"Hay {s['por_comprar']} productos por comprar."]
+        if needed_names:
+            partes.append(f"Pendientes ({s['needed']}): " + ", ".join(needed_names[:8]) + ".")
+        if cart_rows:
+            total = sum((r["estimated_price"] or 0) for r in cart_rows)
             extra = f" (total estimado {_clp(total)})" if total else ""
-            partes.append(f"En el carro tentativo: {len(in_cart)}{extra}.")
+            partes.append(f"En el carro tentativo: {s['in_cart']}{extra}.")
         partes.append("Lo ves y marcas en Compras.")
         return " ".join(partes)
 
@@ -198,13 +199,13 @@ def answer_domi(question: str, db, household_id: str) -> str:
 
     # --- Resumen ---
     if has("resumen", "qué hay", "que hay", "cómo va", "como va", "novedades", "situación", "situacion"):
-        items = _shopping(db, household_id)
-        # MIN-3.2: mismo criterio que la card — por comprar = needed + in_cart.
-        por_comprar = len([r for r in items if r["status"] in ("needed", "in_cart")])
+        # MIN-3.3a: conteo desde el contrato canónico.
+        from app.shopping_contract import shopping_summary
+        s = shopping_summary(db, household_id)
         acts = _activities_today(db, household_id)
         posts = [pp for pp in _board(db, household_id) if not pp["resolved_at"]]
         return (f"Resumen de hoy: {len(posts)} avisos activos, {len(acts)} actividades, "
-                f"{por_comprar} productos por comprar. ¿Quieres ver alguno?")
+                f"{s['por_comprar']} productos por comprar. ¿Quieres ver alguno?")
 
     # --- Fallback con mejor esfuerzo ---
     if p:  # nombraron a alguien aunque la intención no fuera clara

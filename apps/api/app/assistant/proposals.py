@@ -81,9 +81,11 @@ def validate_overrides(tool_name: str, overrides: dict) -> dict:
     for k, v in overrides.items():
         expected = (props.get(k) or {}).get("type")
         if expected == "array":
-            if not isinstance(v, list) or not all(isinstance(x, str) and x.strip() for x in v):
-                raise ValueError(f"'{k}' debe ser una lista de textos no vacíos.")
-            v = [str(x).strip()[:60] for x in v][:20]
+            if not isinstance(v, list) or not all(isinstance(x, str) for x in v):
+                raise ValueError(f"'{k}' debe ser una lista de textos.")
+            # MIN-3.3a: normalización canónica (espacios/vacíos/dedupe/"y")
+            from app.assistant.nl_lists import normalize_items
+            v = normalize_items(v)
             if not v:
                 raise ValueError(f"'{k}' no puede quedar vacío.")
         elif expected == "string":
@@ -216,7 +218,10 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
     result_id = None
     try:
         if tool == "propose_shopping_item":
-            items = payload.get("items") or []
+            # MIN-3.3a: normalización canónica también en la EJECUCIÓN (última línea
+            # de defensa: dedupe/vacíos/espacios aunque el payload venga de antes).
+            from app.assistant.nl_lists import normalize_items
+            items = normalize_items(payload.get("items") or [])
             if not items:
                 raise ValueError("No hay productos para agregar.")
             created = []

@@ -18,7 +18,7 @@ import logging
 
 from app.rbac import ROLE_RANK
 from .domi_rules import answer_domi
-from .providers import get_provider
+from .gateway import GatewayRequest, gateway
 from .registry import get_contract
 from .proposals import create_proposal
 
@@ -92,13 +92,22 @@ def handle_chat(db, *, household_id: str, user_id: str, role: str, messages: lis
             last_user = getattr(m, "content", None) or (m.get("content") if isinstance(m, dict) else "") or ""
             break
 
-    context = build_minimal_context(db, household_id, last_user)
-    provider = get_provider()
+    # MIN-3.3a — pipeline explícito vía ProviderGateway:
+    # 1 contexto solicitado → 2 scope household/person → 3 minimización →
+    # 4 redacción (solo nombres de pila + resumen) → 5 payload segmentado →
+    # 6 respuesta estructurada → 7 validación estricta → 8 proposal store.
+    context = build_minimal_context(db, household_id, last_user)   # pasos 1-4
+    result = gateway.propose(                                       # pasos 5-7
+        GatewayRequest(
+            household_id=household_id,
+            user_id=user_id,
+            user_message=last_user,
+            home_context=context,
+        ),
+        db=db,
+    )
 
-    from .registry import public_catalog
-    result = provider.propose(user_message=last_user, context=context, catalog=public_catalog())
-
-    stored: list[dict] = []
+    stored: list[dict] = []                                         # paso 8
     skipped_notes: list[str] = []
     for action in result.proposals:
         contract = get_contract(action.tool_name)
@@ -109,7 +118,7 @@ def handle_chat(db, *, household_id: str, user_id: str, role: str, messages: lis
             skipped_notes.append(f"(No tienes permiso para «{contract.category}» en este hogar.)")
             continue
         stored.append(create_proposal(
-            db, household_id=household_id, user_id=user_id, action=action, provider_name=provider.name,
+            db, household_id=household_id, user_id=user_id, action=action, provider_name=result.provider,
         ))
 
     reply = result.reply
@@ -118,7 +127,13 @@ def handle_chat(db, *, household_id: str, user_id: str, role: str, messages: lis
 
     return {
         "reply": reply,
-        "provider": provider.name,
+        "provider": result.provider,
         "proposals": stored,
-        "blocked": result.blocked_reason,
+        "blocked": result.blocked,
+        # MIN-3.3a: telemetría del gateway (sin contenido de prompts)
+        "gateway": {
+            "latency_ms": result.latency_ms,
+            "fallback_used": result.fallback_used,
+            "valid": result.valid,
+        },
     }
