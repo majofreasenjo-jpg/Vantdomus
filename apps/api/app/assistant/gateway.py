@@ -122,6 +122,9 @@ class GatewayRequest:
     user_message: str                       # segmento: texto del usuario (no confiable)
     home_context: dict = field(default_factory=dict)   # segmento: datos del hogar (minimizados)
     documents_excerpt: str = ""             # segmento: documentos (NO CONFIABLE)
+    # MIN-3.3b: marca EXPLÍCITA de payload sintético. Sin esta marca en True,
+    # el shadow harness bloquea cualquier llamada externa.
+    synthetic: bool = False
 
 
 @dataclass
@@ -201,22 +204,48 @@ def validate_provider_output(result: ProviderResult, request: GatewayRequest) ->
 
 def select_provider() -> Provider:
     """
-    Mock por defecto y SIEMPRE que:
-    - el modo no sea explícitamente real, o
-    - falte cualquiera de los flags duros, o
-    - el circuit breaker esté abierto.
-    En MIN-3.3a el camino real permanece deshabilitado (los flags están apagados
-    y OpenAIProvider sigue siendo un stub que no llama a la red).
+    MIN-3.3b — El CHAT NORMAL usa SIEMPRE MockProvider. El proveedor real
+    existe pero SOLO es alcanzable vía el shadow harness (shadow_compare), que
+    exige los 6 gates simultáneos y datos sintéticos. Usarlo desde el flujo
+    normal (datos de una familia real) requerirá un gate NUEVO (MIN-3.4+)
+    autorizado explícitamente; no existe camino de código para eso hoy.
     """
-    flags = provider_flags()
-    if _breaker_open():
-        return MockProvider()
-    if flags["provider_mode"] in ("openai", "real", "llm") and external_calls_permitted():
-        from .providers.openai_provider import OpenAIProvider
-        real = OpenAIProvider()
-        if real.is_available():
-            return real
     return MockProvider()
+
+
+# =============================================================================
+# MIN-3.3b — SHADOW MODE (única puerta hacia el proveedor real)
+# =============================================================================
+
+_LOCAL_ENVS = {"local", "dev", "development", "demo", "test"}
+
+
+def shadow_gates(request: "GatewayRequest") -> tuple[bool, list[str]]:
+    """
+    Los 6 gates SIMULTÁNEOS para permitir UNA llamada externa de prueba:
+    1) ASSISTANT_PROVIDER_MODE = proveedor autorizado (openai)
+    2) ASSISTANT_REAL_PROVIDER_ENABLED = true
+    3) ASSISTANT_EXTERNAL_CALLS_ALLOWED = true
+    4) ASSISTANT_SHADOW_MODE = true
+    5) entorno local/dev (APP_ENV)
+    6) payload marcado explícitamente como sintético (request.synthetic)
+    Devuelve (ok, [gates faltantes]).
+    """
+    f = provider_flags()
+    missing = []
+    if f["provider_mode"] not in ("openai",):
+        missing.append("provider_mode")
+    if not f["real_provider_enabled"]:
+        missing.append("real_provider_enabled")
+    if not f["external_calls_allowed"]:
+        missing.append("external_calls_allowed")
+    if not f["shadow_mode"]:
+        missing.append("shadow_mode")
+    if os.getenv("APP_ENV", "local").strip().lower() not in _LOCAL_ENVS:
+        missing.append("entorno_local")
+    if not getattr(request, "synthetic", False):
+        missing.append("payload_sintetico")
+    return (len(missing) == 0, missing)
 
 
 def build_provider_payload(request: GatewayRequest) -> dict:
@@ -309,6 +338,118 @@ class ProviderGateway:
             provider=provider.name, latency_ms=latency_ms,
             fallback_used=fallback_used, valid=valid,
         )
+
+    # =========================================================================
+    # MIN-3.3b — Shadow compare: ÚNICA vía hacia el proveedor real.
+    # =========================================================================
+    def shadow_compare(self, request: GatewayRequest, db=None) -> dict:
+        """
+        Ejecuta la prueba shadow: (1) verifica los 6 gates; (2) si falta UNO,
+        NO llama a la red (usa mock y lo audita como fallback); (3) si están
+        todos, hace EXACTAMENTE UNA llamada externa propose-only; (4) valida la
+        salida con el schema estricto + límite shadow de 1 propuesta; (5) NO
+        persiste ninguna proposal ni ejecuta nada; (6) compara contra
+        MockProvider y devuelve un reporte SANITIZADO (sin key, sin prompt).
+        """
+        ok, missing = shadow_gates(request)
+        payload = build_provider_payload(request)
+
+        def _call(p: Provider) -> ProviderResult:
+            return p.propose(user_message=payload["user_message"],
+                             context=payload["household_data"],
+                             catalog=payload["tools"])
+
+        # Referencia mock (siempre disponible, sin red)
+        mock_raw = _call(MockProvider())
+        mock_reply, mock_props, mock_blocked = validate_provider_output(mock_raw, request)
+
+        report: dict = {
+            "gates_ok": ok,
+            "gates_missing": missing,
+            "external_call_made": False,
+            "provider": "mock",
+            "model": None,
+            "latency_ms": 0,
+            "usage": {},
+            "approx_cost_usd": None,
+            "valid": None,
+            "fallback_used": False,
+            "shadow_result": None,      # lo que PROPUSO el real (sin persistir)
+            "mock_result": {
+                "reply": mock_reply,
+                "proposals": [{"tool": a.tool_name, "payload": a.payload} for a in mock_props],
+                "blocked": mock_blocked,
+            },
+            "diff": None,
+            "tools_executed": 0,        # SIEMPRE 0 en shadow
+            "persisted_proposals": 0,   # SIEMPRE 0 en shadow
+        }
+
+        if not ok:
+            report["valid"] = False
+            report["fallback_used"] = True
+            self._audit_shadow(db, request, report, note="gates_incompletos")
+            return report
+
+        from .providers.openai_provider import OpenAIProvider
+        real = OpenAIProvider()
+        start = time.monotonic()
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                raw = pool.submit(_call, real).result(timeout=TIMEOUT_SECONDS)
+            report["external_call_made"] = True
+            reply, props, blocked = validate_provider_output(raw, request)
+            if len(props) > 1:  # límite extra de la fase shadow
+                raise OutputInvalid("más de una propuesta en fase shadow")
+            report.update({
+                "provider": real.name, "model": real.model, "valid": True,
+                "usage": {k: real.last_usage.get(k) for k in ("prompt_tokens", "completion_tokens", "total_tokens")},
+                "approx_cost_usd": real.estimated_cost_usd(),
+                "shadow_result": {
+                    "reply": reply,
+                    "proposals": [{"tool": a.tool_name, "payload": a.payload} for a in props],
+                    "blocked": blocked,
+                },
+            })
+            _breaker_record(True)
+        except (FutureTimeout, OutputInvalid, Exception) as exc:
+            kind = "timeout" if isinstance(exc, FutureTimeout) else (
+                "invalid_output" if isinstance(exc, OutputInvalid) else "provider_error")
+            report["external_call_made"] = report["external_call_made"] or not isinstance(exc, FutureTimeout)
+            report.update({"valid": False, "fallback_used": True, "error_kind": kind,
+                           "error_sanitized": str(exc)[:120]})
+            _breaker_record(False)
+        finally:
+            report["latency_ms"] = int((time.monotonic() - start) * 1000)
+
+        # Diferencias mock vs real (solo estructura, sin texto completo)
+        sr = report.get("shadow_result") or {}
+        report["diff"] = {
+            "mock_proposals": len(report["mock_result"]["proposals"]),
+            "real_proposals": len(sr.get("proposals", [])) if sr else 0,
+            "same_tool": bool(sr and report["mock_result"]["proposals"] and sr.get("proposals")
+                              and sr["proposals"][0]["tool"] == report["mock_result"]["proposals"][0]["tool"]),
+        }
+        self._audit_shadow(db, request, report, note="shadow_run")
+        return report
+
+    def _audit_shadow(self, db, request: GatewayRequest, report: dict, note: str) -> None:
+        """Auditoría sanitizada del shadow run (sin key, sin prompts, sin datos)."""
+        meta = {
+            "note": note, "gates_ok": report["gates_ok"], "gates_missing": report["gates_missing"],
+            "external_call_made": report["external_call_made"], "provider": report["provider"],
+            "model": report["model"], "latency_ms": report["latency_ms"],
+            "usage": report.get("usage") or {}, "valid": report["valid"],
+            "fallback_used": report["fallback_used"], "tools_executed": 0, "persisted_proposals": 0,
+        }
+        logger.info("assistant shadow: %s", meta)
+        if db is not None:
+            try:
+                write_audit_log(db, action="assistant_shadow_call", resource_type="assistant_gateway",
+                                household_id=request.household_id, user_id=request.user_id,
+                                metadata=meta, commit=True)
+            except Exception:
+                logger.warning("assistant shadow: no se pudo auditar")
 
 
 gateway = ProviderGateway()
