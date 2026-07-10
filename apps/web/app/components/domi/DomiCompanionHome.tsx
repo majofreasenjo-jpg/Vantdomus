@@ -64,10 +64,20 @@ import DomiDocPanel from "./DomiDocPanel";
 import { assistantChat, domiConfirmProposal, domiRejectProposal } from "../../../lib/api";
 
 
-// Flag to control visibility of the dev switcher panel. 
+// Flag to control visibility of the dev switcher panel.
 // If true, the panel trigger button is shown.
 // If false, it's completely hidden from the user interface and DOM unless the query param ?dev=1 is specified.
 const DEV_PANEL_ENABLED = false;
+
+// Saludo por HORA REAL — única fuente de verdad para el header y el chat.
+// (Antes el header saludaba según el tema visual, que cubre 9:00-18:00 como
+// "day" → decía "Buenas tardes" incluso a las 10am; y el chat tenía otro mapa.)
+// Mañana 6-11 → días · 12-19 → tardes · 20-5 → noches.
+const greetingForHour = (h: number): { greeting: string; word: string } => {
+  if (h >= 6 && h < 12) return { greeting: "Buenos", word: "días." };
+  if (h >= 12 && h < 20) return { greeting: "Buenas", word: "tardes." };
+  return { greeting: "Buenas", word: "noches." };
+};
 
 export interface DomiHomeData {
   /** Datos reales del hogar (opcionales). Si faltan, se usa el fallback demo
@@ -312,16 +322,11 @@ export default function DomiCompanionHome({
 
   // Chat message logs with default greetings.
   // Fix (owner, validación MIN-3.1a): el prototipo CP1b traía "¡Buenas noches!"
-  // hardcodeado a toda hora. El saludo ahora sigue el tema del día, que ya viene
-  // resuelto del servidor (initialTheme) → determinista, sin hydration mismatch.
+  // hardcodeado a toda hora. Ahora usa greetingForHour — la MISMA fuente que el
+  // saludo grande del header, así nunca se contradicen.
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-    const saludos = {
-      dawn: "¡Buenos días!",
-      day: "¡Hola, buen día!",
-      sunset: "¡Buenas tardes!",
-      night: "¡Buenas noches!",
-    } as const;
-    const saludo = saludos[initialTheme ?? "day"];
+    const g = greetingForHour(new Date().getHours());
+    const saludo = `¡${g.greeting} ${g.word.replace(".", "")}!`;
     return [
       {
         id: "welcome-1",
@@ -875,12 +880,8 @@ export default function DomiCompanionHome({
     addNotification("Sugerencia de Ambiente", `Has seleccionado el modo "${mode}" con temperatura de ${temp}.`, "system");
   };
 
-  const getGreetingData = () => {
-    if (activeTheme === "dawn") return { greeting: "Buenos", word: "días." };
-    if (activeTheme === "day") return { greeting: "Buenas", word: "tardes." };
-    if (activeTheme === "sunset") return { greeting: "Buenas", word: "tardes." };
-    return { greeting: "Buenas", word: "noches." };
-  };
+  // Header y chat comparten greetingForHour (hora real, no tema visual).
+  const getGreetingData = () => greetingForHour(new Date().getHours());
 
   const getAvatarGradient = (avatar: string) => {
     if (avatar === "G") return "bg-gradient-to-tr from-pink-500 to-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.3)]";
