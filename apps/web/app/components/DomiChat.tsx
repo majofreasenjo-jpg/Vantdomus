@@ -9,12 +9,22 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { assistantChat } from "../../lib/api";
+import { assistantChat, domiConfirmProposal, domiRejectProposal } from "../../lib/api";
 import DomiOrb from "./DomiOrb";
 
-type Msg = { role: "user" | "assistant"; content: string };
+// CP1c-FUNC-MIN-3.1 — una propuesta pendiente del orquestador (aún NO ejecutada).
+type Proposal = {
+  id: string;
+  tool_name: string;
+  category: string;
+  title: string;
+  summary: string;
+  status: string;
+  sensitive: boolean;
+};
+type Msg = { role: "user" | "assistant"; content: string; proposals?: Proposal[] };
 
-const SUGGESTIONS = ["¿Qué falta comprar?", "¿Qué hay hoy?", "¿Qué medicamentos hay?", "Resumen del día"];
+const SUGGESTIONS = ["¿Qué falta comprar?", "Agrega leche y pan a la lista", "Prepara el estudio de Diego", "Resumen del día"];
 
 export default function DomiChat({ hid }: { hid: string }) {
   const [messages, setMessages] = useState<Msg[]>([
@@ -36,9 +46,33 @@ export default function DomiChat({ hid }: { hid: string }) {
     try {
       const resp = await assistantChat(hid, next.map((m) => ({ role: m.role, content: m.content })));
       const reply = resp?.reply || "No pude responder ahora. Intenta de nuevo.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      const proposals: Proposal[] = Array.isArray(resp?.proposals) ? resp.proposals : [];
+      setMessages((prev) => [...prev, { role: "assistant", content: reply, proposals }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Tuve un problema para responder. Intenta de nuevo." }]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Confirmar/Rechazar una propuesta. Solo AQUÍ, con acción humana, se ejecuta.
+  async function decide(msgIdx: number, propId: string, accept: boolean) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (accept) await domiConfirmProposal(propId);
+      else await domiRejectProposal(propId);
+      // Reflejar la decisión en la propuesta mostrada.
+      setMessages((prev) => prev.map((m, i) => i !== msgIdx || !m.proposals ? m : {
+        ...m,
+        proposals: m.proposals.map((p) => p.id === propId ? { ...p, status: accept ? "executed" : "rejected" } : p),
+      }));
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: accept ? "Listo, lo dejé hecho. ✅" : "De acuerdo, no lo hago. 👍",
+      }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", content: "No pude aplicar la decisión. Intenta de nuevo." }]);
     } finally {
       setBusy(false);
     }
@@ -56,7 +90,7 @@ export default function DomiChat({ hid }: { hid: string }) {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "10px 2px", display: "flex", flexDirection: "column", gap: 8 }}>
         {messages.map((m, i) => (
-          <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "86%" }}>
+          <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "86%", display: "flex", flexDirection: "column", gap: 6 }}>
             <div style={{
               padding: "8px 11px", borderRadius: 14, fontSize: 13.5, lineHeight: 1.4,
               background: m.role === "user" ? "var(--primary, #4A7A6B)" : "var(--bg)",
@@ -65,6 +99,35 @@ export default function DomiChat({ hid }: { hid: string }) {
               borderBottomRightRadius: m.role === "user" ? 4 : 14,
               borderBottomLeftRadius: m.role === "user" ? 14 : 4,
             }}>{m.content}</div>
+
+            {/* CP1c-FUNC-MIN-3.1 — propuestas: Domi propone, tú decides. */}
+            {(m.proposals || []).map((p) => (
+              <div key={p.id} style={{
+                border: "1px solid var(--line)", borderRadius: 12, padding: "10px 12px",
+                background: "var(--bg)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <span aria-hidden style={{ fontSize: 14 }}>💡</span>
+                  <strong style={{ fontSize: 13 }}>{p.title}</strong>
+                  {p.sensitive ? <span className="pill" style={{ fontSize: 10 }}>requiere tu OK</span> : null}
+                </div>
+                <div className="small" style={{ color: "var(--muted)", marginBottom: 8 }}>
+                  {p.summary} <span style={{ opacity: 0.8 }}>· Domi propone esto. Tú decides si se ejecuta.</span>
+                </div>
+                {p.status === "pending" ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn btnPrimary" style={{ cursor: "pointer", padding: "5px 12px", fontSize: 12.5 }}
+                      disabled={busy} onClick={() => decide(i, p.id, true)}>Confirmar</button>
+                    <button className="btn" style={{ cursor: "pointer", padding: "5px 12px", fontSize: 12.5 }}
+                      disabled={busy} onClick={() => decide(i, p.id, false)}>Rechazar</button>
+                  </div>
+                ) : (
+                  <div className="small" style={{ color: "var(--muted)", fontWeight: 700 }}>
+                    {p.status === "executed" ? "✅ Confirmado y hecho" : p.status === "rejected" ? "🚫 Rechazado" : p.status}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         ))}
         {busy ? <div className="small" style={{ color: "var(--muted)" }}>Domi está pensando…</div> : null}

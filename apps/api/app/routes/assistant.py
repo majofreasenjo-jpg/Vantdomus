@@ -1,14 +1,23 @@
 import os
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
-from app.assistant.context import build_chat_messages
 from app.assistant.schemas import ChatRequest
-from app.assistant.service import run_agentic_chat
+from app.assistant import orchestrator
+from app.assistant import proposals as proposal_store
 from app.deps import get_current_user, get_db, require_household_role
 from app.planner import apply_recommendation, generate_recommendations
 
 router = APIRouter(prefix="/assistant", tags=["Assistant"])
+
+
+def _current_person_id(db, user_id: str, household_id: str) -> str | None:
+    row = db.execute(
+        "SELECT id FROM persons WHERE household_id=? AND user_id=? LIMIT 1",
+        (household_id, user_id),
+    ).fetchone()
+    return row["id"] if row else None
 
 
 @router.get("/recommendations")
@@ -61,29 +70,66 @@ def plan(household_id: str, goal: str, user=Depends(get_current_user), db=Depend
 
 @router.post("/chat")
 def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    """
+    CP1c-FUNC-MIN-3.1 — Entrada propose-first. Domi entiende, consulta contexto
+    permitido y PROPONE. Las acciones de escritura vuelven como propuestas
+    'pending' que requieren confirmación humana (endpoints /proposals/*). NADA se
+    ejecuta aquí. Proveedor = mock por defecto; el externo queda apagado.
+    """
     try:
-        require_household_role(db, user["user_id"], payload.household_id, "member")
-        messages, _taxonomy, fallback_reply = build_chat_messages(payload, user, db)
-        model = payload.model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-
-        try:
-            reply = run_agentic_chat(
-                messages=messages,
-                model=model,
-                temperature=payload.temperature,
-                db=db,
-                household_id=payload.household_id,
-                user_id=user["user_id"],
-            )
-            return {"ok": True, "provider": "openai", "model": model, "reply": reply}
-        except Exception:
-            # Sin LLM (o error): Domi responde por reglas sobre los datos reales
-            # del hogar, en vez de volcar contexto. Honesto y útil localmente.
-            from app.assistant.domi_rules import answer_domi
-            last_user = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
-            reply = answer_domi(last_user, db, payload.household_id)
-            return {"ok": True, "provider": "domi_rules", "model": None, "reply": reply}
+        role = require_household_role(db, user["user_id"], payload.household_id, "member")
+        out = orchestrator.handle_chat(
+            db,
+            household_id=payload.household_id,
+            user_id=user["user_id"],
+            role=role,
+            messages=payload.messages,
+        )
+        return {"ok": True, **out}
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Assistant chat failed: {exc}") from exc
+
+
+# =============================================================================
+# CP1c-FUNC-MIN-3.1 — Propuestas: listar / confirmar / rechazar
+# =============================================================================
+class DecisionBody(BaseModel):
+    overrides: dict = {}
+
+
+@router.get("/proposals")
+def list_proposals(household_id: str, status: str = "pending", user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    my_pid = _current_person_id(db, user["user_id"], household_id)
+    items = proposal_store.list_proposals(db, household_id, status, role, my_pid)
+    return {"items": items}
+
+
+@router.post("/proposals/{proposal_id}/confirm")
+def confirm_proposal(proposal_id: str, body: DecisionBody = DecisionBody(), user=Depends(get_current_user), db=Depends(get_db)):
+    """Ejecuta una propuesta SOLO tras confirmación humana. Requiere rol member."""
+    prop = proposal_store.get_proposal(db, proposal_id)
+    if not prop:
+        raise HTTPException(status_code=404, detail="Propuesta no encontrada")
+    require_household_role(db, user["user_id"], prop["household_id"], "member")
+    if prop["status"] != "pending":
+        raise HTTPException(status_code=409, detail=f"La propuesta ya está {prop['status']}")
+    try:
+        result = proposal_store.execute_proposal(db, prop, user["user_id"], overrides=body.overrides or {})
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "proposal": result}
+
+
+@router.post("/proposals/{proposal_id}/reject")
+def reject_proposal(proposal_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    prop = proposal_store.get_proposal(db, proposal_id)
+    if not prop:
+        raise HTTPException(status_code=404, detail="Propuesta no encontrada")
+    require_household_role(db, user["user_id"], prop["household_id"], "member")
+    if prop["status"] != "pending":
+        raise HTTPException(status_code=409, detail=f"La propuesta ya está {prop['status']}")
+    result = proposal_store.reject_proposal(db, prop, user["user_id"])
+    return {"ok": True, "proposal": result}

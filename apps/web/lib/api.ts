@@ -210,6 +210,19 @@ export const assistantChat = (
     }),
   });
 
+// CP1c-FUNC-MIN-3.1 — Orchestrator propose-first. Domi propone; el humano confirma.
+export const domiListProposals = (hid: string, status = "pending") =>
+  apiFetch(`/assistant/proposals?household_id=${encodeURIComponent(hid)}&status=${encodeURIComponent(status)}`);
+
+export const domiConfirmProposal = (id: string, overrides: Record<string, unknown> = {}) =>
+  apiFetch(`/assistant/proposals/${encodeURIComponent(id)}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ overrides }),
+  });
+
+export const domiRejectProposal = (id: string) =>
+  apiFetch(`/assistant/proposals/${encodeURIComponent(id)}/reject`, { method: "POST" });
+
 // Missing endpoints for Panel compatibility
 export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
 export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({
