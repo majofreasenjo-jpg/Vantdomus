@@ -49,7 +49,7 @@ import {
   LogOut
 } from "lucide-react";
 
-import { ShoppingItem, StudyBlock, ChatMessage, HomeNotification, FamilyMember, DomiState, domiStateTokens } from "./domiTypes";
+import { ShoppingItem, StudyBlock, ChatMessage, HomeNotification, FamilyMember, DomiState, DomiProposal, domiStateTokens } from "./domiTypes";
 import DomiOrb from "./DomiOrb";
 import StatusCards from "./StatusCards";
 import Modals from "./Modals";
@@ -59,6 +59,9 @@ import { themesConfig } from "./domiThemes";
 import { generateDomiReply } from "./domiIntents";
 import { logoutAction } from "../../login/actions";
 import DomiDocPanel from "./DomiDocPanel";
+// CP1c-FUNC-MIN-3.1a — orquestador propose-first real (backend). El simulador
+// local (domiIntents) queda SOLO como fallback demo, marcado como tal.
+import { assistantChat, domiConfirmProposal, domiRejectProposal } from "../../../lib/api";
 
 
 // Flag to control visibility of the dev switcher panel. 
@@ -598,6 +601,10 @@ export default function DomiCompanionHome({
   };
 
   // --- INTEGRATION CHAT FLOW WITH SERVER AND ACTION TRIGGERS ---
+  // CP1c-FUNC-MIN-3.1a — El Domi principal habla con el ORQUESTADOR REAL
+  // (/assistant/chat, propose-first): Domi entiende → propone → el humano
+  // confirma/rechaza → recién ahí se ejecuta. El simulador local (domiIntents)
+  // queda SOLO como fallback cuando no hay sesión real, marcado como demo.
   const sendMessageToDomi = async (text: string) => {
     if (!text.trim() || isSending) return;
 
@@ -613,10 +620,39 @@ export default function DomiCompanionHome({
     setDomiMood("thinking");
     setDomiState("pensando");
 
+    // --- Camino REAL: orquestador seguro (solo con sesión/datos reales) ---
+    if (hid && dataState === "real") {
+      try {
+        const resp = await assistantChat(hid, [{ role: "user", content: text }]);
+        const proposals: DomiProposal[] = Array.isArray(resp?.proposals) ? resp.proposals : [];
+        setChatMessages(prev => [...prev, {
+          id: `domi-${Date.now()}`,
+          role: "model",
+          content: resp?.reply || "Recibido. ¿En qué más te ayudo?",
+          timestamp: new Date(),
+          proposals,
+        }]);
+        setDomiMood("speaking");
+        // Estados canónicos: bloqueo sensible → protector; propuesta pendiente
+        // → proponiendo/esperando confirmación humana; lectura → listo.
+        if (resp?.blocked) {
+          setDomiState("protector");
+        } else if (proposals.length > 0) {
+          setDomiState(proposals.some(p => p.sensitive) ? "esperando_confirmacion" : "proponiendo");
+        } else {
+          setDomiState("listo");
+        }
+        setTimeout(() => setDomiMood("happy"), 3500);
+        setIsSending(false);
+        return;
+      } catch (err) {
+        // Backend caído a mitad de sesión: avisar honesto y caer al demo local.
+        console.warn("[domi] orquestador no disponible, usando demo local", err);
+      }
+    }
+
+    // --- Fallback DEMO LOCAL (sin sesión real o backend caído) ---
     try {
-      // Port CP1b: el prototipo llamaba a un server Express+Gemini (/api/chat).
-      // Aqui la respuesta se genera LOCALMENTE por reglas (sin red, sin IA
-      // externa) manteniendo el mismo contrato { text, action }.
       await new Promise((r) => setTimeout(r, 650)); // pequena pausa "pensando"
       const data = generateDomiReply(text, {
         medicineConfirmed,
@@ -631,12 +667,13 @@ export default function DomiCompanionHome({
         id: `domi-${Date.now()}`,
         role: "model",
         content: data.text || "He recibido tu mensaje correctamente, pero no logré estructurar la acción.",
-        timestamp: new Date()
+        timestamp: new Date(),
+        isLocalDemo: true, // honestidad: esto NO es el orquestador real
       };
 
       setChatMessages(prev => [...prev, domiReply]);
       setDomiMood("speaking");
-      
+
       // Reactively set Domi's state based on text or actions!
       const lowerText = text.toLowerCase();
       if (lowerText.includes("respira") || lowerText.includes("calma") || lowerText.includes("relaj") || lowerText.includes("ansiedad")) {
@@ -677,6 +714,68 @@ export default function DomiCompanionHome({
         timestamp: new Date()
       };
       setChatMessages(prev => [...prev, errorReply]);
+      setDomiMood("happy");
+      setDomiState("listo");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // CP1c-FUNC-MIN-3.1a — Decisión humana sobre una propuesta real. Confirmar
+  // EJECUTA en el backend; rechazar NO ejecuta nada. Solo aquí se actúa.
+  const decideProposal = async (messageId: string, proposalId: string, accept: boolean) => {
+    if (isSending) return;
+    setIsSending(true);
+    setDomiMood("thinking");
+    try {
+      let executedProposal: DomiProposal | undefined;
+      setChatMessages(prev => prev.map(m => {
+        if (m.id !== messageId || !m.proposals) return m;
+        executedProposal = m.proposals.find(p => p.id === proposalId);
+        return m;
+      }));
+      if (accept) await domiConfirmProposal(proposalId);
+      else await domiRejectProposal(proposalId);
+
+      // Reflejar la decisión en la tarjeta.
+      setChatMessages(prev => prev.map(m => m.id !== messageId || !m.proposals ? m : ({
+        ...m,
+        proposals: m.proposals.map(p => p.id === proposalId ? { ...p, status: accept ? "executed" : "rejected" } : p),
+      })));
+      setChatMessages(prev => [...prev, {
+        id: `domi-${Date.now()}`,
+        role: "model",
+        content: accept ? "¡Listo! Quedó hecho y registrado. ✅" : "De acuerdo, no lo hago. 👍",
+        timestamp: new Date(),
+      }]);
+
+      // Si se confirmó agregar compras, reflejarlas al tiro en la card del hogar.
+      if (accept && executedProposal?.tool_name === "propose_shopping_item") {
+        const names = executedProposal.proposed_payload?.items || [];
+        if (names.length) {
+          setShoppingItems(prev => ([
+            ...prev,
+            ...names.map((n, i) => ({
+              id: `domi-prop-${Date.now()}-${i}`,
+              name: String(n),
+              checked: false,
+              qty: "1 ud",
+              category: "Supermercado",
+            })),
+          ]));
+        }
+      }
+
+      setDomiState(accept ? "alegre" : "listo");
+      setDomiMood("happy");
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, {
+        id: `err-${Date.now()}`,
+        role: "model",
+        content: "No pude aplicar tu decisión. Intenta de nuevo, por favor.",
+        timestamp: new Date(),
+      }]);
       setDomiMood("happy");
       setDomiState("listo");
     } finally {
@@ -1483,7 +1582,7 @@ export default function DomiCompanionHome({
                       />
                     </div>
 
-                    <DomiChat 
+                    <DomiChat
                       messages={chatMessages}
                       isListening={isListening}
                       isSending={isSending}
@@ -1492,6 +1591,7 @@ export default function DomiCompanionHome({
                       onAddSystemNotification={addNotification}
                       onSimulateAction={executeAIAction}
                       onOpenDocPanel={() => setShowDocPanel(true)}
+                      onDecideProposal={decideProposal}
                       activeTheme={activeTheme}
                     />
                   </div>

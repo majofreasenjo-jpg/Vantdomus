@@ -25,6 +25,8 @@ interface DomiChatProps {
   onAddSystemNotification: (title: string, msg: string, type: string) => void;
   onSimulateAction: (actionType: string, payload?: string) => void;
   onOpenDocPanel?: () => void;
+  /** CP1c-FUNC-MIN-3.1a — decisión humana sobre una propuesta real del orquestador. */
+  onDecideProposal?: (messageId: string, proposalId: string, accept: boolean) => void;
   activeTheme?: "dawn" | "day" | "sunset" | "night";
 }
 
@@ -37,6 +39,7 @@ export default function DomiChat({
   onAddSystemNotification,
   onSimulateAction,
   onOpenDocPanel,
+  onDecideProposal,
   activeTheme = "night"
 }: DomiChatProps) {
   const [inputText, setInputText] = useState("");
@@ -153,17 +156,81 @@ export default function DomiChat({
                   }`}>
                     {msg.role === "user" ? <User className="w-4 h-4" /> : "D"}
                   </div>
-                  <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                    msg.role === "user" 
-                      ? (isLight ? "bg-blue-50/90 border border-blue-100 text-slate-800 rounded-tr-none" : "bg-blue-500/10 border border-blue-500/20 text-slate-100 rounded-tr-none") 
-                      : (isLight ? "bg-slate-50 border border-slate-100 text-slate-800 rounded-tl-none" : "bg-slate-900/80 border border-slate-800 text-slate-200 rounded-tl-none")
-                  }`}>
-                    <p>{msg.content}</p>
-                    <span className={`block text-[8px] mt-1 font-mono text-right ${
-                      isLight ? "text-slate-400" : "text-slate-500"
+                  <div className="flex flex-col gap-2 min-w-0">
+                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                      msg.role === "user"
+                        ? (isLight ? "bg-blue-50/90 border border-blue-100 text-slate-800 rounded-tr-none" : "bg-blue-500/10 border border-blue-500/20 text-slate-100 rounded-tr-none")
+                        : (isLight ? "bg-slate-50 border border-slate-100 text-slate-800 rounded-tl-none" : "bg-slate-900/80 border border-slate-800 text-slate-200 rounded-tl-none")
                     }`}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                      <p>{msg.content}</p>
+                      {/* MIN-3.1a: honestidad — respuesta del simulador local, no del orquestador real */}
+                      {msg.isLocalDemo && (
+                        <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide border ${
+                          isLight ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                        }`}>
+                          DEMO LOCAL · sin conexión al hogar
+                        </span>
+                      )}
+                      <span className={`block text-[8px] mt-1 font-mono text-right ${
+                        isLight ? "text-slate-400" : "text-slate-500"
+                      }`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+
+                    {/* MIN-3.1a: PROPUESTAS REALES del orquestador — Domi propone, tú decides. */}
+                    {(msg.proposals || []).map((prop) => (
+                      <div key={prop.id} className={`p-3 rounded-2xl border ${
+                        isLight ? "bg-white border-amber-300/60 shadow-sm" : "bg-slate-900/90 border-amber-500/30"
+                      }`}>
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isLight ? "text-amber-600" : "text-amber-400"}`} />
+                          <span className={`text-xs font-bold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{prop.title}</span>
+                          {prop.sensitive && (
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${
+                              isLight ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                            }`}>requiere tu OK</span>
+                          )}
+                        </div>
+                        <p className={`text-[11px] mb-2 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                          {prop.summary} Domi propone esto. <strong>Tú decides si se ejecuta.</strong>
+                        </p>
+                        {prop.status === "pending" ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => onDecideProposal?.(msg.id, prop.id, true)}
+                              disabled={isSending}
+                              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                                isLight
+                                  ? "bg-emerald-500 border-emerald-400 text-white hover:bg-emerald-600"
+                                  : "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                              }`}
+                            >
+                              <Check className="w-3 h-3" /> Confirmar
+                            </button>
+                            <button
+                              onClick={() => onDecideProposal?.(msg.id, prop.id, false)}
+                              disabled={isSending}
+                              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                                isLight
+                                  ? "bg-white border-slate-300 text-slate-600 hover:bg-slate-100"
+                                  : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                              }`}
+                            >
+                              <X className="w-3 h-3" /> Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`text-[11px] font-bold ${
+                            prop.status === "executed"
+                              ? (isLight ? "text-emerald-600" : "text-emerald-400")
+                              : (isLight ? "text-slate-500" : "text-slate-400")
+                          }`}>
+                            {prop.status === "executed" ? "✅ Confirmado y hecho" : prop.status === "rejected" ? "🚫 Rechazado" : prop.status}
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}

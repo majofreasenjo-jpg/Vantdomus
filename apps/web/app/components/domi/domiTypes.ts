@@ -17,12 +17,32 @@ export interface StudyBlock {
   duration: string;
 }
 
+/**
+ * CP1c-FUNC-MIN-3.1a — Propuesta del orquestador propose-first (backend real).
+ * Domi propone; el humano confirma o rechaza. Nunca se ejecuta sola.
+ */
+export interface DomiProposal {
+  id: string;
+  tool_name: string;
+  category: string;
+  title: string;
+  summary: string;
+  status: string; // pending | executed | rejected | failed
+  sensitive: boolean;
+  /** Args propuestos (ej. items de compras) — para reflejar en la UI al confirmar. */
+  proposed_payload?: { items?: string[] } & Record<string, unknown>;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "model" | "system";
   content: string;
   timestamp: Date;
   actionType?: string;
+  /** MIN-3.1a: propuestas reales adjuntas a la respuesta de Domi. */
+  proposals?: DomiProposal[];
+  /** MIN-3.1a: true si la respuesta vino del simulador local (demo), no del backend. */
+  isLocalDemo?: boolean;
 }
 
 export interface HomeNotification {
