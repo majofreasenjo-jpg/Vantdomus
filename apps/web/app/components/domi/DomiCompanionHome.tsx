@@ -738,9 +738,15 @@ export default function DomiCompanionHome({
     }
   };
 
-  // CP1c-FUNC-MIN-3.1a — Decisión humana sobre una propuesta real. Confirmar
-  // EJECUTA en el backend; rechazar NO ejecuta nada. Solo aquí se actúa.
-  const decideProposal = async (messageId: string, proposalId: string, accept: boolean) => {
+  // CP1c-FUNC-MIN-3.1a/3.2 — Decisión humana sobre una propuesta real.
+  // Confirmar EJECUTA en el backend (con overrides editados si los hay);
+  // rechazar NO ejecuta nada. El backend revalida rol, whitelist y expiración.
+  const decideProposal = async (
+    messageId: string,
+    proposalId: string,
+    accept: boolean,
+    overrides?: Record<string, unknown>,
+  ) => {
     if (isSending) return;
     setIsSending(true);
     setDomiMood("thinking");
@@ -751,7 +757,7 @@ export default function DomiCompanionHome({
         executedProposal = m.proposals.find(p => p.id === proposalId);
         return m;
       }));
-      if (accept) await domiConfirmProposal(proposalId);
+      if (accept) await domiConfirmProposal(proposalId, overrides || {});
       else await domiRejectProposal(proposalId);
 
       // Reflejar la decisión en la tarjeta.
@@ -766,9 +772,10 @@ export default function DomiCompanionHome({
         timestamp: new Date(),
       }]);
 
-      // Si se confirmó agregar compras, reflejarlas al tiro en la card del hogar.
+      // Si se confirmó agregar compras, reflejarlas al tiro en la card del hogar
+      // (respetando la versión EDITADA si el humano cambió los productos).
       if (accept && executedProposal?.tool_name === "propose_shopping_item") {
-        const names = executedProposal.proposed_payload?.items || [];
+        const names = (overrides?.items as string[] | undefined) || executedProposal.proposed_payload?.items || [];
         if (names.length) {
           setShoppingItems(prev => ([
             ...prev,
@@ -785,12 +792,20 @@ export default function DomiCompanionHome({
 
       setDomiState(accept ? "alegre" : "listo");
       setDomiMood("happy");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      // MIN-3.2 — sin éxito falso: mostrar el motivo real (expirada, campo
+      // inválido, fallo de la tool) con el detail sanitizado del backend.
+      const detail = String(err?.message || "");
+      const friendly = /expir/i.test(detail)
+        ? "Esa propuesta ya expiró. Pídemelo de nuevo y te la vuelvo a proponer. 🙂"
+        : /no editables|debe ser|no puede quedar|no pertenece/i.test(detail)
+          ? `No pude aplicar la edición: ${detail}`
+          : "No pude completar la acción. Nada se ejecutó a medias; puedes reintentar.";
       setChatMessages(prev => [...prev, {
         id: `err-${Date.now()}`,
         role: "model",
-        content: "No pude aplicar tu decisión. Intenta de nuevo, por favor.",
+        content: friendly,
         timestamp: new Date(),
       }]);
       setDomiMood("happy");

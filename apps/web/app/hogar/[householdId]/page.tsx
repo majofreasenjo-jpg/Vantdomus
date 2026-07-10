@@ -88,16 +88,22 @@ export default async function HogarCompanionPage({
     }));
   }
 
-  // Compras reales → ShoppingItem del prototipo
+  // Compras reales → ShoppingItem del prototipo.
+  // MIN-3.2 (consistencia de conteos): estados canónicos del módulo son
+  // needed | in_cart | purchased | cancelled. "Por comprar" = needed + in_cart;
+  // purchased = checked; cancelled se excluye. (Antes se comparaba contra
+  // "bought", que no existe → lo comprado se contaba como pendiente.)
   const items = (shopping?.items || []) as any[];
   if (items.length > 0) {
-    data.shoppingItems = items.map((s) => ({
-      id: String(s.id),
-      name: s.item_name || "Producto",
-      checked: s.status === "bought",
-      qty: `${s.quantity ?? 1}${s.unit ? ` ${s.unit}` : " ud"}`,
-      category: s.place_hint || s.category || "Supermercado",
-    }));
+    data.shoppingItems = items
+      .filter((s) => s.status !== "cancelled")
+      .map((s) => ({
+        id: String(s.id),
+        name: s.item_name || "Producto",
+        checked: s.status === "purchased",
+        qty: `${s.quantity ?? 1}${s.unit ? ` ${s.unit}` : " ud"}`,
+        category: s.place_hint || s.category || "Supermercado",
+      }));
   }
 
   // CP1c-FUNC-MIN-2.2 — estado de datos honesto (fallback demo NO silencioso).

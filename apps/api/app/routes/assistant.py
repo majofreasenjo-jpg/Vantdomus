@@ -109,17 +109,41 @@ def list_proposals(household_id: str, status: str = "pending", user=Depends(get_
 
 @router.post("/proposals/{proposal_id}/confirm")
 def confirm_proposal(proposal_id: str, body: DecisionBody = DecisionBody(), user=Depends(get_current_user), db=Depends(get_db)):
-    """Ejecuta una propuesta SOLO tras confirmación humana. Requiere rol member."""
+    """
+    Ejecuta una propuesta SOLO tras confirmación humana. Requiere rol member
+    (revalidado aquí, no se confía en el cliente).
+
+    MIN-3.2 — lifecycle endurecido:
+    - executed → respuesta IDEMPOTENTE (no re-ejecuta, no duplica; devuelve el
+      resultado ya existente).
+    - expired → 409 con copy claro (get_proposal ya la marcó lazy).
+    - rejected → 409.
+    - failed → reintento controlado permitido (una ejecución nueva, auditada).
+    - overrides → validados contra el contrato (whitelist + tipos) en el store.
+    """
     prop = proposal_store.get_proposal(db, proposal_id)
     if not prop:
         raise HTTPException(status_code=404, detail="Propuesta no encontrada")
     require_household_role(db, user["user_id"], prop["household_id"], "member")
-    if prop["status"] != "pending":
-        raise HTTPException(status_code=409, detail=f"La propuesta ya está {prop['status']}")
+
+    if prop["status"] == "executed":
+        return {"ok": True, "proposal": prop, "already_executed": True,
+                "detail": "Esta propuesta ya se ejecutó; no se duplicó nada."}
+    if prop["status"] == "rejected":
+        raise HTTPException(status_code=409, detail="La propuesta fue rechazada; pídele a Domi una nueva.")
+    if prop["status"] == "expired":
+        raise HTTPException(status_code=409, detail="La propuesta expiró. Pídele a Domi que la proponga de nuevo.")
+    if prop["status"] == "confirmed":
+        # Estado transitorio (ejecución en curso): no relanzar.
+        raise HTTPException(status_code=409, detail="La propuesta se está ejecutando.")
+
     try:
         result = proposal_store.execute_proposal(db, prop, user["user_id"], overrides=body.overrides or {})
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        # La tool falló: el store ya la dejó 'failed' + audit. Sin éxito falso.
+        raise HTTPException(status_code=500, detail="La acción no pudo completarse. Puedes reintentar la confirmación.") from exc
     return {"ok": True, "proposal": result}
 
 
@@ -129,7 +153,10 @@ def reject_proposal(proposal_id: str, user=Depends(get_current_user), db=Depends
     if not prop:
         raise HTTPException(status_code=404, detail="Propuesta no encontrada")
     require_household_role(db, user["user_id"], prop["household_id"], "member")
-    if prop["status"] != "pending":
+    if prop["status"] == "rejected":
+        # Idempotente: rechazar dos veces es seguro.
+        return {"ok": True, "proposal": prop, "already_rejected": True}
+    if prop["status"] not in ("pending", "failed"):
         raise HTTPException(status_code=409, detail=f"La propuesta ya está {prop['status']}")
     result = proposal_store.reject_proposal(db, prop, user["user_id"])
     return {"ok": True, "proposal": result}

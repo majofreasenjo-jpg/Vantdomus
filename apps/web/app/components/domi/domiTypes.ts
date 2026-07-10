@@ -27,10 +27,14 @@ export interface DomiProposal {
   category: string;
   title: string;
   summary: string;
-  status: string; // pending | executed | rejected | failed
+  status: string; // pending | executed | rejected | expired | failed
   sensitive: boolean;
   /** Args propuestos (ej. items de compras) — para reflejar en la UI al confirmar. */
-  proposed_payload?: { items?: string[] } & Record<string, unknown>;
+  proposed_payload?: { items?: string[]; title?: string } & Record<string, unknown>;
+  /** MIN-3.2: cuándo vence la propuesta (ISO). Expirada → no se puede confirmar. */
+  expires_at?: string;
+  /** MIN-3.2: campos que el humano puede editar antes de confirmar (whitelist del contrato). */
+  editable_fields?: string[];
 }
 
 export interface ChatMessage {

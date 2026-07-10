@@ -122,19 +122,23 @@ def answer_domi(question: str, db, household_id: str) -> str:
         return _person_brief(db, household_id, p)
 
     # --- Compras ---
+    # MIN-3.2 (consistencia de conteos): única fuente de verdad = "por comprar"
+    # = needed + in_cart (mismo criterio que la card de la home). El desglose
+    # explica el carro para que 14 nunca parezca contradecir a 11+3.
     if has("compra", "comprar", "falta", "lista", "supermercado", "carro", "feria", "mercado"):
         items = _shopping(db, household_id)
         needed = [r for r in items if r["status"] == "needed"]
         in_cart = [r for r in items if r["status"] == "in_cart"]
-        if not needed and not in_cart:
+        por_comprar = len(needed) + len(in_cart)
+        if por_comprar == 0:
             return "No hay nada pendiente de comprar por ahora. 🛒"
-        partes = []
+        partes = [f"Hay {por_comprar} productos por comprar."]
         if needed:
-            partes.append(f"Faltan {len(needed)} productos: " + ", ".join(r["item_name"] for r in needed[:8]) + ".")
+            partes.append(f"Pendientes ({len(needed)}): " + ", ".join(r["item_name"] for r in needed[:8]) + ".")
         if in_cart:
             total = sum((r["estimated_price"] or 0) for r in in_cart)
             extra = f" (total estimado {_clp(total)})" if total else ""
-            partes.append(f"En el carro tentativo hay {len(in_cart)}{extra}.")
+            partes.append(f"En el carro tentativo: {len(in_cart)}{extra}.")
         partes.append("Lo ves y marcas en Compras.")
         return " ".join(partes)
 
@@ -195,11 +199,12 @@ def answer_domi(question: str, db, household_id: str) -> str:
     # --- Resumen ---
     if has("resumen", "qué hay", "que hay", "cómo va", "como va", "novedades", "situación", "situacion"):
         items = _shopping(db, household_id)
-        needed = len([r for r in items if r["status"] == "needed"])
+        # MIN-3.2: mismo criterio que la card — por comprar = needed + in_cart.
+        por_comprar = len([r for r in items if r["status"] in ("needed", "in_cart")])
         acts = _activities_today(db, household_id)
         posts = [pp for pp in _board(db, household_id) if not pp["resolved_at"]]
         return (f"Resumen de hoy: {len(posts)} avisos activos, {len(acts)} actividades, "
-                f"{needed} productos por comprar. ¿Quieres ver alguno?")
+                f"{por_comprar} productos por comprar. ¿Quieres ver alguno?")
 
     # --- Fallback con mejor esfuerzo ---
     if p:  # nombraron a alguien aunque la intención no fuera clara

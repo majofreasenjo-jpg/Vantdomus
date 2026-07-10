@@ -35,6 +35,10 @@ class ToolContract:
     writes_evidence: bool = False
     writes_memory: bool = False
     input_schema: dict = field(default_factory=dict)
+    # MIN-3.2 — edición segura: SOLO estos campos del payload pueden modificarse
+    # al confirmar (overrides). tool/household/user NUNCA son editables desde el
+    # cliente; cualquier otra clave se rechaza.
+    editable_fields: list = field(default_factory=list)
 
     def public(self) -> dict:
         """Lo que ve el proveedor/UI para proponer (sin lógica interna)."""
@@ -107,6 +111,7 @@ TOOL_CONTRACTS: dict[str, ToolContract] = {
             },
             "required": ["items"],
         },
+        editable_fields=["items", "store_type"],
     ),
     "propose_study_task": ToolContract(
         name="propose_study_task",
@@ -122,6 +127,7 @@ TOOL_CONTRACTS: dict[str, ToolContract] = {
             },
             "required": ["title"],
         },
+        editable_fields=["title", "due_at", "person_id"],
     ),
     "propose_family_notice": ToolContract(
         name="propose_family_notice",
@@ -133,6 +139,7 @@ TOOL_CONTRACTS: dict[str, ToolContract] = {
             "properties": {"title": {"type": "string"}, "body": {"type": "string"}},
             "required": ["title"],
         },
+        editable_fields=["title", "body"],
     ),
 }
 

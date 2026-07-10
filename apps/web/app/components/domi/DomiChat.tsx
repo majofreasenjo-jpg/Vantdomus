@@ -25,8 +25,9 @@ interface DomiChatProps {
   onAddSystemNotification: (title: string, msg: string, type: string) => void;
   onSimulateAction: (actionType: string, payload?: string) => void;
   onOpenDocPanel?: () => void;
-  /** CP1c-FUNC-MIN-3.1a — decisión humana sobre una propuesta real del orquestador. */
-  onDecideProposal?: (messageId: string, proposalId: string, accept: boolean) => void;
+  /** CP1c-FUNC-MIN-3.1a/3.2 — decisión humana sobre una propuesta real del
+   *  orquestador; overrides = edición whitelisted antes de confirmar. */
+  onDecideProposal?: (messageId: string, proposalId: string, accept: boolean, overrides?: Record<string, unknown>) => void;
   activeTheme?: "dawn" | "day" | "sunset" | "night";
 }
 
@@ -45,6 +46,9 @@ export default function DomiChat({
   const [inputText, setInputText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  // MIN-3.2 — edición de una propuesta antes de confirmar (solo campos
+  // whitelisted por el contrato; el backend revalida todo igual).
+  const [editingProp, setEditingProp] = useState<{ propId: string; field: "items" | "title"; text: string } | null>(null);
   const isLight = activeTheme === "dawn" || activeTheme === "day";
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -178,8 +182,34 @@ export default function DomiChat({
                       </span>
                     </div>
 
-                    {/* MIN-3.1a: PROPUESTAS REALES del orquestador — Domi propone, tú decides. */}
-                    {(msg.proposals || []).map((prop) => (
+                    {/* MIN-3.1a/3.2: PROPUESTAS REALES del orquestador — Domi propone,
+                        tú revisas (y puedes editar), tú decides. */}
+                    {(msg.proposals || []).map((prop) => {
+                      const isEditing = editingProp?.propId === prop.id;
+                      const canEditItems = (prop.editable_fields || []).includes("items");
+                      const canEditTitle = !canEditItems && (prop.editable_fields || []).includes("title");
+                      const startEdit = () => {
+                        if (canEditItems) {
+                          setEditingProp({ propId: prop.id, field: "items", text: (prop.proposed_payload?.items || []).join(", ") });
+                        } else if (canEditTitle) {
+                          setEditingProp({ propId: prop.id, field: "title", text: String(prop.proposed_payload?.title || prop.title || "") });
+                        }
+                      };
+                      const confirmWithEdits = () => {
+                        let overrides: Record<string, unknown> | undefined;
+                        if (isEditing && editingProp) {
+                          overrides = editingProp.field === "items"
+                            ? { items: editingProp.text.split(",").map(s => s.trim()).filter(Boolean) }
+                            : { title: editingProp.text.trim() };
+                        }
+                        setEditingProp(null);
+                        onDecideProposal?.(msg.id, prop.id, true, overrides);
+                      };
+                      const expiraTxt = prop.expires_at
+                        ? new Date(prop.expires_at).toLocaleString([], { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+                        : null;
+                      const actionable = prop.status === "pending" || prop.status === "failed";
+                      return (
                       <div key={prop.id} className={`p-3 rounded-2xl border ${
                         isLight ? "bg-white border-amber-300/60 shadow-sm" : "bg-slate-900/90 border-amber-500/30"
                       }`}>
@@ -192,24 +222,71 @@ export default function DomiChat({
                             }`}>requiere tu OK</span>
                           )}
                         </div>
-                        <p className={`text-[13px] mb-2 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                          {prop.summary} Domi propone esto. <strong>Tú decides si se ejecuta.</strong>
+                        <p className={`text-[13px] mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                          {prop.summary} <strong>Revisa antes de confirmar.</strong>
                         </p>
-                        {prop.status === "pending" ? (
-                          <div className="flex gap-2">
+                        {actionable && expiraTxt && (
+                          <p className={`text-[12px] mb-2 ${isLight ? "text-slate-400" : "text-slate-500"}`}>
+                            ⏳ Disponible hasta {expiraTxt} — después expira y Domi la propone de nuevo si quieres.
+                          </p>
+                        )}
+
+                        {/* MIN-3.2: edición whitelisted antes de confirmar */}
+                        {isEditing && (
+                          <div className="mb-2">
+                            <label className={`block text-[12px] font-bold mb-1 ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                              {editingProp!.field === "items" ? "Productos (separados por coma):" : "Título:"}
+                            </label>
+                            <input
+                              value={editingProp!.text}
+                              onChange={(e) => setEditingProp(prev => prev ? { ...prev, text: e.target.value } : prev)}
+                              className={`w-full px-3 py-2 rounded-xl border text-sm outline-none select-text ${
+                                isLight ? "bg-white border-amber-300 text-slate-800" : "bg-slate-950 border-amber-500/40 text-slate-100"
+                              }`}
+                              aria-label="Editar propuesta"
+                            />
+                          </div>
+                        )}
+
+                        {actionable ? (
+                          <div className="flex gap-2 flex-wrap">
                             <button
-                              onClick={() => onDecideProposal?.(msg.id, prop.id, true)}
-                              disabled={isSending}
+                              onClick={confirmWithEdits}
+                              disabled={isSending || (isEditing && !editingProp?.text.trim())}
                               className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
                                 isLight
                                   ? "bg-emerald-500 border-emerald-400 text-white hover:bg-emerald-600"
                                   : "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
                               }`}
                             >
-                              <Check className="w-3 h-3" /> Confirmar
+                              <Check className="w-3 h-3" /> {prop.status === "failed" ? "Reintentar" : isEditing ? "Confirmar cambios" : "Confirmar"}
                             </button>
+                            {(canEditItems || canEditTitle) && !isEditing && prop.status === "pending" && (
+                              <button
+                                onClick={startEdit}
+                                disabled={isSending}
+                                className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                                  isLight
+                                    ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                                    : "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                                }`}
+                              >
+                                ✏️ Editar
+                              </button>
+                            )}
+                            {isEditing && (
+                              <button
+                                onClick={() => setEditingProp(null)}
+                                disabled={isSending}
+                                className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                                  isLight ? "bg-white border-slate-300 text-slate-600 hover:bg-slate-100" : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                                }`}
+                              >
+                                Deshacer edición
+                              </button>
+                            )}
                             <button
-                              onClick={() => onDecideProposal?.(msg.id, prop.id, false)}
+                              onClick={() => { setEditingProp(null); onDecideProposal?.(msg.id, prop.id, false); }}
                               disabled={isSending}
                               className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
                                 isLight
@@ -226,11 +303,20 @@ export default function DomiChat({
                               ? (isLight ? "text-emerald-600" : "text-emerald-400")
                               : (isLight ? "text-slate-500" : "text-slate-400")
                           }`}>
-                            {prop.status === "executed" ? "✅ Confirmado y hecho" : prop.status === "rejected" ? "🚫 Rechazado" : prop.status}
+                            {prop.status === "executed" ? "✅ Confirmado y hecho"
+                              : prop.status === "rejected" ? "🚫 Rechazado"
+                              : prop.status === "expired" ? "⏰ Expirada — pídesela de nuevo a Domi"
+                              : prop.status}
                           </span>
                         )}
+                        {prop.status === "failed" && (
+                          <p className={`text-[12px] mt-1 font-semibold ${isLight ? "text-rose-600" : "text-rose-300"}`}>
+                            ⚠️ La acción falló y NO se ejecutó. Puedes reintentar o rechazar.
+                          </p>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}

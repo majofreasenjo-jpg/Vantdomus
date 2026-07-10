@@ -34,7 +34,66 @@ def _row_to_dict(row) -> dict:
         d["proposed_payload"] = {}
     d["sensitive"] = bool(d.get("sensitive"))
     d["requires_confirmation"] = bool(d.get("requires_confirmation"))
+    # MIN-3.2 — la UI necesita saber qué campos puede editar el humano.
+    contract = get_contract(d.get("tool_name", ""))
+    d["editable_fields"] = list(contract.editable_fields) if contract else []
     return d
+
+
+# =============================================================================
+# MIN-3.2 — Expiración (lazy) + validación de edición segura
+# =============================================================================
+
+def _is_expired(d: dict) -> bool:
+    exp = d.get("expires_at")
+    return bool(exp) and exp < _now()
+
+
+def _lazy_expire(db, d: dict) -> dict:
+    """Si una propuesta pending ya venció, se marca 'expired' al leerla."""
+    if d and d.get("status") == "pending" and _is_expired(d):
+        db.execute("UPDATE assistant_proposals SET status='expired' WHERE id=?", (d["id"],))
+        db.commit()
+        d["status"] = "expired"
+    return d
+
+
+def validate_overrides(tool_name: str, overrides: dict) -> dict:
+    """
+    Edición segura: solo campos whitelisted en el contrato, con tipos básicos
+    correctos. tool/household/user/person fuera de whitelist se RECHAZAN.
+    Devuelve los overrides saneados; lanza ValueError con motivo claro si no.
+    """
+    if not overrides:
+        return {}
+    contract = get_contract(tool_name)
+    if not contract:
+        raise ValueError(f"Tool desconocida: {tool_name}")
+    allowed = set(contract.editable_fields)
+    bad = [k for k in overrides.keys() if k not in allowed]
+    if bad:
+        raise ValueError(
+            f"Campos no editables: {', '.join(sorted(bad))}. "
+            f"Solo puedes modificar: {', '.join(sorted(allowed)) or '(ninguno)'}."
+        )
+    props = (contract.input_schema or {}).get("properties", {})
+    clean: dict = {}
+    for k, v in overrides.items():
+        expected = (props.get(k) or {}).get("type")
+        if expected == "array":
+            if not isinstance(v, list) or not all(isinstance(x, str) and x.strip() for x in v):
+                raise ValueError(f"'{k}' debe ser una lista de textos no vacíos.")
+            v = [str(x).strip()[:60] for x in v][:20]
+            if not v:
+                raise ValueError(f"'{k}' no puede quedar vacío.")
+        elif expected == "string":
+            if not isinstance(v, str):
+                raise ValueError(f"'{k}' debe ser texto.")
+            v = v.strip()[:200]
+            if not v:
+                raise ValueError(f"'{k}' no puede quedar vacío.")
+        clean[k] = v
+    return clean
 
 
 def create_proposal(db, *, household_id, user_id, action, provider_name) -> dict:
@@ -72,16 +131,28 @@ def create_proposal(db, *, household_id, user_id, action, provider_name) -> dict
 
 def get_proposal(db, proposal_id: str) -> dict | None:
     row = db.execute("SELECT * FROM assistant_proposals WHERE id=?", (proposal_id,)).fetchone()
-    return _row_to_dict(row) if row else None
+    return _lazy_expire(db, _row_to_dict(row)) if row else None
 
 
 def list_proposals(db, household_id: str, status: str, role: str, my_person_id: str | None) -> list[dict]:
-    rows = db.execute(
-        "SELECT * FROM assistant_proposals WHERE household_id=? AND status=? "
-        "ORDER BY created_at DESC LIMIT 200",
-        (household_id, status),
-    ).fetchall()
-    items = [_row_to_dict(r) for r in rows]
+    # MIN-3.2 — historial mínimo: status="all" devuelve las últimas 50 en
+    # cualquier estado (QA/usuario, acotado). Un status concreto filtra normal.
+    if status == "all":
+        rows = db.execute(
+            "SELECT * FROM assistant_proposals WHERE household_id=? "
+            "ORDER BY created_at DESC LIMIT 50",
+            (household_id,),
+        ).fetchall()
+    else:
+        rows = db.execute(
+            "SELECT * FROM assistant_proposals WHERE household_id=? AND status=? "
+            "ORDER BY created_at DESC LIMIT 200",
+            (household_id, status),
+        ).fetchall()
+    items = [_lazy_expire(db, _row_to_dict(r)) for r in rows]
+    if status not in ("all",):
+        # tras lazy-expire pueden haber cambiado de estado; re-filtrar
+        items = [p for p in items if p["status"] == status]
     if role not in ("owner", "admin"):
         items = [p for p in items if not p.get("person_id") or p.get("person_id") == my_person_id]
     return items
@@ -105,12 +176,38 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
     """
     Ejecuta una propuesta YA confirmada por un humano. Marca 'confirmed' →
     ejecuta → 'executed' | 'failed'. Toda ejecución queda auditada.
+
+    MIN-3.2: solo se ejecuta desde 'pending' (o 'failed' = reintento controlado);
+    los overrides pasan por validate_overrides (whitelist + tipos) ANTES de
+    tocar nada; si editan person_id se verifica que pertenezca al hogar; la
+    edición queda auditada.
     """
+    if proposal["status"] not in ("pending", "failed"):
+        raise ValueError(f"La propuesta está '{proposal['status']}' y no puede ejecutarse.")
+    if _is_expired(proposal):
+        raise ValueError("La propuesta expiró. Pídele a Domi que la proponga de nuevo.")
+
     hid = proposal["household_id"]
     org = proposal["organization_id"] or get_household_organization_id(db, hid)
-    payload = {**(proposal.get("proposed_payload") or {}), **(overrides or {})}
     tool = proposal["tool_name"]
-    pid = proposal.get("person_id") or payload.get("person_id")
+    clean_overrides = validate_overrides(tool, overrides or {})
+    payload = {**(proposal.get("proposed_payload") or {}), **clean_overrides}
+    pid = payload.get("person_id") or proposal.get("person_id")
+
+    # Si el humano editó la persona, debe existir EN ESTE hogar (anti-tamper).
+    if clean_overrides.get("person_id"):
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (clean_overrides["person_id"], hid)).fetchone()
+        if not row:
+            raise ValueError("La persona indicada no pertenece a este hogar.")
+
+    # Auditar la EDICIÓN (solo claves editadas; los valores van al action log).
+    if clean_overrides:
+        write_audit_log(
+            db, action="assistant_proposal_edited", resource_type="assistant_proposal",
+            household_id=hid, user_id=user_id, resource_id=proposal["id"],
+            metadata={"tool": tool, "edited_fields": sorted(clean_overrides.keys())},
+        )
 
     db.execute("UPDATE assistant_proposals SET status='confirmed', decided_by_user_id=?, decided_at=? WHERE id=?",
                (user_id, _now(), proposal["id"]))

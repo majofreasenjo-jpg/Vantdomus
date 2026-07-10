@@ -193,3 +193,144 @@ def test_confirm_requires_membership(client):
     stranger = _register_and_login(client, "orq8stranger@example.com")
     r = client.post(f"/assistant/proposals/{pid}/confirm", json={}, headers=_auth(stranger))
     assert r.status_code == 403
+
+
+# =============================================================================
+# CP1c-FUNC-MIN-3.2 — Hardening del ciclo de propuestas
+# =============================================================================
+
+def _propose_shopping(client, token, hid, text="agrega leche y pan a la lista"):
+    out = _chat(client, token, hid, text)
+    assert len(out["proposals"]) == 1
+    return out["proposals"][0]
+
+
+# 10 — doble confirm: idempotente, no duplica
+def test_double_confirm_is_idempotent(client):
+    token = _register_and_login(client, "m32a@example.com")
+    hid, _ = _bootstrap(client, token)
+    prop = _propose_shopping(client, token, hid)
+    r1 = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={}, headers=_auth(token))
+    assert r1.status_code == 200 and r1.json()["proposal"]["status"] == "executed"
+    n_after_first = _shopping_count(client, token, hid)
+    # Segunda confirmación: respuesta segura, sin duplicar
+    r2 = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={}, headers=_auth(token))
+    assert r2.status_code == 200, r2.text
+    assert r2.json().get("already_executed") is True
+    assert _shopping_count(client, token, hid) == n_after_first  # no duplicó
+
+
+# 11 — expirada: confirmación bloqueada con copy claro
+def test_expired_proposal_cannot_confirm(client):
+    token = _register_and_login(client, "m32b@example.com")
+    hid, _ = _bootstrap(client, token)
+    prop = _propose_shopping(client, token, hid)
+    # Vencerla directamente en DB (simula paso del tiempo)
+    from app.db import connect
+    con = connect()
+    con.execute("UPDATE assistant_proposals SET expires_at='2000-01-01T00:00:00+00:00' WHERE id=?", (prop["id"],))
+    con.commit(); con.close()
+    before = _shopping_count(client, token, hid)
+    r = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={}, headers=_auth(token))
+    assert r.status_code == 409, r.text
+    assert "expir" in r.json()["detail"].lower()
+    assert _shopping_count(client, token, hid) == before
+    # Y quedó marcada expired (lazy)
+    lst = client.get("/assistant/proposals", params={"household_id": hid, "status": "expired"}, headers=_auth(token)).json()
+    assert any(p["id"] == prop["id"] for p in lst["items"])
+
+
+# 12 — edición whitelisted: se ejecuta la versión APROBADA (editada)
+def test_edit_items_executes_edited_version(client):
+    token = _register_and_login(client, "m32c@example.com")
+    hid, _ = _bootstrap(client, token)
+    prop = _propose_shopping(client, token, hid)  # propone leche, pan
+    r = client.post(f"/assistant/proposals/{prop['id']}/confirm",
+                    json={"overrides": {"items": ["cafe", "azucar", "yerba"]}}, headers=_auth(token))
+    assert r.status_code == 200, r.text
+    items = client.get(f"/household_shopping/{hid}/items", headers=_auth(token)).json()["items"]
+    names = {i["item_name"] for i in items}
+    assert {"cafe", "azucar", "yerba"} <= names      # versión editada
+    assert "leche" not in names and "pan" not in names  # NO la original
+
+
+# 13 — payload malicioso: tool/household/campos no whitelisted → rechazado
+def test_malicious_overrides_rejected(client):
+    token = _register_and_login(client, "m32d@example.com")
+    hid, _ = _bootstrap(client, token)
+    before = _shopping_count(client, token, hid)
+    for evil in (
+        {"household_id": "otro-hogar"},
+        {"tool_name": "register_financial_expense"},
+        {"user_id": "atacante"},
+        {"amount": 99999},
+    ):
+        prop = _propose_shopping(client, token, hid, "agrega sal a la lista")
+        r = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={"overrides": evil}, headers=_auth(token))
+        assert r.status_code == 400, f"{evil} -> {r.status_code} {r.text}"
+        assert "no editables" in r.json()["detail"].lower()
+    assert _shopping_count(client, token, hid) == before  # nada se ejecutó
+    # items inválidos (tipo incorrecto) también se rechazan
+    prop = _propose_shopping(client, token, hid, "agrega sal a la lista")
+    r = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={"overrides": {"items": "no-una-lista"}}, headers=_auth(token))
+    assert r.status_code == 400
+
+
+# 14 — fallo de tool: estado failed, sin éxito falso, reintento controlado
+def test_tool_failure_then_controlled_retry(client):
+    token = _register_and_login(client, "m32e@example.com")
+    hid, pid = _bootstrap(client, token)
+    out = _chat(client, token, hid, "prepara el estudio de matematicas")  # sin nombre -> sin person_id
+    prop = out["proposals"][0]
+    assert prop["tool_name"] == "propose_study_task"
+    # Confirmar sin persona -> la tool falla -> failed, sin éxito falso
+    r = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={}, headers=_auth(token))
+    assert r.status_code == 400, r.text
+    got = client.get("/assistant/proposals", params={"household_id": hid, "status": "failed"}, headers=_auth(token)).json()
+    assert any(p["id"] == prop["id"] for p in got["items"])
+    # Reintento controlado con persona válida (editable) -> executed
+    r2 = client.post(f"/assistant/proposals/{prop['id']}/confirm", json={"overrides": {"person_id": pid}}, headers=_auth(token))
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["proposal"]["status"] == "executed"
+    # person_id de otro hogar -> rechazado
+    prop2 = _chat(client, token, hid, "prepara el estudio de lenguaje")["proposals"][0]
+    r3 = client.post(f"/assistant/proposals/{prop2['id']}/confirm", json={"overrides": {"person_id": "no-existe"}}, headers=_auth(token))
+    assert r3.status_code == 400
+    assert "no pertenece" in r3.json()["detail"].lower()
+
+
+# 15 — rechazo idempotente
+def test_double_reject_is_safe(client):
+    token = _register_and_login(client, "m32f@example.com")
+    hid, _ = _bootstrap(client, token)
+    prop = _propose_shopping(client, token, hid, "agrega arroz a la lista")
+    r1 = client.post(f"/assistant/proposals/{prop['id']}/reject", headers=_auth(token))
+    assert r1.status_code == 200
+    r2 = client.post(f"/assistant/proposals/{prop['id']}/reject", headers=_auth(token))
+    assert r2.status_code == 200 and r2.json().get("already_rejected") is True
+
+
+# 16 — historial mínimo: status=all acotado
+def test_history_all_status(client):
+    token = _register_and_login(client, "m32g@example.com")
+    hid, _ = _bootstrap(client, token)
+    p1 = _propose_shopping(client, token, hid, "agrega te a la lista")
+    client.post(f"/assistant/proposals/{p1['id']}/confirm", json={}, headers=_auth(token))
+    p2 = _propose_shopping(client, token, hid, "agrega mate a la lista")
+    client.post(f"/assistant/proposals/{p2['id']}/reject", headers=_auth(token))
+    hist = client.get("/assistant/proposals", params={"household_id": hid, "status": "all"}, headers=_auth(token)).json()["items"]
+    states = {p["id"]: p["status"] for p in hist}
+    assert states[p1["id"]] == "executed" and states[p2["id"]] == "rejected"
+
+
+# 17 — consistencia de conteos: "por comprar" = needed + in_cart (única fuente)
+def test_shopping_count_consistency(client):
+    token = _register_and_login(client, "m32h@example.com")
+    hid, _ = _bootstrap(client, token)
+    # 2 needed vía propuesta confirmada
+    prop = _propose_shopping(client, token, hid)  # leche, pan
+    client.post(f"/assistant/proposals/{prop['id']}/confirm", json={}, headers=_auth(token))
+    out = _chat(client, token, hid, "que falta comprar")
+    assert "2 productos por comprar" in out["reply"], out["reply"]
+    resumen = _chat(client, token, hid, "dame un resumen")
+    assert "2 productos por comprar" in resumen["reply"], resumen["reply"]
