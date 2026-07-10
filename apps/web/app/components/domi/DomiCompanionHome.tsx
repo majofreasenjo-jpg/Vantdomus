@@ -923,7 +923,7 @@ export default function DomiCompanionHome({
           hogar (sesión expirada / backend caído / demo). Copy humano, sin exponer
           token ni IDs. Con datos reales no aparece (home intacta, sin ruido). */}
       {dataState !== "real" && (
-        <div className={`shrink-0 w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 mb-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${
+        <div className={`shrink-0 w-full flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 mb-2 px-3 py-1.5 rounded-xl border text-sm font-medium ${
           dataState === "api"
             ? (isLight ? "bg-rose-500/12 text-rose-600 border-rose-500/35" : "bg-rose-500/15 text-rose-300 border-rose-500/30")
             : (isLight ? "bg-amber-500/15 text-amber-800 border-amber-500/40" : "bg-amber-500/15 text-amber-300 border-amber-500/30")
@@ -1103,7 +1103,7 @@ export default function DomiCompanionHome({
               <h1 className={`text-base font-bold font-display tracking-wide leading-none ${isLight ? "text-slate-900" : "text-slate-100"}`}>VantDomus Hogar</h1>
               <span className="px-2 py-0.5 text-[8.5px] font-bold text-amber-600 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-full tracking-wider uppercase font-mono">Domi listo</span>
             </div>
-            <span className={`text-[10px] font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>Tu hogar, en calma y conexión</span>
+            <span className={`text-xs font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>Tu hogar, en calma y conexión</span>
           </div>
         </div>
 
@@ -1126,7 +1126,7 @@ export default function DomiCompanionHome({
                   setActiveTab(tab.id as any);
                 }
               }}
-              className={`px-4.5 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all cursor-pointer ${
+              className={`px-4.5 py-1.5 rounded-full text-sm font-semibold tracking-wide transition-all cursor-pointer ${
                 activeTab === tab.id && tab.id !== "mas"
                   ? (isLight 
                       ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-800 border border-amber-500/35 shadow-sm"
@@ -1245,7 +1245,7 @@ export default function DomiCompanionHome({
               <div 
                 key={m.id}
                 title={m.name}
-                className={`w-8 h-8 rounded-full border flex items-center justify-center text-[10px] font-bold hover:scale-115 transition-transform ${getAvatarGradient(m.avatar)} ${
+                className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold hover:scale-115 transition-transform ${getAvatarGradient(m.avatar)} ${
                   isLight ? "border-slate-200/80 shadow-sm" : "border-slate-700/80"
                 }`}
               >
@@ -1266,7 +1266,7 @@ export default function DomiCompanionHome({
 
           <button 
             onClick={() => setModals(prev => ({ ...prev, family: true }))}
-            className={`hidden sm:inline-flex py-1.5 px-4 rounded-full text-xs font-semibold border tracking-wide transition-all cursor-pointer ${
+            className={`hidden sm:inline-flex py-1.5 px-4 rounded-full text-sm font-semibold border tracking-wide transition-all cursor-pointer ${
               isLight 
                 ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80 shadow-sm hover:shadow-md" 
                 : "bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800 hover:glow-gold"
@@ -1286,7 +1286,7 @@ export default function DomiCompanionHome({
               exit={{ opacity: 0, y: -10 }}
               className="absolute left-1/2 -translate-x-1/2 top-18 z-40 w-48 glass-panel rounded-2xl p-2 border-amber-500/10 shadow-2xl"
             >
-              <h5 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1 font-mono">Cambiar Ambiente</h5>
+              <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1 font-mono">Cambiar Ambiente</h5>
               {[
                 { mode: "Noche tranquila", temp: "21°C" },
                 { mode: "Mañana activa", temp: "23°C" },
@@ -1295,7 +1295,7 @@ export default function DomiCompanionHome({
                 <button
                   key={amb.mode}
                   onClick={() => handleAmbientChange(amb.mode, amb.temp)}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-amber-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-amber-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
                 >
                   {amb.mode} ({amb.temp})
                 </button>
@@ -1307,7 +1307,7 @@ export default function DomiCompanionHome({
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   Cerrar sesión
@@ -1348,12 +1348,12 @@ export default function DomiCompanionHome({
                         <h3 className={`text-lg font-bold transition-colors duration-500`} style={{ color: stateToken.primary }}>
                           {stateToken.microcopy}
                         </h3>
-                        <p className={`desc-text text-xs leading-relaxed font-light mt-2 transition-colors duration-500 ${
+                        <p className={`desc-text text-sm leading-relaxed font-light mt-2 transition-colors duration-500 ${
                           isLight ? "text-slate-700" : "text-slate-300"
                         }`}>
                           {domiSubtext}
                         </p>
-                        <p className={`desc-text text-[11px] font-sans italic opacity-90 leading-relaxed mt-2.5 font-medium transition-colors duration-500 ${
+                        <p className={`desc-text text-[13px] font-sans italic opacity-90 leading-relaxed mt-2.5 font-medium transition-colors duration-500 ${
                           isLight ? "text-amber-800" : "text-amber-300/80"
                         }`}>
                           “Todo parte con una conversación.”
@@ -1370,7 +1370,7 @@ export default function DomiCompanionHome({
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ backgroundColor: stateToken.primary }}></span>
                         </span>
                         <div className="text-left">
-                          <span className={`block text-[10px] transition-colors duration-500 font-bold uppercase tracking-wider ${
+                          <span className={`block text-xs transition-colors duration-500 font-bold uppercase tracking-wider ${
                             isLight ? "text-slate-700" : "text-slate-300"
                           }`}>Domi {domiState}</span>
                         </div>
@@ -1441,16 +1441,16 @@ export default function DomiCompanionHome({
                           <h4 className={`text-sm font-bold tracking-tight transition-colors duration-500 ${
                             isLight ? "text-slate-900" : "text-slate-100"
                           }`}>Tu hogar hoy</h4>
-                          <span className={`text-[10px] font-semibold tracking-wider uppercase transition-colors duration-500 opacity-70 ${
+                          <span className={`text-xs font-semibold tracking-wider uppercase transition-colors duration-500 opacity-70 ${
                             isLight ? "text-amber-800" : "text-amber-300"
                           }`}>Cuidado · Estudio · Compras</span>
                         </div>
 
                         <div className="space-y-1.5">
-                          <span className={`block text-[11px] font-semibold transition-colors duration-500 ${
+                          <span className={`block text-[13px] font-semibold transition-colors duration-500 ${
                             isLight ? "text-slate-700" : "text-slate-300"
                           }`}>3 cosas importantes:</span>
-                          <ul className={`text-[11px] space-y-1 font-medium leading-relaxed transition-colors duration-500 ${
+                          <ul className={`text-[13px] space-y-1 font-medium leading-relaxed transition-colors duration-500 ${
                             isLight ? "text-slate-600" : "text-slate-300/95"
                           }`}>
                             <li className="flex items-center gap-1.5">
@@ -1474,14 +1474,14 @@ export default function DomiCompanionHome({
                           setModals(prev => ({ ...prev, summary: true }));
                           setDomiState("proponiendo");
                         }}
-                        className={`w-full py-2 px-3 rounded-xl text-[11px] font-semibold border transition-all flex items-center justify-center gap-1 cursor-pointer mt-3 ${
+                        className={`w-full py-2 px-3 rounded-xl text-[13px] font-semibold border transition-all flex items-center justify-center gap-1 cursor-pointer mt-3 ${
                           isLight 
                             ? "bg-amber-100 hover:bg-amber-200/80 text-amber-800 border-amber-300 shadow-sm" 
                             : "bg-slate-950/40 hover:bg-slate-950/70 text-amber-200 hover:text-amber-100 border border-amber-500/10 hover:border-amber-500/20"
                         }`}
                       >
                         <span>Ver resumen del día</span>
-                        <span className="text-xs">→</span>
+                        <span className="text-sm">→</span>
                       </button>
                     </div>
 
@@ -1567,11 +1567,11 @@ export default function DomiCompanionHome({
                       <Moon className="w-4.5 h-4.5" />
                     </div>
                     <div className="text-left truncate">
-                      <span className={`block text-[8px] font-bold uppercase tracking-wider font-mono ${isLight ? "text-slate-400" : "text-slate-500"}`}>Ambiente sugerido</span>
-                      <h5 className={`text-xs font-bold truncate font-sans ${isLight ? "text-slate-800" : "text-slate-200"}`}>
+                      <span className={`block text-[10px] font-bold uppercase tracking-wider font-mono ${isLight ? "text-slate-400" : "text-slate-500"}`}>Ambiente sugerido</span>
+                      <h5 className={`text-sm font-bold truncate font-sans ${isLight ? "text-slate-800" : "text-slate-200"}`}>
                         {activeTheme === "dawn" ? "Despertar suave" : activeTheme === "day" ? "Día luminoso" : activeTheme === "sunset" ? "Atardecer cálido" : "Noche tranquila"}
                       </h5>
-                      <span className={`block text-[9px] font-mono mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{time} · {temperature}</span>
+                      <span className={`block text-[11px] font-mono mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{time} · {temperature}</span>
                     </div>
                   </div>
 
@@ -1620,9 +1620,9 @@ export default function DomiCompanionHome({
                         <ShieldCheck className="w-4.5 h-4.5" />
                       </div>
                       <div className="text-left truncate">
-                        <span className={`block text-[8px] font-bold uppercase tracking-wider font-mono ${isLight ? "text-slate-400" : "text-slate-500"}`}>Cuidado diario</span>
-                        <h5 className={`text-xs font-bold truncate font-sans ${isLight ? "text-slate-700" : "text-slate-200"}`}>Hogar en armonía</h5>
-                        <span className={`block text-[9px] font-mono mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Conexión Domi</span>
+                        <span className={`block text-[10px] font-bold uppercase tracking-wider font-mono ${isLight ? "text-slate-400" : "text-slate-500"}`}>Cuidado diario</span>
+                        <h5 className={`text-sm font-bold truncate font-sans ${isLight ? "text-slate-700" : "text-slate-200"}`}>Hogar en armonía</h5>
+                        <span className={`block text-[11px] font-mono mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Conexión Domi</span>
                       </div>
                     </div>
                     <div className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse shrink-0 ml-1" />
@@ -1646,28 +1646,28 @@ export default function DomiCompanionHome({
                       </div>
                       <div>
                         <h3 className={`text-base font-bold font-display ${isLight ? "text-slate-900" : "text-slate-100"}`}>Cuidado & Salud</h3>
-                        <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? "text-slate-500 font-semibold" : "text-slate-400"}`}>Elena (Abuela)</span>
+                        <span className={`text-xs font-mono uppercase tracking-wider ${isLight ? "text-slate-500 font-semibold" : "text-slate-400"}`}>Elena (Abuela)</span>
                       </div>
                     </div>
 
                     <div className={`p-3.5 rounded-2xl border ${isLight ? "bg-slate-50/80 border-slate-200/60 shadow-inner" : "bg-slate-950/40 border-slate-800/60"} space-y-2.5`}>
-                      <div className="flex justify-between items-center text-xs">
+                      <div className="flex justify-between items-center text-sm">
                         <span className={isLight ? "text-slate-600 font-medium" : "text-slate-400"}>Estado general</span>
-                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 uppercase">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 uppercase">
                           Estable
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
+                      <div className="flex justify-between items-center text-sm">
                         <span className={isLight ? "text-slate-600 font-medium" : "text-slate-400"}>Toma de Metformina</span>
                         <span className={`font-mono font-medium ${isLight ? "text-slate-800" : "text-slate-300"}`}>21:30</span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <span className={`text-[9px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>Control de hoy</span>
+                      <span className={`text-[11px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>Control de hoy</span>
                       <button
                         onClick={() => confirmMedicine(!medicineConfirmed)}
-                        className={`w-full py-3 px-4 rounded-2xl font-semibold text-xs border transition-all flex items-center justify-between cursor-pointer ${
+                        className={`w-full py-3 px-4 rounded-2xl font-semibold text-sm border transition-all flex items-center justify-between cursor-pointer ${
                           medicineConfirmed 
                             ? (isLight ? "bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100/60" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/15")
                             : (isLight ? "bg-amber-50 border-amber-300 text-amber-800 animate-pulse hover:bg-amber-100/60" : "bg-amber-500/10 border-amber-500/30 text-amber-300 animate-pulse hover:bg-amber-500/15")
@@ -1677,16 +1677,16 @@ export default function DomiCompanionHome({
                           <Heart className={`w-4 h-4 ${medicineConfirmed ? "text-emerald-500 animate-pulse" : "text-amber-500"}`} />
                           Medicamento nocturno
                         </span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-mono font-bold ${isLight ? "bg-slate-100 text-slate-700" : "bg-slate-950/60"}`}>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${isLight ? "bg-slate-100 text-slate-700" : "bg-slate-950/60"}`}>
                           {medicineConfirmed ? "CONFIRMADA" : "PENDIENTE"}
                         </span>
                       </button>
                     </div>
 
                     <div className="space-y-2">
-                      <span className={`text-[9px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>Bitácora médica</span>
+                      <span className={`text-[11px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>Bitácora médica</span>
                       {medicineLogs.length === 0 ? (
-                        <div className={`p-3.5 rounded-2xl border border-dashed text-center text-xs italic ${
+                        <div className={`p-3.5 rounded-2xl border border-dashed text-center text-sm italic ${
                           isLight ? "bg-slate-50/50 border-slate-200 text-slate-500" : "bg-slate-950/20 border-slate-800/60 text-slate-400"
                         }`}>
                           No hay registros de tomas para hoy.
@@ -1694,11 +1694,11 @@ export default function DomiCompanionHome({
                       ) : (
                         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 no-scrollbar">
                           {medicineLogs.map((log, idx) => (
-                            <div key={idx} className={`flex items-center justify-between p-2.5 rounded-xl border text-[11px] ${
+                            <div key={idx} className={`flex items-center justify-between p-2.5 rounded-xl border text-[13px] ${
                               isLight ? "bg-white border-slate-200 text-slate-700" : "bg-slate-950/40 border-slate-800/50 text-slate-300"
                             }`}>
                               <span className="font-semibold">Dosis Confirmada</span>
-                              <span className="font-mono text-[10px]">{log.time} • {log.confirmedBy}</span>
+                              <span className="font-mono text-xs">{log.time} • {log.confirmedBy}</span>
                             </div>
                           ))}
                         </div>
@@ -1707,7 +1707,7 @@ export default function DomiCompanionHome({
                   </div>
 
                   <div className={`mt-4 p-3 rounded-2xl border text-center ${isLight ? "bg-slate-100/60 border-slate-200/50" : "bg-slate-950/40 border-slate-800/30"}`}>
-                    <span className={`text-[10px] ${isLight ? "text-slate-600 font-medium" : "text-slate-400"}`}>Última actualización de telemetría hace 3 min</span>
+                    <span className={`text-xs ${isLight ? "text-slate-600 font-medium" : "text-slate-400"}`}>Última actualización de telemetría hace 3 min</span>
                   </div>
                 </div>
 
@@ -1722,7 +1722,7 @@ export default function DomiCompanionHome({
                       </div>
                       <div>
                         <h3 className={`text-base font-bold font-display ${isLight ? "text-slate-900" : "text-slate-100"}`}>Estudio & Enfoque</h3>
-                        <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? "text-slate-500 font-semibold" : "text-slate-400"}`}>Diego (Estudiante)</span>
+                        <span className={`text-xs font-mono uppercase tracking-wider ${isLight ? "text-slate-500 font-semibold" : "text-slate-400"}`}>Diego (Estudiante)</span>
                       </div>
                     </div>
 
@@ -1731,7 +1731,7 @@ export default function DomiCompanionHome({
                       isLight ? "bg-slate-50/80 border-slate-200/60 shadow-inner" : "bg-slate-950/40 border-slate-800/60"
                     }`}>
                       <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/5 rounded-full blur-xl pointer-events-none" />
-                      <span className={`text-[9px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-sky-700" : "text-sky-400"}`}>
+                      <span className={`text-[11px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-sky-700" : "text-sky-400"}`}>
                         {studyActiveBlockId ? `Enfoque: ${studyBlocks.find(b => b.id === studyActiveBlockId)?.subject}` : "Temporizador de Enfoque"}
                       </span>
                       <div className={`text-3xl font-mono font-bold tracking-widest ${
@@ -1744,7 +1744,7 @@ export default function DomiCompanionHome({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setStudyTimerActive(!studyTimerActive)}
-                          className={`py-1.5 px-4 rounded-full text-xs font-semibold cursor-pointer transition-all ${
+                          className={`py-1.5 px-4 rounded-full text-sm font-semibold cursor-pointer transition-all ${
                             studyTimerActive 
                               ? "bg-red-500/20 border border-red-500/35 text-red-600 hover:bg-red-500/30" 
                               : "bg-sky-500/20 border border-sky-500/35 text-sky-600 hover:bg-sky-500/30"
@@ -1771,10 +1771,10 @@ export default function DomiCompanionHome({
 
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className={`text-[9px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>Bloques de Hoy</span>
+                        <span className={`text-[11px] font-bold uppercase tracking-widest font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>Bloques de Hoy</span>
                         <button
                           onClick={handlePrepareStudy}
-                          className={`text-[10px] font-semibold cursor-pointer ${isLight ? "text-amber-700 hover:text-amber-800" : "text-amber-400 hover:text-amber-300"}`}
+                          className={`text-xs font-semibold cursor-pointer ${isLight ? "text-amber-700 hover:text-amber-800" : "text-amber-400 hover:text-amber-300"}`}
                         >
                           Estructurar Plan
                         </button>
@@ -1788,7 +1788,7 @@ export default function DomiCompanionHome({
                               setStudyTimeLeft(block.duration.includes("45") ? 2700 : 1800);
                               setStudyTimerActive(false);
                             }}
-                            className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all flex items-center justify-between ${
+                            className={`p-2.5 rounded-xl border text-sm text-left cursor-pointer transition-all flex items-center justify-between ${
                               studyActiveBlockId === block.id
                                 ? (isLight ? "bg-sky-50 border-sky-300 text-sky-800 shadow-sm" : "bg-sky-500/10 border-sky-500/40 text-sky-200")
                                 : (isLight ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-50" : "bg-slate-950/20 border-slate-800/40 text-slate-300 hover:bg-slate-950/40")
@@ -1796,9 +1796,9 @@ export default function DomiCompanionHome({
                           >
                             <div>
                               <strong className="block font-medium">{block.subject}</strong>
-                              <span className={`text-[10px] font-mono ${isLight ? "text-slate-500" : "text-slate-400"}`}>{block.time} • {block.duration}</span>
+                              <span className={`text-xs font-mono ${isLight ? "text-slate-500" : "text-slate-400"}`}>{block.time} • {block.duration}</span>
                             </div>
-                            <span className={`text-[9px] font-mono font-bold py-0.5 px-2 rounded-md uppercase ${
+                            <span className={`text-[11px] font-mono font-bold py-0.5 px-2 rounded-md uppercase ${
                               isLight ? "bg-slate-100 text-slate-700" : "bg-slate-950/60"
                             }`}>
                               {studyPrepared ? "Organizado" : "Pendiente"}
@@ -1810,7 +1810,7 @@ export default function DomiCompanionHome({
                   </div>
 
                   <div className={`mt-4 p-3 rounded-2xl border text-center ${isLight ? "bg-slate-100/60 border-slate-200/50" : "bg-slate-950/40 border-slate-800/30"}`}>
-                    <span className={`text-[10px] ${isLight ? "text-slate-600 font-medium" : "text-slate-400"}`}>Haz clic en un bloque para asignarlo al cronómetro</span>
+                    <span className={`text-xs ${isLight ? "text-slate-600 font-medium" : "text-slate-400"}`}>Haz clic en un bloque para asignarlo al cronómetro</span>
                   </div>
                 </div>
 
@@ -1825,7 +1825,7 @@ export default function DomiCompanionHome({
                       </div>
                       <div>
                         <h3 className={`text-base font-bold font-display ${isLight ? "text-slate-900" : "text-slate-100"}`}>Despensa Familiar</h3>
-                        <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? "text-slate-500 font-semibold" : "text-slate-400"}`}>
+                        <span className={`text-xs font-mono uppercase tracking-wider ${isLight ? "text-slate-500 font-semibold" : "text-slate-400"}`}>
                           {shoppingItems.filter(i => !i.checked).length} pendientes
                         </span>
                       </div>
@@ -1848,7 +1848,7 @@ export default function DomiCompanionHome({
                         name="item-name"
                         type="text" 
                         placeholder="Añadir artículo rápido..."
-                        className={`flex-1 focus:border-amber-500/40 rounded-xl px-3 py-1.5 text-xs focus:outline-none placeholder-slate-550 transition-all ${
+                        className={`flex-1 focus:border-amber-500/40 rounded-xl px-3 py-1.5 text-sm focus:outline-none placeholder-slate-550 transition-all ${
                           isLight 
                             ? "bg-slate-100 border border-slate-200 text-slate-800" 
                             : "bg-slate-950/60 border border-slate-800 text-slate-100"
@@ -1866,7 +1866,7 @@ export default function DomiCompanionHome({
                       {shoppingItems.map((item) => (
                         <div 
                           key={item.id}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all ${
+                          className={`flex items-center justify-between p-2.5 rounded-xl border text-sm transition-all ${
                             isLight 
                               ? "bg-white border-slate-200 text-slate-700" 
                               : "bg-slate-950/20 border-slate-800/30 text-slate-300"
@@ -1879,12 +1879,12 @@ export default function DomiCompanionHome({
                               onChange={() => handleToggleShoppingItem(item.id)}
                               className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 bg-transparent cursor-pointer"
                             />
-                            <span className={`text-xs ${item.checked ? "line-through text-slate-400" : (isLight ? "text-slate-800 font-semibold" : "text-slate-200 font-medium")}`}>
+                            <span className={`text-sm ${item.checked ? "line-through text-slate-400" : (isLight ? "text-slate-800 font-semibold" : "text-slate-200 font-medium")}`}>
                               {item.name}
                             </span>
                           </label>
                           <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${isLight ? "text-slate-750 bg-slate-100" : "text-slate-500 bg-slate-950/40"}`}>{item.qty}</span>
+                            <span className={`text-xs font-mono px-1.5 py-0.5 rounded-md ${isLight ? "text-slate-750 bg-slate-100" : "text-slate-500 bg-slate-950/40"}`}>{item.qty}</span>
                             <button 
                               onClick={() => handleDeleteShoppingItem(item.id)}
                               className="text-slate-500 hover:text-red-500 p-0.5 transition-colors cursor-pointer"
@@ -1903,7 +1903,7 @@ export default function DomiCompanionHome({
                       setShoppingItems(prev => prev.filter(i => !i.checked));
                       addNotification("Lista de compras limpia", "Se han removido los artículos ya comprados de la lista.", "shopping");
                     }}
-                    className={`w-full mt-4 py-2 text-[11px] font-semibold rounded-xl border cursor-pointer transition-all ${
+                    className={`w-full mt-4 py-2 text-[13px] font-semibold rounded-xl border cursor-pointer transition-all ${
                       isLight 
                         ? "bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200 shadow-sm" 
                         : "bg-slate-950/60 hover:bg-slate-950 text-slate-400 hover:text-slate-300 border border-slate-850"
@@ -1931,13 +1931,13 @@ export default function DomiCompanionHome({
                     </div>
                     <div>
                       <h3 className={`text-base font-bold font-display ${isLight ? "text-slate-900" : "text-slate-100"}`}>Documentos</h3>
-                      <span className={`text-[10px] font-mono uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>Repositorio del Hogar</span>
+                      <span className={`text-xs font-mono uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>Repositorio del Hogar</span>
                     </div>
                   </div>
 
                   {/* Filter pills vertical */}
                   <div className="space-y-1">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest font-mono block mb-1 ${isLight ? "text-slate-400" : "text-slate-500"}`}>Categorías</span>
+                    <span className={`text-[11px] font-bold uppercase tracking-widest font-mono block mb-1 ${isLight ? "text-slate-400" : "text-slate-500"}`}>Categorías</span>
                     {[
                       { id: "todos", label: "Todos los archivos", count: documents.length },
                       { id: "salud", label: "Salud & Recetas", count: documents.filter(d => d.category === "salud").length },
@@ -1948,7 +1948,7 @@ export default function DomiCompanionHome({
                       <button
                         key={cat.id}
                         onClick={() => setSelectedDocCategory(cat.id as any)}
-                        className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center justify-between ${
+                        className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all flex items-center justify-between ${
                           selectedDocCategory === cat.id
                             ? (isLight 
                                 ? "bg-amber-500/10 border border-amber-500/30 text-amber-800 shadow-sm" 
@@ -1959,7 +1959,7 @@ export default function DomiCompanionHome({
                         }`}
                       >
                         <span>{cat.label}</span>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${
                           isLight 
                             ? "text-slate-500 bg-slate-100/80" 
                             : "text-slate-500 bg-slate-950/40"
@@ -1970,7 +1970,7 @@ export default function DomiCompanionHome({
 
                   {/* Upload zone Simulation */}
                   <div className="space-y-2">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest font-mono block ${isLight ? "text-slate-400" : "text-slate-500"}`}>Subir Documento</span>
+                    <span className={`text-[11px] font-bold uppercase tracking-widest font-mono block ${isLight ? "text-slate-400" : "text-slate-500"}`}>Subir Documento</span>
                     <div 
                       onClick={() => {
                         const randomFiles = [
@@ -1990,8 +1990,8 @@ export default function DomiCompanionHome({
                     >
                       <UploadCloud className={`w-8 h-8 transition-colors ${isLight ? "text-slate-400 group-hover:text-amber-600" : "text-slate-500 group-hover:text-amber-400"}`} />
                       <div>
-                        <span className={`block text-xs font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>Presiona aquí para simular subida</span>
-                        <span className={`block text-[10px] mt-1 ${isLight ? "text-slate-400" : "text-slate-500"}`}>Generará un archivo aleatorio</span>
+                        <span className={`block text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>Presiona aquí para simular subida</span>
+                        <span className={`block text-xs mt-1 ${isLight ? "text-slate-400" : "text-slate-500"}`}>Generará un archivo aleatorio</span>
                       </div>
                     </div>
                   </div>
@@ -2013,7 +2013,7 @@ export default function DomiCompanionHome({
                       placeholder="Buscar documentos por nombre..."
                       value={documentSearch}
                       onChange={(e) => setDocumentSearch(e.target.value)}
-                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-xs transition-all focus:outline-none ${
+                      className={`w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all focus:outline-none ${
                         isLight 
                           ? "bg-slate-50/90 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-amber-500/30" 
                           : "bg-slate-950/60 border-slate-800 text-slate-100 placeholder-slate-500 focus:border-amber-500/40"
@@ -2027,7 +2027,7 @@ export default function DomiCompanionHome({
                       .filter(d => selectedDocCategory === "todos" || d.category === selectedDocCategory)
                       .filter(d => d.name.toLowerCase().includes(documentSearch.toLowerCase()))
                       .length === 0 ? (
-                        <div className={`col-span-2 p-10 text-center text-xs italic ${isLight ? "text-slate-400" : "text-slate-500"}`}>
+                        <div className={`col-span-2 p-10 text-center text-sm italic ${isLight ? "text-slate-400" : "text-slate-500"}`}>
                           No se encontraron documentos que coincidan con la búsqueda.
                         </div>
                       ) : (
@@ -2063,15 +2063,15 @@ export default function DomiCompanionHome({
                                     <FileText className="w-4.5 h-4.5" />
                                   </div>
                                   <div className="text-left">
-                                    <strong className={`text-xs font-semibold block truncate max-w-[180px] ${isLight ? "text-slate-800" : "text-slate-200"}`} title={doc.name}>
+                                    <strong className={`text-sm font-semibold block truncate max-w-[180px] ${isLight ? "text-slate-800" : "text-slate-200"}`} title={doc.name}>
                                       {doc.name}
                                     </strong>
-                                    <span className={`text-[10px] font-mono block mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{doc.size} • {doc.date}</span>
+                                    <span className={`text-xs font-mono block mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{doc.size} • {doc.date}</span>
                                   </div>
                                 </div>
 
                                 <div className={`flex items-center justify-between pt-2 border-t ${isLight ? "border-slate-100" : "border-slate-800/50"}`}>
-                                  <span className={`text-[10px] font-medium ${isLight ? "text-slate-450" : "text-slate-500"}`}>Subido por {doc.uploader}</span>
+                                  <span className={`text-xs font-medium ${isLight ? "text-slate-450" : "text-slate-500"}`}>Subido por {doc.uploader}</span>
                                   <div className="flex gap-1">
                                     <button
                                       onClick={() => handleSimulatedDownload(doc.name)}
@@ -2121,7 +2121,7 @@ export default function DomiCompanionHome({
         className="fixed bottom-6 right-6 z-40 bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-amber-400 p-3.5 rounded-full border border-slate-800 shadow-2xl flex items-center justify-center group/bell hover:glow-gold"
       >
         <Bell className="w-5 h-5 group-hover/bell:animate-bounce" />
-        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[11px] font-bold text-white">
           {notifications.length}
         </span>
       </button>
@@ -2163,14 +2163,14 @@ export default function DomiCompanionHome({
 
                 <div className="space-y-3 overflow-y-auto max-h-[80vh] pr-1 no-scrollbar">
                   {notifications.map((notif) => (
-                    <div key={notif.id} className={`p-3 rounded-xl border text-xs transition-all ${
+                    <div key={notif.id} className={`p-3 rounded-xl border text-sm transition-all ${
                       isLight 
                         ? "bg-slate-50 border-slate-200/80 shadow-sm text-slate-800" 
                         : "bg-slate-900/40 border-slate-800 text-slate-200"
                     }`}>
                       <div className="flex justify-between items-start mb-1">
                         <strong className={`block font-semibold ${isLight ? "text-slate-850" : "text-slate-200"}`}>{notif.title}</strong>
-                        <span className={`text-[9px] font-mono ${isLight ? "text-slate-450" : "text-slate-500"}`}>{notif.timestamp}</span>
+                        <span className={`text-[11px] font-mono ${isLight ? "text-slate-450" : "text-slate-500"}`}>{notif.timestamp}</span>
                       </div>
                       <p className={`${isLight ? "text-slate-600" : "text-slate-400"} leading-relaxed`}>{notif.message}</p>
                     </div>
@@ -2180,7 +2180,7 @@ export default function DomiCompanionHome({
 
               <button 
                 onClick={() => setNotifications([])}
-                className={`w-full py-2 text-xs font-semibold rounded-xl border transition-all ${
+                className={`w-full py-2 text-sm font-semibold rounded-xl border transition-all ${
                   isLight 
                     ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 shadow-sm" 
                     : "bg-slate-950/60 hover:bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-900"
@@ -2241,14 +2241,14 @@ export default function DomiCompanionHome({
                   <div className="flex items-center gap-1.5">
                     <Wand2 className="w-4 h-4 text-amber-500 animate-pulse" />
                     <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider font-mono opacity-90 block">
+                      <span className="text-[13px] font-bold uppercase tracking-wider font-mono opacity-90 block">
                         Domi Lab ✨
                       </span>
-                      <span className="text-[9px] font-mono opacity-50 block">Personalización & Estados</span>
+                      <span className="text-[11px] font-mono opacity-50 block">Personalización & Estados</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[8px] font-mono opacity-45 uppercase border border-white/[0.05] px-1 rounded">Ctrl+Shift+D</span>
+                    <span className="text-[10px] font-mono opacity-45 uppercase border border-white/[0.05] px-1 rounded">Ctrl+Shift+D</span>
                     <button 
                       onClick={() => setDevPanelOpen(false)}
                       className="p-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
@@ -2260,7 +2260,7 @@ export default function DomiCompanionHome({
 
                 <div className="space-y-3">
                   {/* MIN-2.2: diagnóstico QA del estado de datos (solo dev=1) */}
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                  <div className="flex items-center gap-1.5 text-xs font-mono">
                     <span className="opacity-60 uppercase tracking-wider">Datos:</span>
                     <span className={`px-1.5 py-0.5 rounded font-bold ${dataState === "real" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
                       {dataState === "real" ? "REALES (autenticado)" : dataState === "session" ? "DEMO · sesión expirada" : dataState === "api" ? "DEMO · API caída" : "DEMO · fallback"}
@@ -2268,7 +2268,7 @@ export default function DomiCompanionHome({
                   </div>
                   {/* Themes Grid */}
                   <div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
                       A. Ambiente del Hogar
                     </span>
                     <div className="grid grid-cols-4 gap-1">
@@ -2292,7 +2292,7 @@ export default function DomiCompanionHome({
                             }
                             addNotification("Ambiente cambiado", `Has cambiado al ambiente '${t}'`, "system");
                           }}
-                          className={`px-1.5 py-1 rounded text-[9px] font-mono transition-all border cursor-pointer text-center capitalize ${
+                          className={`px-1.5 py-1 rounded text-[11px] font-mono transition-all border cursor-pointer text-center capitalize ${
                             activeTheme === t
                               ? "bg-amber-500/15 border-amber-500/40 text-amber-400 font-bold"
                               : "bg-white/[0.02] border-white/[0.05] opacity-60 hover:opacity-100"
@@ -2306,7 +2306,7 @@ export default function DomiCompanionHome({
 
                   {/* States Grid */}
                   <div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
                       B. Estado de Ánimo / Intención
                     </span>
                     <div className="grid grid-cols-2 gap-1 max-h-[120px] overflow-y-auto no-scrollbar">
@@ -2320,7 +2320,7 @@ export default function DomiCompanionHome({
                               setDomiState(st);
                               addNotification("Estado cambiado", `Domi ahora está en modo '${st}'`, "system");
                             }}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[9px] text-left transition-all border cursor-pointer ${
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] text-left transition-all border cursor-pointer ${
                               isActive
                                 ? "bg-amber-500/15 border-amber-500/30 font-bold text-amber-400"
                                 : "bg-white/[0.02] border-transparent opacity-70 hover:opacity-100"
@@ -2336,7 +2336,7 @@ export default function DomiCompanionHome({
 
                   {/* Appearance Grid */}
                   <div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider font-mono opacity-60 block mb-1">
                       C. Disfraces y Aspectos
                     </span>
                     <div className="grid grid-cols-2 gap-1 max-h-[150px] overflow-y-auto no-scrollbar">
@@ -2362,7 +2362,7 @@ export default function DomiCompanionHome({
                               setDomiAppearance(cos.id as any);
                               addNotification("Apariencia cambiada", `Domi ahora viste su traje de ${cos.label}!`, "system");
                             }}
-                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[9px] text-left transition-all border cursor-pointer ${
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] text-left transition-all border cursor-pointer ${
                               isActive
                                 ? "bg-amber-500/15 border-amber-500/30 font-bold text-amber-400"
                                 : "bg-white/[0.02] border-transparent opacity-70 hover:opacity-100"
@@ -2383,7 +2383,7 @@ export default function DomiCompanionHome({
           {/* Discreet floating trigger button */}
           <button
             onClick={() => setDevPanelOpen((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full border shadow-lg backdrop-blur-md transition-all duration-200 cursor-pointer text-[10px] font-medium ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full border shadow-lg backdrop-blur-md transition-all duration-200 cursor-pointer text-xs font-medium ${
               devPanelOpen
                 ? "bg-amber-500/10 border-amber-500/40 text-amber-400"
                 : isLight

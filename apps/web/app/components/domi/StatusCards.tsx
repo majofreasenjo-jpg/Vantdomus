@@ -71,13 +71,13 @@ export default function StatusCards({
           <Heart className={`w-4.5 h-4.5 ${!medicineConfirmed && "animate-pulse"}`} />
         </div>
         <div>
-          <span className="block text-[9px] font-bold text-rose-500 uppercase tracking-wider font-mono">CUIDADO</span>
-          <h4 className={`text-xs xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Cuidado de Elena</h4>
+          <span className="block text-[11px] font-bold text-rose-500 uppercase tracking-wider font-mono">CUIDADO</span>
+          <h4 className={`text-sm xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Cuidado de Elena</h4>
         </div>
       </div>
 
       {/* Card Body */}
-      <p className={`text-[11px] xl:text-xs leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+      <p className={`text-[13px] xl:text-sm leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
         {medicineConfirmed ? (
           <span className="flex items-start gap-1.5 text-emerald-600 font-medium">
             <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -92,7 +92,7 @@ export default function StatusCards({
       <div className="flex flex-col gap-1.5 mt-auto">
         <button 
           onClick={onReviewCare}
-          className={`w-full py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all duration-200 border cursor-pointer ${
+          className={`w-full py-1.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 border cursor-pointer ${
             medicineConfirmed 
               ? (isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200" : "bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800") 
               : (isLight ? "bg-gradient-to-r from-rose-50 to-orange-50 hover:from-rose-100 hover:to-orange-100 text-rose-700 border-rose-200/70 shadow-sm" : "bg-gradient-to-r from-rose-500/30 to-orange-500/30 hover:from-rose-500/40 hover:to-orange-500/40 text-rose-200 border border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.15)]")
@@ -102,7 +102,7 @@ export default function StatusCards({
         </button>
         <button 
           onClick={onNotifyFamily}
-          className={`w-full py-1 text-[10px] font-medium transition-colors text-center cursor-pointer ${
+          className={`w-full py-1 text-xs font-medium transition-colors text-center cursor-pointer ${
             isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -131,13 +131,13 @@ export default function StatusCards({
           <BookOpen className="w-4.5 h-4.5" />
         </div>
         <div>
-          <span className="block text-[9px] font-bold text-blue-500 uppercase tracking-wider font-mono">ESTUDIO</span>
-          <h4 className={`text-xs xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Estudio en casa</h4>
+          <span className="block text-[11px] font-bold text-blue-500 uppercase tracking-wider font-mono">ESTUDIO</span>
+          <h4 className={`text-sm xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Estudio en casa</h4>
         </div>
       </div>
 
       {/* Card Body */}
-      <p className={`text-[11px] xl:text-xs leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+      <p className={`text-[13px] xl:text-sm leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
         {studyPrepared ? (
           <span className="flex items-start gap-1.5 text-emerald-600 font-medium">
             <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -152,7 +152,7 @@ export default function StatusCards({
       <div className="flex flex-col gap-1.5 mt-auto">
         <button 
           onClick={onPrepareStudy}
-          className={`w-full py-1.5 px-3 rounded-xl text-[11px] font-semibold transition-all duration-200 border cursor-pointer ${
+          className={`w-full py-1.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 border cursor-pointer ${
             studyPrepared 
               ? (isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200" : "bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-800") 
               : (isLight ? "bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 border-blue-200/70 shadow-sm" : "bg-gradient-to-r from-blue-500/30 to-indigo-500/30 hover:from-blue-500/40 hover:to-indigo-500/40 text-blue-200 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.15)]")
@@ -162,7 +162,7 @@ export default function StatusCards({
         </button>
         <button 
           onClick={onViewStudyPlan}
-          className={`w-full py-1 text-[10px] font-medium transition-colors text-center cursor-pointer ${
+          className={`w-full py-1 text-xs font-medium transition-colors text-center cursor-pointer ${
             isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -189,13 +189,13 @@ export default function StatusCards({
           <ShoppingCart className="w-4.5 h-4.5" />
         </div>
         <div>
-          <span className="block text-[9px] font-bold text-emerald-500 uppercase tracking-wider font-mono">COMPRAS</span>
-          <h4 className={`text-xs xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Compras del hogar</h4>
+          <span className="block text-[11px] font-bold text-emerald-500 uppercase tracking-wider font-mono">COMPRAS</span>
+          <h4 className={`text-sm xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Compras del hogar</h4>
         </div>
       </div>
 
       {/* Card Body */}
-      <p className={`text-[11px] xl:text-xs leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+      <p className={`text-[13px] xl:text-sm leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
         {activeShoppingCount === 0 ? (
           <span className="flex items-start gap-1.5 text-emerald-600 font-medium">
             <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -210,7 +210,7 @@ export default function StatusCards({
       <div className="flex flex-col gap-1.5 mt-auto">
         <button 
           onClick={onPrepareShopping}
-          className={`w-full py-1.5 px-3 rounded-xl text-[11px] font-semibold border transition-all duration-200 cursor-pointer ${
+          className={`w-full py-1.5 px-3 rounded-xl text-[13px] font-semibold border transition-all duration-200 cursor-pointer ${
             isLight 
               ? "bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 text-emerald-700 border-emerald-200/70 shadow-sm" 
               : "bg-gradient-to-r from-emerald-500/30 to-teal-500/30 hover:from-emerald-500/40 hover:to-teal-500/40 text-emerald-200 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
@@ -220,7 +220,7 @@ export default function StatusCards({
         </button>
         <button 
           onClick={onViewPantry}
-          className={`w-full py-1 text-[10px] font-medium transition-colors text-center cursor-pointer ${
+          className={`w-full py-1 text-xs font-medium transition-colors text-center cursor-pointer ${
             isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-400 hover:text-slate-200"
           }`}
         >
@@ -249,13 +249,13 @@ export default function StatusCards({
           <Wind className={`w-4.5 h-4.5 ${breathingActive && "animate-spin-slow"}`} />
         </div>
         <div>
-          <span className="block text-[9px] font-bold text-purple-500 uppercase tracking-wider font-mono">BIENESTAR</span>
-          <h4 className={`text-xs xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Un momento de calma</h4>
+          <span className="block text-[11px] font-bold text-purple-500 uppercase tracking-wider font-mono">BIENESTAR</span>
+          <h4 className={`text-sm xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Un momento de calma</h4>
         </div>
       </div>
 
       {/* Card Body */}
-      <p className={`text-[11px] xl:text-xs leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${
+      <p className={`text-[13px] xl:text-sm leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${
         isLight 
           ? (breathingActive ? "text-purple-700 font-semibold" : "text-slate-700") 
           : (breathingActive ? "text-purple-300 font-medium" : "text-slate-300")
@@ -273,7 +273,7 @@ export default function StatusCards({
       <div className="flex flex-col gap-1.5 mt-auto">
         <button 
           onClick={onStartBreathing}
-          className={`w-full py-1.5 px-3 rounded-xl text-[11px] font-semibold border transition-all duration-200 cursor-pointer ${
+          className={`w-full py-1.5 px-3 rounded-xl text-[13px] font-semibold border transition-all duration-200 cursor-pointer ${
             breathingActive 
               ? "bg-red-500/20 border border-red-500/35 text-red-600 hover:text-red-700" 
               : (isLight ? "bg-gradient-to-r from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 text-purple-700 border-purple-200/70 shadow-sm" : "bg-gradient-to-r from-purple-500/30 to-fuchsia-500/30 hover:from-purple-500/40 hover:to-fuchsia-500/40 text-purple-200 border-purple-500/30 shadow-[0_0_12px_rgba(168,85,247,0.15)]")
@@ -283,7 +283,7 @@ export default function StatusCards({
         </button>
         <button 
           onClick={onToggleMusic}
-          className={`w-full py-1 text-[10px] font-medium transition-all text-center rounded-lg cursor-pointer ${
+          className={`w-full py-1 text-xs font-medium transition-all text-center rounded-lg cursor-pointer ${
             isMusicPlaying 
               ? (isLight ? "text-purple-700 bg-purple-50 border border-purple-100/60" : "text-purple-300 bg-purple-500/10 border border-purple-500/20") 
               : (isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-400 hover:text-slate-200")

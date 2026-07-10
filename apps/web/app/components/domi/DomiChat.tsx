@@ -128,8 +128,8 @@ export default function DomiChat({
                   <Sparkles className={`w-3.5 h-3.5 ${isLight ? "text-amber-600" : "text-amber-400"}`} />
                 </div>
                 <div>
-                  <h4 className={`text-xs font-bold font-display ${isLight ? "text-slate-900" : "text-slate-100"}`}>Conversación con Domi</h4>
-                  <span className={`text-[9px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>Asistente Inteligente del Hogar</span>
+                  <h4 className={`text-sm font-bold font-display ${isLight ? "text-slate-900" : "text-slate-100"}`}>Conversación con Domi</h4>
+                  <span className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>Asistente Inteligente del Hogar</span>
                 </div>
               </div>
               <button 
@@ -149,7 +149,7 @@ export default function DomiChat({
                   key={msg.id}
                   className={`flex gap-3 max-w-[85%] ${msg.role === "user" ? "ml-auto flex-row-reverse" : ""}`}
                 >
-                  <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-semibold ${
+                  <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-sm font-semibold ${
                     msg.role === "user" 
                       ? (isLight ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-blue-500/20 text-blue-300 border border-blue-500/30") 
                       : (isLight ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-amber-500/20 text-amber-300 border border-amber-500/30")
@@ -157,7 +157,7 @@ export default function DomiChat({
                     {msg.role === "user" ? <User className="w-4 h-4" /> : "D"}
                   </div>
                   <div className="flex flex-col gap-2 min-w-0">
-                    <div className={`p-3 rounded-2xl text-xs leading-relaxed ${
+                    <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
                       msg.role === "user"
                         ? (isLight ? "bg-blue-50/90 border border-blue-100 text-slate-800 rounded-tr-none" : "bg-blue-500/10 border border-blue-500/20 text-slate-100 rounded-tr-none")
                         : (isLight ? "bg-slate-50 border border-slate-100 text-slate-800 rounded-tl-none" : "bg-slate-900/80 border border-slate-800 text-slate-200 rounded-tl-none")
@@ -165,13 +165,13 @@ export default function DomiChat({
                       <p>{msg.content}</p>
                       {/* MIN-3.1a: honestidad — respuesta del simulador local, no del orquestador real */}
                       {msg.isLocalDemo && (
-                        <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide border ${
+                        <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide border ${
                           isLight ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-amber-500/10 border-amber-500/30 text-amber-300"
                         }`}>
                           DEMO LOCAL · sin conexión al hogar
                         </span>
                       )}
-                      <span className={`block text-[8px] mt-1 font-mono text-right ${
+                      <span className={`block text-[10px] mt-1 font-mono text-right ${
                         isLight ? "text-slate-400" : "text-slate-500"
                       }`}>
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -185,14 +185,14 @@ export default function DomiChat({
                       }`}>
                         <div className="flex items-center gap-1.5 flex-wrap mb-1">
                           <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isLight ? "text-amber-600" : "text-amber-400"}`} />
-                          <span className={`text-xs font-bold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{prop.title}</span>
+                          <span className={`text-sm font-bold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{prop.title}</span>
                           {prop.sensitive && (
-                            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${
+                            <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold border ${
                               isLight ? "bg-rose-50 border-rose-200 text-rose-600" : "bg-rose-500/10 border-rose-500/30 text-rose-300"
                             }`}>requiere tu OK</span>
                           )}
                         </div>
-                        <p className={`text-[11px] mb-2 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                        <p className={`text-[13px] mb-2 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                           {prop.summary} Domi propone esto. <strong>Tú decides si se ejecuta.</strong>
                         </p>
                         {prop.status === "pending" ? (
@@ -200,7 +200,7 @@ export default function DomiChat({
                             <button
                               onClick={() => onDecideProposal?.(msg.id, prop.id, true)}
                               disabled={isSending}
-                              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
                                 isLight
                                   ? "bg-emerald-500 border-emerald-400 text-white hover:bg-emerald-600"
                                   : "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
@@ -211,7 +211,7 @@ export default function DomiChat({
                             <button
                               onClick={() => onDecideProposal?.(msg.id, prop.id, false)}
                               disabled={isSending}
-                              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                              className={`flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold border transition-all cursor-pointer disabled:opacity-50 ${
                                 isLight
                                   ? "bg-white border-slate-300 text-slate-600 hover:bg-slate-100"
                                   : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
@@ -221,7 +221,7 @@ export default function DomiChat({
                             </button>
                           </div>
                         ) : (
-                          <span className={`text-[11px] font-bold ${
+                          <span className={`text-[13px] font-bold ${
                             prop.status === "executed"
                               ? (isLight ? "text-emerald-600" : "text-emerald-400")
                               : (isLight ? "text-slate-500" : "text-slate-400")
@@ -238,7 +238,7 @@ export default function DomiChat({
               {/* Typing indicator */}
               {isSending && (
                 <div className="flex gap-3 max-w-[80%]">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm ${
                     isLight ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-amber-500/10 text-amber-300 border border-amber-500/20"
                   }`}>
                     D
@@ -262,7 +262,7 @@ export default function DomiChat({
                 <button
                   key={i}
                   onClick={() => handleSmartReply(sug.text)}
-                  className={`px-3 py-1 rounded-full text-[10px] transition-all whitespace-nowrap shrink-0 ${
+                  className={`px-3 py-1 rounded-full text-xs transition-all whitespace-nowrap shrink-0 ${
                     isLight 
                       ? "bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-600 hover:text-amber-800 hover:border-amber-400" 
                       : "bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-300 hover:border-amber-500/30"
@@ -283,7 +283,7 @@ export default function DomiChat({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="flex items-center gap-1.5 mb-2 text-amber-400 text-[10px] font-bold font-mono tracking-[0.2em] bg-amber-500/5 px-4 py-1.5 rounded-full border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+            className="flex items-center gap-1.5 mb-2 text-amber-400 text-xs font-bold font-mono tracking-[0.2em] bg-amber-500/5 px-4 py-1.5 rounded-full border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
           >
             <div className="flex items-end gap-0.5 h-4 w-12 justify-center">
               <span className="eq-bar w-0.5 bg-amber-400 rounded-full" />
@@ -319,7 +319,7 @@ export default function DomiChat({
       >
         {/* Drag and Drop Hover overlay hint */}
         {isDragging && (
-          <div className="absolute inset-0 bg-slate-950/80 rounded-full flex items-center justify-center gap-2 pointer-events-none text-xs text-amber-300 font-medium animate-pulse z-30">
+          <div className="absolute inset-0 bg-slate-950/80 rounded-full flex items-center justify-center gap-2 pointer-events-none text-sm text-amber-300 font-medium animate-pulse z-30">
             <UploadCloud className="w-4 h-4 animate-bounce" />
             <span>Suelta archivos de compras, tareas o cuidado aquí...</span>
           </div>
@@ -358,7 +358,7 @@ export default function DomiChat({
             onChange={(e) => setInputText(e.target.value)}
             onFocus={() => setIsOpen(true)}
             placeholder="Habla con Domi o cuéntale qué necesitas..."
-            className={`flex-1 bg-transparent border-none text-xs md:text-sm outline-none select-text pr-2 ${
+            className={`flex-1 bg-transparent border-none text-sm md:text-base outline-none select-text pr-2 ${
               isLight ? "text-slate-800 placeholder-slate-500" : "text-slate-100 placeholder-slate-400"
             }`}
           />
