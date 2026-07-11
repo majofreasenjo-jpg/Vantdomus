@@ -430,6 +430,11 @@ class ProviderGateway:
             "same_tool": bool(sr and report["mock_result"]["proposals"] and sr.get("proposals")
                               and sr["proposals"][0]["tool"] == report["mock_result"]["proposals"][0]["tool"]),
         }
+        # Alias con los nombres EXACTOS del checklist de evidencia de ChatGPT.
+        report["external_call_attempted"] = report["gates_ok"]
+        report["external_call_count"] = 1 if report["external_call_made"] else 0
+        report["synthetic_payload"] = bool(getattr(request, "synthetic", False))
+        report["schema_valid"] = report["valid"]
         self._audit_shadow(db, request, report, note="shadow_run")
         return report
 

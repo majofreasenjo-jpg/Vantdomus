@@ -64,7 +64,15 @@ def main() -> int:
     print(f"llamada externa realizada: {report['external_call_made']} · "
           f"tools ejecutadas: {report['tools_executed']} · "
           f"propuestas persistidas: {report['persisted_proposals']}")
-    print("RECUERDA: cierra esta terminal para que los flags vuelvan a apagado.")
+    print("")
+    print("LIMPIEZA (pega estas líneas en esta MISMA terminal antes de cerrarla):")
+    print("  set OPENAI_API_KEY=")
+    print("  set ASSISTANT_PROVIDER_MODE=")
+    print("  set ASSISTANT_REAL_PROVIDER_ENABLED=")
+    print("  set ASSISTANT_EXTERNAL_CALLS_ALLOWED=")
+    print("  set ASSISTANT_SHADOW_MODE=")
+    print("  set APP_ENV=")
+    print("Luego cierra la terminal. Los flags quedan apagados y nada tocó .env.")
     return 0
 
 
