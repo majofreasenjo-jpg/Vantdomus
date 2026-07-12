@@ -33,25 +33,25 @@ export default function EquilibrioChart({ onOpenSummary }: EquilibrioChartProps)
       
       <div className="flex items-center justify-between mb-4 z-10">
         <div>
-          <span className="text-xs font-medium text-blue-400 uppercase tracking-wider">Métrica de Hoy</span>
+          <span className="text-sm font-medium text-blue-400 uppercase tracking-wider">Métrica de Hoy</span>
           <h3 className="text-lg font-semibold text-slate-100 font-display">Tu hogar, en equilibrio</h3>
         </div>
         <div className="flex bg-slate-900/80 p-0.5 rounded-lg border border-slate-800">
           <button 
             onClick={() => setMetricFilter("general")}
-            className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${metricFilter === "general" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:text-slate-200"}`}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${metricFilter === "general" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:text-slate-200"}`}
           >
             Gral
           </button>
           <button 
             onClick={() => setMetricFilter("energia")}
-            className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${metricFilter === "energia" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:text-slate-200"}`}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${metricFilter === "energia" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:text-slate-200"}`}
           >
             Energía
           </button>
           <button 
             onClick={() => setMetricFilter("sueno")}
-            className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all ${metricFilter === "sueno" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:text-slate-200"}`}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-all ${metricFilter === "sueno" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:text-slate-200"}`}
           >
             Sueño
           </button>
@@ -106,7 +106,7 @@ export default function EquilibrioChart({ onOpenSummary }: EquilibrioChartProps)
         </svg>
 
         {/* Floating details banner */}
-        <div className="absolute bottom-2 left-0 right-0 flex justify-between px-2 text-[10px] text-slate-500 font-mono">
+        <div className="absolute bottom-2 left-0 right-0 flex justify-between px-2 text-xs text-slate-500 font-mono">
           <span>08:00</span>
           <span>15:00</span>
           <span>22:00</span>
@@ -121,7 +121,7 @@ export default function EquilibrioChart({ onOpenSummary }: EquilibrioChartProps)
 
         <button 
           onClick={onOpenSummary}
-          className="mt-2 w-full py-2.5 px-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-xs font-medium text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all flex items-center justify-center gap-2 group-hover:glow-blue"
+          className="mt-2 w-full py-2.5 px-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-sm font-medium text-blue-400 border border-blue-500/20 hover:border-blue-500/40 transition-all flex items-center justify-center gap-2 group-hover:glow-blue"
         >
           <span>Ver resumen del día</span>
           <TrendingUp className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

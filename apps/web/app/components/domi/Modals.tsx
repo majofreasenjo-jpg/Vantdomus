@@ -194,7 +194,7 @@ export default function Modals({
                 </div>
                 <div>
                   <h3 className={`text-base font-bold font-display ${cfg.titleText}`}>Cuidado de Elena</h3>
-                  <p className={`text-[10px] font-mono ${cfg.subText}`}>Control de salud familiar activa</p>
+                  <p className={`text-xs font-mono ${cfg.subText}`}>Control de salud familiar activa</p>
                 </div>
               </div>
               <button onClick={onCloseAll} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${cfg.closeBtn}`}>
@@ -206,11 +206,11 @@ export default function Modals({
               {/* Prescriptions cards */}
               <div className={`p-4 rounded-2xl border ${cfg.cardBg}`}>
                 <div className="flex justify-between items-start mb-2">
-                  <span className="px-2 py-0.5 rounded bg-rose-500/10 text-[9px] text-rose-400 font-mono font-bold">DOSIS NOCTURNA</span>
-                  <span className={`text-[10px] font-mono ${isLight ? "text-amber-600 font-semibold" : "text-amber-400"}`}>Programado: 21:30</span>
+                  <span className="px-2 py-0.5 rounded bg-rose-500/10 text-[11px] text-rose-400 font-mono font-bold">DOSIS NOCTURNA</span>
+                  <span className={`text-xs font-mono ${isLight ? "text-amber-600 font-semibold" : "text-amber-400"}`}>Programado: 21:30</span>
                 </div>
                 <h4 className={`text-sm font-semibold ${cfg.cardTitle}`}>Metformina (850mg) + Complejo B</h4>
-                <p className={`text-xs mt-1 ${cfg.cardDesc}`}>Tomar con abundante agua después de la cena ligera. No suspender.</p>
+                <p className={`text-sm mt-1 ${cfg.cardDesc}`}>Tomar con abundante agua después de la cena ligera. No suspender.</p>
               </div>
 
               {/* Confirm state */}
@@ -221,10 +221,10 @@ export default function Modals({
                       <Check className="w-6 h-6" />
                     </div>
                     <h4 className={`text-sm font-semibold ${isLight ? "text-emerald-600" : "text-emerald-400"}`}>¡Medicamento Confirmado!</h4>
-                    <p className={`text-xs px-4 ${cfg.cardDesc}`}>La dosis ya ha sido reportada por un familiar. Domi ha cerrado la alerta nocturna.</p>
+                    <p className={`text-sm px-4 ${cfg.cardDesc}`}>La dosis ya ha sido reportada por un familiar. Domi ha cerrado la alerta nocturna.</p>
                     <button 
                       onClick={() => onConfirmMedicine(false)}
-                      className="mt-2 text-[10px] text-rose-500 hover:underline cursor-pointer"
+                      className="mt-2 text-xs text-rose-500 hover:underline cursor-pointer"
                     >
                       Deshacer confirmación
                     </button>
@@ -235,18 +235,18 @@ export default function Modals({
                       <Heart className="w-6 h-6" />
                     </div>
                     <h4 className={`text-sm font-semibold ${cfg.cardTitle}`}>¿Elena ya tomó su dosis?</h4>
-                    <p className={`text-xs px-6 ${cfg.cardDesc}`}>Confirma para registrar la toma de medicamentos en el historial y avisar al núcleo familiar.</p>
+                    <p className={`text-sm px-6 ${cfg.cardDesc}`}>Confirma para registrar la toma de medicamentos en el historial y avisar al núcleo familiar.</p>
                     
                     <div className="flex gap-2 justify-center pt-2">
                       <button 
                         onClick={() => onConfirmMedicine(true, "Mamá")}
-                        className="py-2 px-5 rounded-xl text-xs bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all cursor-pointer"
+                        className="py-2 px-5 rounded-xl text-sm bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold shadow-[0_0_15px_rgba(244,63,94,0.3)] transition-all cursor-pointer"
                       >
                         Confirmar Toma (Mamá)
                       </button>
                       <button 
                         onClick={() => onConfirmMedicine(true, "Papá")}
-                        className={`py-2 px-5 rounded-xl text-xs transition-all cursor-pointer ${cfg.buttonSec}`}
+                        className={`py-2 px-5 rounded-xl text-sm transition-all cursor-pointer ${cfg.buttonSec}`}
                       >
                         Confirmar Toma (Papá)
                       </button>
@@ -257,15 +257,15 @@ export default function Modals({
 
               {/* History list */}
               <div>
-                <h5 className={`text-[11px] font-bold uppercase tracking-wider mb-2 font-mono ${cfg.subText}`}>Registro de hoy</h5>
+                <h5 className={`text-[13px] font-bold uppercase tracking-wider mb-2 font-mono ${cfg.subText}`}>Registro de hoy</h5>
                 <div className={`rounded-xl border divide-y max-h-[110px] overflow-y-auto no-scrollbar ${cfg.listBg}`}>
                   {medicineLogs.length === 0 ? (
-                    <div className={`p-3 text-center text-xs italic ${cfg.subText}`}>No hay registros cargados hoy.</div>
+                    <div className={`p-3 text-center text-sm italic ${cfg.subText}`}>No hay registros cargados hoy.</div>
                   ) : (
                     medicineLogs.map((log, i) => (
-                      <div key={i} className="p-3 flex justify-between items-center text-xs">
+                      <div key={i} className="p-3 flex justify-between items-center text-sm">
                         <span className={`font-medium ${cfg.cardTitle}`}>Dosis nocturna confirmada</span>
-                        <div className={`flex items-center gap-2 font-mono text-[10px] ${cfg.subText}`}>
+                        <div className={`flex items-center gap-2 font-mono text-xs ${cfg.subText}`}>
                           <span>Por {log.confirmedBy}</span>
                           <span>•</span>
                           <span>{log.time}</span>
@@ -296,7 +296,7 @@ export default function Modals({
                 </div>
                 <div>
                   <h3 className={`text-base font-bold font-display ${cfg.titleText}`}>Estudio de Diego</h3>
-                  <p className={`text-[10px] font-mono ${cfg.subText}`}>Prueba de Matemáticas el lunes</p>
+                  <p className={`text-xs font-mono ${cfg.subText}`}>Prueba de Matemáticas el lunes</p>
                 </div>
               </div>
               <button onClick={onCloseAll} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${cfg.closeBtn}`}>
@@ -306,7 +306,7 @@ export default function Modals({
 
             <div className="space-y-4">
               {/* Prepared status indicator banner */}
-              <div className={`p-3.5 rounded-2xl border text-xs flex justify-between items-center ${
+              <div className={`p-3.5 rounded-2xl border text-sm flex justify-between items-center ${
                 studyPrepared 
                   ? (isLight ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-emerald-500/10 border-emerald-500/20 text-emerald-300") 
                   : (isLight ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-amber-500/10 border-amber-500/20 text-amber-300")
@@ -318,7 +318,7 @@ export default function Modals({
                 {!studyPrepared && (
                   <button 
                     onClick={onPrepareStudy}
-                    className="py-1 px-3 text-[10px] bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
+                    className="py-1 px-3 text-xs bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-lg transition-colors cursor-pointer shadow-sm"
                   >
                     Generar Bloques
                   </button>
@@ -327,22 +327,22 @@ export default function Modals({
 
               {/* Study Blocks list */}
               <div>
-                <h5 className={`text-[11px] font-bold uppercase tracking-wider mb-2 font-mono ${cfg.subText}`}>Bloques de repaso recomendados</h5>
+                <h5 className={`text-[13px] font-bold uppercase tracking-wider mb-2 font-mono ${cfg.subText}`}>Bloques de repaso recomendados</h5>
                 <div className="space-y-2">
                   {studyBlocks.map((block) => (
                     <div key={block.id} className={`p-3 rounded-xl border flex items-center justify-between ${cfg.listItemBg}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold border ${
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-mono font-bold border ${
                           isLight ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-slate-950/80 text-blue-300 border-slate-800/80"
                         }`}>
                           {block.duration}
                         </div>
                         <div>
-                          <h4 className={`text-xs font-semibold ${cfg.cardTitle}`}>{block.subject}</h4>
-                          <span className={`text-[10px] ${cfg.subText}`}>Bloque sugerido por Domi</span>
+                          <h4 className={`text-sm font-semibold ${cfg.cardTitle}`}>{block.subject}</h4>
+                          <span className={`text-xs ${cfg.subText}`}>Bloque sugerido por Domi</span>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                      <span className={`text-xs font-mono px-2 py-0.5 rounded border ${
                         isLight ? "bg-slate-100 border-slate-250 text-slate-600" : "bg-slate-950/50 border-slate-900/80 text-slate-400"
                       }`}>{block.time}</span>
                     </div>
@@ -353,11 +353,11 @@ export default function Modals({
               {/* Math Interactive flashcards block (Premium micro-experience) */}
               <div className={`p-4 rounded-2xl border ${cfg.cardBg}`}>
                 <div className={`flex justify-between items-center mb-2 pb-1.5 border-b ${isLight ? "border-amber-500/10" : "border-slate-900"}`}>
-                  <span className={`text-[10px] font-mono flex items-center gap-1 ${cfg.subText}`}>
+                  <span className={`text-xs font-mono flex items-center gap-1 ${cfg.subText}`}>
                     <Award className="w-3.5 h-3.5 text-amber-500" />
                     Tarjetas de práctica rápida
                   </span>
-                  <span className={`text-[10px] font-mono ${cfg.subText}`}>{activeCardIndex + 1} de {flashcards.length}</span>
+                  <span className={`text-xs font-mono ${cfg.subText}`}>{activeCardIndex + 1} de {flashcards.length}</span>
                 </div>
 
                 {/* Flip Card animation container */}
@@ -369,15 +369,15 @@ export default function Modals({
                       : "bg-slate-900/80 hover:bg-slate-900/90 border-slate-800/80"
                   }`}
                 >
-                  <span className={`absolute right-2 top-2 text-[8px] font-mono uppercase tracking-wider transition-colors ${
+                  <span className={`absolute right-2 top-2 text-[10px] font-mono uppercase tracking-wider transition-colors ${
                     isLight ? "text-slate-400 group-hover:text-blue-500" : "text-slate-500 group-hover:text-blue-400"
                   }`}>Clic para girar</span>
                   {isCardFlipped ? (
-                    <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} className={`font-medium text-xs font-mono ${isLight ? "text-emerald-600 font-bold" : "text-emerald-300"}`}>
+                    <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} className={`font-medium text-sm font-mono ${isLight ? "text-emerald-600 font-bold" : "text-emerald-300"}`}>
                       {flashcards[activeCardIndex].a}
                     </motion.div>
                   ) : (
-                    <motion.div initial={{ rotateY: -90 }} animate={{ rotateY: 0 }} className={`font-semibold text-xs leading-relaxed max-w-[90%] ${cfg.cardTitle}`}>
+                    <motion.div initial={{ rotateY: -90 }} animate={{ rotateY: 0 }} className={`font-semibold text-sm leading-relaxed max-w-[90%] ${cfg.cardTitle}`}>
                       {flashcards[activeCardIndex].q}
                     </motion.div>
                   )}
@@ -388,7 +388,7 @@ export default function Modals({
                   <button 
                     disabled={activeCardIndex === 0}
                     onClick={(e) => { e.stopPropagation(); setActiveCardIndex(p => p - 1); setIsCardFlipped(false); }}
-                    className={`text-[10px] disabled:opacity-30 disabled:pointer-events-none cursor-pointer ${
+                    className={`text-xs disabled:opacity-30 disabled:pointer-events-none cursor-pointer ${
                       isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
@@ -397,7 +397,7 @@ export default function Modals({
                   <button 
                     disabled={activeCardIndex === flashcards.length - 1}
                     onClick={(e) => { e.stopPropagation(); setActiveCardIndex(p => p + 1); setIsCardFlipped(false); }}
-                    className={`text-[10px] disabled:opacity-30 disabled:pointer-events-none hover:underline cursor-pointer ${
+                    className={`text-xs disabled:opacity-30 disabled:pointer-events-none hover:underline cursor-pointer ${
                       isLight ? "text-blue-600 hover:text-blue-700 font-semibold" : "text-blue-400 hover:text-blue-300"
                     }`}
                   >
@@ -426,7 +426,7 @@ export default function Modals({
                 </div>
                 <div>
                   <h3 className={`text-base font-bold font-display ${cfg.titleText}`}>Lista de Compras</h3>
-                  <p className={`text-[10px] font-mono ${cfg.subText}`}>Domi organiza por lugar de compra</p>
+                  <p className={`text-xs font-mono ${cfg.subText}`}>Domi organiza por lugar de compra</p>
                 </div>
               </div>
               <button onClick={onCloseAll} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${cfg.closeBtn}`}>
@@ -441,19 +441,19 @@ export default function Modals({
                 value={newShopName}
                 onChange={(e) => setNewShopName(e.target.value)}
                 placeholder="Nombre del producto... (ej: Leche)"
-                className={`col-span-5 border rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500/40 ${cfg.inputBg}`}
+                className={`col-span-5 border rounded-xl p-2.5 text-sm outline-none focus:border-emerald-500/40 ${cfg.inputBg}`}
               />
               <input 
                 type="text" 
                 value={newShopQty}
                 onChange={(e) => setNewShopQty(e.target.value)}
                 placeholder="Cant... (ej: 2 L)"
-                className={`col-span-3 border rounded-xl p-2.5 text-xs outline-none focus:border-emerald-500/40 ${cfg.inputBg}`}
+                className={`col-span-3 border rounded-xl p-2.5 text-sm outline-none focus:border-emerald-500/40 ${cfg.inputBg}`}
               />
               <select 
                 value={newShopCat}
                 onChange={(e) => setNewShopCat(e.target.value)}
-                className={`col-span-3 border rounded-xl p-2.5 text-xs outline-none cursor-pointer focus:border-emerald-500/40 ${cfg.inputBg}`}
+                className={`col-span-3 border rounded-xl p-2.5 text-sm outline-none cursor-pointer focus:border-emerald-500/40 ${cfg.inputBg}`}
               >
                 <option value="Supermercado">Súper</option>
                 <option value="Panadería">Panadería</option>
@@ -481,7 +481,7 @@ export default function Modals({
 
                 return (
                   <div key={cat}>
-                    <h5 className={`text-[10px] font-bold uppercase tracking-widest font-mono mb-2 ${isLight ? "text-emerald-600" : "text-emerald-400"}`}>{cat}</h5>
+                    <h5 className={`text-xs font-bold uppercase tracking-widest font-mono mb-2 ${isLight ? "text-emerald-600" : "text-emerald-400"}`}>{cat}</h5>
                     <div className="space-y-1.5">
                       {catItems.map((item) => (
                         <div 
@@ -499,8 +499,8 @@ export default function Modals({
                             >
                               {item.checked && <Check className="w-3.5 h-3.5" />}
                             </button>
-                            <span className={`text-xs ${item.checked ? "line-through text-slate-400" : isLight ? "text-slate-800 font-semibold" : "text-slate-200 font-medium"}`}>
-                              {item.name} <span className={`text-[10px] font-mono ml-1 ${isLight ? "text-slate-400" : "text-slate-500"}`}>({item.qty})</span>
+                            <span className={`text-sm ${item.checked ? "line-through text-slate-400" : isLight ? "text-slate-800 font-semibold" : "text-slate-200 font-medium"}`}>
+                              {item.name} <span className={`text-xs font-mono ml-1 ${isLight ? "text-slate-400" : "text-slate-500"}`}>({item.qty})</span>
                             </span>
                           </div>
                           
@@ -520,7 +520,7 @@ export default function Modals({
               })}
 
               {shoppingItems.length === 0 && (
-                <div className={`py-8 text-center text-xs italic ${cfg.subText}`}>No hay productos en la lista. ¡La despensa está completa!</div>
+                <div className={`py-8 text-center text-sm italic ${cfg.subText}`}>No hay productos en la lista. ¡La despensa está completa!</div>
               )}
             </div>
           </motion.div>
@@ -543,7 +543,7 @@ export default function Modals({
                 </div>
                 <div>
                   <h3 className={`text-base font-bold font-display ${cfg.titleText}`}>Núcleo Familiar</h3>
-                  <p className={`text-[10px] font-mono ${cfg.subText}`}>Conexión, ubicación y estatus de tu hogar</p>
+                  <p className={`text-xs font-mono ${cfg.subText}`}>Conexión, ubicación y estatus de tu hogar</p>
                 </div>
               </div>
               <button onClick={onCloseAll} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${cfg.closeBtn}`}>
@@ -570,8 +570,8 @@ export default function Modals({
                         <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 rounded-full ${isLight ? "border-white" : "border-slate-950"}`} />
                       </div>
                       <div>
-                        <h4 className={`text-xs font-bold leading-tight ${cfg.cardTitle}`}>{member.name}</h4>
-                        <span className={`text-[9px] font-mono ${cfg.cardDesc}`}>{member.role}</span>
+                        <h4 className={`text-sm font-bold leading-tight ${cfg.cardTitle}`}>{member.name}</h4>
+                        <span className={`text-[11px] font-mono ${cfg.cardDesc}`}>{member.role}</span>
                       </div>
                     </div>
 
@@ -580,7 +580,7 @@ export default function Modals({
                         type="text"
                         value={member.status}
                         onChange={(e) => onUpdateFamilyStatus(member.id, e.target.value)}
-                        className={`w-full border rounded-lg p-1.5 text-[10px] outline-none ${
+                        className={`w-full border rounded-lg p-1.5 text-xs outline-none ${
                           isLight 
                             ? "bg-white border-slate-250 text-amber-700 placeholder-slate-400 focus:border-amber-500/30" 
                             : "bg-slate-950/80 border-slate-900 focus:border-amber-500/30 text-amber-300 placeholder-slate-600"
@@ -594,14 +594,14 @@ export default function Modals({
 
               {/* Shared family notice board */}
               <div className={`p-4 rounded-2xl border ${cfg.cardBg}`}>
-                <h5 className={`text-[10px] font-bold uppercase tracking-widest font-mono mb-2 flex items-center gap-1.5 ${isLight ? "text-amber-600" : "text-amber-400"}`}>
+                <h5 className={`text-xs font-bold uppercase tracking-widest font-mono mb-2 flex items-center gap-1.5 ${isLight ? "text-amber-600" : "text-amber-400"}`}>
                   <Smile className="w-3.5 h-3.5 text-amber-500" />
                   Muro de Notas del Hogar
                 </h5>
-                <p className={`text-xs italic leading-relaxed ${cfg.cardDesc}`}>
+                <p className={`text-sm italic leading-relaxed ${cfg.cardDesc}`}>
                   "Recuerden que el fin de semana cenamos en casa de los abuelos. Diego tiene fútbol el sábado a las 10:00."
                 </p>
-                <span className={`block text-[8px] font-mono mt-1 text-right ${cfg.subText}`}>— Escrito por Papá hace 2 horas</span>
+                <span className={`block text-[10px] font-mono mt-1 text-right ${cfg.subText}`}>— Escrito por Papá hace 2 horas</span>
               </div>
             </div>
           </motion.div>
@@ -624,7 +624,7 @@ export default function Modals({
                 </div>
                 <div>
                   <h3 className={`text-base font-bold font-display ${cfg.titleText}`}>Resumen del Día de Domi</h3>
-                  <p className={`text-[10px] font-mono ${cfg.subText}`}>Generado de forma autónoma por IA</p>
+                  <p className={`text-xs font-mono ${cfg.subText}`}>Generado de forma autónoma por IA</p>
                 </div>
               </div>
               <button onClick={onCloseAll} className={`p-1.5 rounded-lg transition-colors cursor-pointer ${cfg.closeBtn}`}>
@@ -632,7 +632,7 @@ export default function Modals({
               </button>
             </div>
 
-            <div className={`space-y-4 text-xs leading-relaxed ${cfg.cardDesc}`}>
+            <div className={`space-y-4 text-sm leading-relaxed ${cfg.cardDesc}`}>
               <p className={`font-sans ${cfg.cardTitle}`}>
                 ¡Hola! Aquí tienes el resumen ejecutivo de la dinámica de hoy en el hogar. Todo fluye de forma equilibrada y en calma:
               </p>
@@ -676,7 +676,7 @@ export default function Modals({
               </div>
 
               <div className={`p-3 border rounded-xl text-center ${cfg.listBg}`}>
-                <span className={`text-[10px] font-mono font-bold uppercase tracking-wider block mb-1 ${isLight ? "text-amber-600" : "text-amber-400"}`}>Índice de bienestar general</span>
+                <span className={`text-xs font-mono font-bold uppercase tracking-wider block mb-1 ${isLight ? "text-amber-600" : "text-amber-400"}`}>Índice de bienestar general</span>
                 <span className={`text-xl font-bold font-display ${cfg.titleText}`}>94 / 100</span>
               </div>
             </div>

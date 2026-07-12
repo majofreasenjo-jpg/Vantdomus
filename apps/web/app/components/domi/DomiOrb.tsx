@@ -876,7 +876,7 @@ export default function DomiOrb({
 
               {/* Red-Amber Alert Badge */}
               {node.badge && (
-                <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] px-1 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-slate-950 leading-none shadow-[0_0_8px_rgba(245,158,11,0.6)] z-30">
+                <span className="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] px-1 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 leading-none shadow-[0_0_8px_rgba(245,158,11,0.6)] z-30">
                   {node.badge}
                 </span>
               )}
@@ -888,12 +888,12 @@ export default function DomiOrb({
 
             {/* Labels beneath the capsule */}
             <div className="text-center mt-1.5 min-w-[100px]">
-              <span className={`block text-[11px] font-semibold group-hover/node:text-amber-500 transition-colors tracking-wide leading-tight ${
+              <span className={`block text-[13px] font-semibold group-hover/node:text-amber-500 transition-colors tracking-wide leading-tight ${
                 isLight ? "text-slate-800" : "text-slate-100"
               }`}>
                 {node.title}
               </span>
-              <span className={`block text-[9px] group-hover/node:text-slate-700 font-sans mt-0.5 font-medium leading-none ${
+              <span className={`block text-[11px] group-hover/node:text-slate-700 font-sans mt-0.5 font-medium leading-none ${
                 isLight ? "text-slate-500" : "text-amber-200/60"
               }`}>
                 {node.subtitle}
