@@ -109,6 +109,10 @@ def _enable_production_rate_limit(monkeypatch) -> None:
 
 def _enable_production_runtime_dependencies(monkeypatch) -> None:
     _enable_production_rate_limit(monkeypatch)
+    # Estos tests validan la config base de producción, no el stack de IA:
+    # con IA activa (default), validate_runtime_security exigiría OPENAI_API_KEY
+    # antes de llegar a la variable bajo prueba.
+    monkeypatch.setenv("VANTDOMUS_AI_FEATURES_ENABLED", "false")
     monkeypatch.setenv("VANTDOMUS_BACKUP_ENCRYPTION_KEY", "strong-backup-encryption-key-for-prod")
     monkeypatch.setenv("VANTDOMUS_SECURITY_ALERT_WEBHOOK_URL", "https://alerts.example.test/vantdomus")
     monkeypatch.setenv("VANTDOMUS_SECURITY_ALERT_SIGNING_SECRET", "strong-alert-signing-secret-for-prod")
@@ -729,7 +733,9 @@ def test_auth_rejects_weak_passwords_and_rate_limits_failed_logins(monkeypatch, 
         response = client.post("/auth/register", params={"email": "weak@example.test", "password": "123"})
         assert response.status_code == 400, response.text
 
-        response = client.post("/auth/register", params={"email": "LockMe@Example.Test", "password": "demo123"})
+        # Política vigente: >=10 caracteres y 3+ clases; "Sturdy-Pass-2026!" ya no pasa.
+        strong_password = "Sturdy-Pass-2026!"
+        response = client.post("/auth/register", params={"email": "LockMe@Example.Test", "password": strong_password})
         assert response.status_code == 200, response.text
 
         response = client.post("/auth/login", params={"email": "lockme@example.test", "password": "bad-1"})
@@ -738,7 +744,7 @@ def test_auth_rejects_weak_passwords_and_rate_limits_failed_logins(monkeypatch, 
         response = client.post("/auth/login", params={"email": "LOCKME@example.test", "password": "bad-2"})
         assert response.status_code == 401, response.text
 
-        response = client.post("/auth/login", params={"email": "lockme@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "lockme@example.test", "password": strong_password})
         assert response.status_code == 429, response.text
 
         con = sqlite3.connect(db_path)
@@ -768,46 +774,46 @@ def test_authenticated_users_can_change_password_with_audited_security_event(mon
     app, db_path = _load_app(monkeypatch, tmp_path)
 
     with TestClient(app) as client:
-        response = client.post("/auth/register", params={"email": "change-password@example.test", "password": "demo123"})
+        response = client.post("/auth/register", params={"email": "change-password@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
 
-        response = client.post("/auth/login", params={"email": "change-password@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "change-password@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         token = response.json()["access_token"]
 
         response = client.post(
             "/auth/password/change",
-            json={"current_password": "wrong-password", "new_password": "better123"},
+            json={"current_password": "wrong-password", "new_password": "Better-Pass-2026!"},
             headers=_auth(token),
         )
         assert response.status_code == 401, response.text
 
         response = client.post(
             "/auth/password/change",
-            json={"current_password": "demo123", "new_password": "123"},
+            json={"current_password": "Sturdy-Pass-2026!", "new_password": "123"},
             headers=_auth(token),
         )
         assert response.status_code == 400, response.text
 
         response = client.post(
             "/auth/password/change",
-            json={"current_password": "demo123", "new_password": "demo123"},
+            json={"current_password": "Sturdy-Pass-2026!", "new_password": "Sturdy-Pass-2026!"},
             headers=_auth(token),
         )
         assert response.status_code == 400, response.text
 
         response = client.post(
             "/auth/password/change",
-            json={"current_password": "demo123", "new_password": "better123"},
+            json={"current_password": "Sturdy-Pass-2026!", "new_password": "Better-Pass-2026!"},
             headers=_auth(token),
         )
         assert response.status_code == 200, response.text
         assert response.json()["status"] == "changed"
 
-        response = client.post("/auth/login", params={"email": "change-password@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "change-password@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 401, response.text
 
-        response = client.post("/auth/login", params={"email": "change-password@example.test", "password": "better123"})
+        response = client.post("/auth/login", params={"email": "change-password@example.test", "password": "Better-Pass-2026!"})
         assert response.status_code == 200, response.text
 
         con = sqlite3.connect(db_path)
@@ -830,12 +836,12 @@ def test_email_verification_password_reset_and_session_revocation(monkeypatch, t
     app, db_path = _load_app(monkeypatch, tmp_path)
 
     with TestClient(app) as client:
-        response = client.post("/auth/register", params={"email": "account-flow@example.test", "password": "demo123"})
+        response = client.post("/auth/register", params={"email": "account-flow@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         registration = response.json()
         assert registration["token"]
 
-        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         token_a = response.json()["access_token"]
 
@@ -853,7 +859,7 @@ def test_email_verification_password_reset_and_session_revocation(monkeypatch, t
         response = client.post("/auth/email/verify", params={"token": registration["token"]})
         assert response.status_code == 404, response.text
 
-        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         token_b = response.json()["access_token"]
 
@@ -878,17 +884,17 @@ def test_email_verification_password_reset_and_session_revocation(monkeypatch, t
 
         response = client.post(
             "/auth/password/reset/confirm",
-            json={"token": reset_token, "new_password": "reset123"},
+            json={"token": reset_token, "new_password": "Reset-Pass-2026!"},
         )
         assert response.status_code == 200, response.text
 
         response = client.get("/households", headers=_auth(token_b))
         assert response.status_code == 401, response.text
 
-        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 401, response.text
 
-        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "reset123"})
+        response = client.post("/auth/login", params={"email": "account-flow@example.test", "password": "Reset-Pass-2026!"})
         assert response.status_code == 200, response.text
         token_c = response.json()["access_token"]
 
@@ -930,11 +936,11 @@ def test_verified_email_is_required_for_sensitive_actions_when_enabled(monkeypat
     app, db_path = _load_app(monkeypatch, tmp_path)
 
     with TestClient(app) as client:
-        response = client.post("/auth/register", params={"email": "verify-sensitive@example.test", "password": "demo123"})
+        response = client.post("/auth/register", params={"email": "verify-sensitive@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         verification_token = response.json()["token"]
 
-        response = client.post("/auth/login", params={"email": "verify-sensitive@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "verify-sensitive@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         token = response.json()["access_token"]
 
@@ -1743,10 +1749,10 @@ def test_mfa_totp_enforcement_for_login(monkeypatch, tmp_path):
     from app.mfa import totp_code
 
     with TestClient(app) as client:
-        response = client.post("/auth/register", params={"email": "mfa@example.test", "password": "demo123"})
+        response = client.post("/auth/register", params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
 
-        response = client.post("/auth/login", params={"email": "mfa@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
         token = response.json()["access_token"]
 
@@ -1784,31 +1790,31 @@ def test_mfa_totp_enforcement_for_login(monkeypatch, tmp_path):
         assert response.json()["is_enabled"] is True
         assert response.json()["recovery_codes_remaining"] == 8
 
-        response = client.post("/auth/login", params={"email": "mfa@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 428, response.text
 
         response = client.post(
             "/auth/login",
-            params={"email": "mfa@example.test", "password": "demo123", "mfa_code": "123456"},
+            params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!", "mfa_code": "123456"},
         )
         assert response.status_code == 401, response.text
 
         response = client.post(
             "/auth/login",
-            params={"email": "mfa@example.test", "password": "demo123", "mfa_code": totp_code(setup["secret"])},
+            params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!", "mfa_code": totp_code(setup["secret"])},
         )
         assert response.status_code == 200, response.text
         fresh_token = response.json()["access_token"]
 
         response = client.post(
             "/auth/login",
-            params={"email": "mfa@example.test", "password": "demo123", "mfa_code": recovery_codes[0]},
+            params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!", "mfa_code": recovery_codes[0]},
         )
         assert response.status_code == 200, response.text
 
         response = client.post(
             "/auth/login",
-            params={"email": "mfa@example.test", "password": "demo123", "mfa_code": recovery_codes[0]},
+            params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!", "mfa_code": recovery_codes[0]},
         )
         assert response.status_code == 401, response.text
 
@@ -1835,7 +1841,7 @@ def test_mfa_totp_enforcement_for_login(monkeypatch, tmp_path):
 
         response = client.post(
             "/auth/login",
-            params={"email": "mfa@example.test", "password": "demo123", "mfa_code": recovery_codes[1]},
+            params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!", "mfa_code": recovery_codes[1]},
         )
         assert response.status_code == 401, response.text
 
@@ -1843,7 +1849,7 @@ def test_mfa_totp_enforcement_for_login(monkeypatch, tmp_path):
         assert response.status_code == 200, response.text
         assert response.json()["status"] == "disabled"
 
-        response = client.post("/auth/login", params={"email": "mfa@example.test", "password": "demo123"})
+        response = client.post("/auth/login", params={"email": "mfa@example.test", "password": "Sturdy-Pass-2026!"})
         assert response.status_code == 200, response.text
 
         con = sqlite3.connect(db_path)
@@ -1869,7 +1875,7 @@ def test_admin_can_reset_mfa_for_household_member_only(monkeypatch, tmp_path):
     with TestClient(app) as client:
         admin_a_token = _register_and_login(client, "mfa-admin-a@example.test")
         admin_b_token = _register_and_login(client, "mfa-admin-b@example.test")
-        member_b_password = "demo123"
+        member_b_password = "Sturdy-Pass-2026!"
         response = client.post("/auth/register", params={"email": "mfa-member-b@example.test", "password": member_b_password})
         assert response.status_code == 200, response.text
         member_b_user_id = response.json()["user_id"]
@@ -2325,8 +2331,11 @@ def test_household_member_management_is_role_scoped_and_audited(monkeypatch, tmp
         _add_membership(db_path, household_id, member_email, "member")
         _add_membership(db_path, household_id, viewer_email, "viewer")
 
+        # Diseño vigente (U3 I2 — presencia familiar): cualquier integrante del
+        # hogar, incluso viewer, puede VER la lista de integrantes. Las
+        # mutaciones (agregar/cambiar rol/eliminar) siguen role-scoped abajo.
         response = client.get(f"/households/{household_id}/members", headers=_auth(viewer_token))
-        assert response.status_code == 403, response.text
+        assert response.status_code == 200, response.text
 
         response = client.get(f"/households/{household_id}/members", headers=_auth(admin_token))
         assert response.status_code == 200, response.text
@@ -2622,7 +2631,11 @@ def test_private_logbook_attachments_and_coupling_are_tenant_scoped(monkeypatch,
         response = client.get("/audit", params={"household_id": household_b["id"]}, headers=_auth(token_b))
         assert response.status_code == 200, response.text
         audit_items = response.json()["items"]
-        assert any(item["action"] == "webhook_ingest" and item["resource_id"] == gateway["id"] for item in audit_items)
+        # Trazabilidad de agentes: resource_id del audit ahora apunta al evento
+        # de agente, y el gateway queda en metadata.gateway_id.
+        webhook_audits = [item for item in audit_items if item["action"] == "webhook_ingest"]
+        assert webhook_audits, audit_items
+        assert any(gateway["id"] in json.dumps(item) for item in webhook_audits)
         assert all(item["organization_id"] == household_b["organization_id"] for item in audit_items)
 
 
@@ -3008,15 +3021,6 @@ def test_vision_batches_are_private_and_tenant_scoped(monkeypatch, tmp_path):
     monkeypatch.setenv("VANTDOMUS_PRIVATE_UPLOAD_DIR", str(tmp_path / "private_uploads"))
     app, _db_path = _load_app(monkeypatch, tmp_path)
 
-    pdf_dir = tmp_path / "source_pdfs"
-    pdf_dir.mkdir()
-    pdf_path = pdf_dir / "daily_report_2026-05-03.pdf"
-    doc = fitz.open()
-    page = doc.new_page(width=300, height=200)
-    page.insert_text((30, 80), "Tenant confidential report")
-    doc.save(pdf_path)
-    doc.close()
-
     with TestClient(app) as client:
         token_a = _register_and_login(client, "vision-a@example.test")
         token_b = _register_and_login(client, "vision-b@example.test")
@@ -3024,12 +3028,26 @@ def test_vision_batches_are_private_and_tenant_scoped(monkeypatch, tmp_path):
         household_a = _create_household(client, token_a, "Vision A Unit")
         household_b = _create_household(client, token_b, "Vision B Unit")
 
+        # Endurecimiento vigente: process_batch SOLO puede recorrer el área de
+        # ingestión del propio tenant y target_directory es RELATIVO a ella.
+        intake_b = (
+            tmp_path / "private_uploads" / "vision_intake"
+            / household_b["organization_id"] / household_b["id"] / "reports"
+        )
+        intake_b.mkdir(parents=True)
+        pdf_path = intake_b / "daily_report_2026-05-03.pdf"
+        doc = fitz.open()
+        page = doc.new_page(width=300, height=200)
+        page.insert_text((30, 80), "Tenant confidential report")
+        doc.save(pdf_path)
+        doc.close()
+
         response = client.post(
             "/vision/process_batch",
             json={
                 "household_id": household_b["id"],
                 "batch_name": "Private Reports",
-                "target_directory": str(pdf_dir),
+                "target_directory": "reports",
                 "target_dates": ["2026-05-03"],
                 "crop_x": 0,
                 "crop_y": 0,
@@ -3056,7 +3074,7 @@ def test_vision_batches_are_private_and_tenant_scoped(monkeypatch, tmp_path):
             json={
                 "household_id": household_b["id"],
                 "batch_name": "Cross Tenant",
-                "target_directory": str(pdf_dir),
+                "target_directory": "reports",
             },
             headers=_auth(token_a),
         )
@@ -3074,20 +3092,24 @@ def test_vision_rejects_malware_signature_before_processing(monkeypatch, tmp_pat
     monkeypatch.setenv("VANTDOMUS_MALWARE_SIGNATURES", TEST_MALWARE_BYTES.decode("utf-8"))
     app, _db_path = _load_app(monkeypatch, tmp_path)
 
-    pdf_dir = tmp_path / "source_pdfs"
-    pdf_dir.mkdir()
-    (pdf_dir / "infected_2026-05-03.pdf").write_bytes(TEST_MALWARE_BYTES)
-
     with TestClient(app) as client:
         token = _register_and_login(client, "malware-vision@example.test")
         household = _create_household(client, token, "Malware Vision Unit")
+
+        # El área de ingestión es per-tenant; target_directory es relativo.
+        intake = (
+            tmp_path / "private_uploads" / "vision_intake"
+            / household["organization_id"] / household["id"] / "infected"
+        )
+        intake.mkdir(parents=True)
+        (intake / "infected_2026-05-03.pdf").write_bytes(TEST_MALWARE_BYTES)
 
         response = client.post(
             "/vision/process_batch",
             json={
                 "household_id": household["id"],
                 "batch_name": "Infected Reports",
-                "target_directory": str(pdf_dir),
+                "target_directory": "infected",
                 "target_dates": ["2026-05-03"],
             },
             headers=_auth(token),

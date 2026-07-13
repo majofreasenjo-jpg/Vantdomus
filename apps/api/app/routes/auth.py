@@ -4,7 +4,7 @@ import re
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from pydantic import BaseModel
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role, require_verified_email_for_sensitive_action
@@ -381,6 +381,156 @@ def register(
     )
     db.commit()
     return {"user_id": uid, "email_delivery": {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")}, **_local_token_payload(raw_token)}
+
+class RegisterWithInvitationBody(BaseModel):
+    """Alta atómica mediante token de invitación (CP1d-FAMILY-PILOT-1a)."""
+    token: str
+    email: str
+    password: str
+
+
+# Anti-enumeración: token inexistente, revocado, usado, expirado o con email
+# distinto responden EXACTAMENTE igual (mismo código y mismo mensaje).
+_INVITATION_GENERIC_ERROR = "Invitación inválida, expirada o ya utilizada"
+
+
+def _parse_invitation_expiry(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+@router.post("/register-with-invitation")
+def register_with_invitation(
+    body: RegisterWithInvitationBody,
+    request: Request,
+    db=Depends(get_db),
+):
+    """
+    Única vía de alta con el registro público cerrado: crea usuario, membresía
+    y vínculo de persona EN UNA SOLA TRANSACCIÓN, consumiendo la invitación.
+    Cualquier fallo revierte todo (la invitación no puede consumirse a medias).
+    """
+    from app.rate_limit import enforce_action_limit
+
+    token = (body.token or "").strip()
+    email = _normalize_email(body.email or "")
+    # Rate limit por IP y por fingerprint NO reversible del token (el token en
+    # claro jamás se registra ni se usa como clave).
+    client_ip = request.client.host if request.client else "unknown"
+    token_fp = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+    enforce_action_limit("invitation_register", f"ip:{client_ip}")
+    enforce_action_limit("invitation_register", f"tok:{token_fp}")
+    _validate_registration(email, body.password)
+
+    invitation = db.execute(
+        """
+        SELECT id, household_id, organization_id, email, role, expires_at,
+               accepted_at, revoked_at, person_id
+        FROM household_invitations
+        WHERE token_hash=?
+        """,
+        (hashlib.sha256(token.encode("utf-8")).hexdigest(),),
+    ).fetchone()
+    if not invitation or invitation["revoked_at"] or invitation["accepted_at"]:
+        raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+    if _parse_invitation_expiry(invitation["expires_at"]) <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+    if invitation["email"] != email:
+        raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+
+    # Quien porta un token válido para este email ya conoce el email: indicar
+    # el camino correcto no filtra información nueva.
+    if db.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
+        raise HTTPException(
+            status_code=409,
+            detail="Ya existe una cuenta con este email. Inicia sesión y acepta la invitación desde tu cuenta.",
+        )
+
+    uid = str(uuid.uuid4())
+    linked_person_id = None
+    try:
+        # 1) Consumir la invitación PRIMERO, con guardia de concurrencia: solo
+        #    una transacción puede pasar de accepted_at NULL a consumida.
+        cur = db.execute(
+            """
+            UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=?
+            WHERE id=? AND accepted_at IS NULL AND revoked_at IS NULL
+            """,
+            (uid, now(), invitation["id"]),
+        )
+        if cur.rowcount != 1:
+            raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+        # 2) Usuario (UNIQUE(users.email) corta cualquier duplicado concurrente).
+        db.execute(
+            "INSERT INTO users (id,email,password_hash,is_active,created_at) VALUES (?,?,?,?,?)",
+            (uid, email, hash_password(body.password), 1, now()),
+        )
+        # 3) Membresía en el hogar con el rol de la invitación.
+        db.execute(
+            "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
+            (invitation["household_id"], uid, invitation["role"], now()),
+        )
+        # 4) Vínculo persona: si la invitación lo traía, DEBE poder enlazarse;
+        #    si la ficha ya no está libre o cambió de hogar, se revierte todo.
+        if invitation["person_id"]:
+            cur = db.execute(
+                "UPDATE persons SET user_id=? WHERE id=? AND household_id=? AND user_id IS NULL",
+                (uid, invitation["person_id"], invitation["household_id"]),
+            )
+            if cur.rowcount != 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail="La invitación no pudo completarse. Pide una nueva al administrador del hogar.",
+                )
+            linked_person_id = invitation["person_id"]
+        # 5) Verificación de email + auditoría (sin token ni contraseña).
+        raw_token = _create_email_verification_token(db, uid)
+        delivery = _send_email_verification(db, user_id=uid, email=email, raw_token=raw_token)
+        write_audit_log(
+            db,
+            action="register_with_invitation",
+            resource_type="household_invitation",
+            household_id=invitation["household_id"],
+            user_id=uid,
+            resource_id=invitation["id"],
+            metadata={
+                "role": invitation["role"],
+                "linked_person_id": linked_person_id,
+                "email_fingerprint": _email_fingerprint(email),
+                "token_fingerprint": token_fp,
+            },
+        )
+        write_security_event(
+            db,
+            event_type="household_invitation_registered",
+            severity="high" if invitation["role"] == "owner" else "medium",
+            source="auth",
+            household_id=invitation["household_id"],
+            organization_id=invitation["organization_id"],
+            user_id=uid,
+            metadata={
+                "invitation_id": invitation["id"],
+                "email_fingerprint": _email_fingerprint(email),
+                "role": invitation["role"],
+                "linked_person_id": linked_person_id,
+            },
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return {
+        "ok": True,
+        "user_id": uid,
+        "household_id": invitation["household_id"],
+        "role": invitation["role"],
+        "linked_person_id": linked_person_id,
+        "email_delivery": {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")},
+        **_local_token_payload(raw_token),
+    }
+
 
 @router.post("/login")
 def login(

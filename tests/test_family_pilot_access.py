@@ -352,3 +352,282 @@ def test_api_responses_carry_noindex_header(open_client):
     r = client.get("/auth/config")
     assert r.status_code == 200
     assert r.headers.get("X-Robots-Tag") == "noindex, nofollow"
+
+
+# ---------------------------------------------------------------------------
+# 5. Alta atómica mediante token de invitación (microcheckpoint correctivo)
+# ---------------------------------------------------------------------------
+
+def _invite(client, owner_token, hid, email, person_id=None, role="member", ttl_hours=24):
+    payload = {"email": email, "role": role, "ttl_hours": ttl_hours}
+    if person_id:
+        payload["person_id"] = person_id
+    r = client.post(f"/households/{hid}/invitations", json=payload, headers=_auth(owner_token))
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def test_invited_user_without_account_can_register_atomically(open_client):
+    client, db_path = open_client
+    owner = _register_and_login(client, "owner10@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+    person_id = _create_person(client, owner, hid, display_name="Hijo Invitado")
+    inv = _invite(client, owner, hid, "hijo10@sintetico.test", person_id=person_id)
+
+    # Cerrar el registro público: la única puerta debe ser la invitación.
+    import os
+    os.environ["VANTDOMUS_PUBLIC_REGISTRATION"] = "false"
+    r = client.post("/auth/register", json={"email": "otro@sintetico.test", "password": PASSWORD})
+    assert r.status_code == 403, r.text
+
+    r = client.post(
+        "/auth/register-with-invitation",
+        json={"token": inv["token"], "email": "hijo10@sintetico.test", "password": PASSWORD},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["ok"] is True
+    assert body["household_id"] == hid
+    assert body["role"] == "member"
+    assert body["linked_person_id"] == person_id
+
+    # Verificación en base: usuario + membresía + persona enlazada.
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    user = con.execute("SELECT id FROM users WHERE email=?", ("hijo10@sintetico.test",)).fetchone()
+    assert user is not None
+    membership = con.execute(
+        "SELECT role FROM household_memberships WHERE household_id=? AND user_id=?", (hid, user["id"]),
+    ).fetchone()
+    assert membership and membership["role"] == "member"
+    person = con.execute("SELECT user_id FROM persons WHERE id=?", (person_id,)).fetchone()
+    assert person["user_id"] == user["id"]
+    audit = con.execute(
+        "SELECT metadata FROM audit_log WHERE action='register_with_invitation'"
+    ).fetchone()
+    con.close()
+    assert audit is not None
+    assert inv["token"] not in (audit["metadata"] or ""), "el token en claro jamás se audita"
+
+    # El nuevo integrante puede iniciar sesión normalmente.
+    r = client.post("/auth/login", json={"email": "hijo10@sintetico.test", "password": PASSWORD})
+    assert r.status_code == 200, r.text
+
+
+def test_register_with_invitation_rejects_bad_tokens_uniformly(open_client):
+    """Anti-enumeración: inexistente, revocado, expirado y email distinto responden idéntico."""
+    client, db_path = open_client
+    owner = _register_and_login(client, "owner11@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+
+    revoked = _invite(client, owner, hid, "rev11@sintetico.test")
+    r = client.post(
+        f"/households/{hid}/invitations/{revoked['id']}/revoke", headers=_auth(owner),
+    )
+    assert r.status_code == 200, r.text
+
+    expired = _invite(client, owner, hid, "exp11@sintetico.test", ttl_hours=1)
+    con = sqlite3.connect(db_path)
+    con.execute(
+        "UPDATE household_invitations SET expires_at='2020-01-01T00:00:00+00:00' WHERE id=?",
+        (expired["id"],),
+    )
+    con.commit()
+    con.close()
+
+    mismatch = _invite(client, owner, hid, "real11@sintetico.test")
+
+    responses = []
+    for token, email in [
+        ("token-que-no-existe-abcdef123456", "quien@sintetico.test"),
+        (revoked["token"], "rev11@sintetico.test"),
+        (expired["token"], "exp11@sintetico.test"),
+        (mismatch["token"], "impostor11@sintetico.test"),
+    ]:
+        r = client.post(
+            "/auth/register-with-invitation",
+            json={"token": token, "email": email, "password": PASSWORD},
+        )
+        responses.append((r.status_code, r.json().get("detail")))
+    assert all(resp == responses[0] for resp in responses), responses
+    assert responses[0][0] == 400
+
+    # Ninguna cuenta se creó en el intento.
+    con = sqlite3.connect(db_path)
+    count = con.execute(
+        "SELECT COUNT(*) FROM users WHERE email IN (?,?,?)",
+        ("quien@sintetico.test", "exp11@sintetico.test", "impostor11@sintetico.test"),
+    ).fetchone()[0]
+    con.close()
+    assert count == 0
+
+
+def test_register_with_invitation_token_is_single_use(open_client):
+    client, db_path = open_client
+    owner = _register_and_login(client, "owner12@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+    inv = _invite(client, owner, hid, "unico12@sintetico.test")
+
+    r = client.post(
+        "/auth/register-with-invitation",
+        json={"token": inv["token"], "email": "unico12@sintetico.test", "password": PASSWORD},
+    )
+    assert r.status_code == 200, r.text
+    r = client.post(
+        "/auth/register-with-invitation",
+        json={"token": inv["token"], "email": "unico12@sintetico.test", "password": PASSWORD},
+    )
+    assert r.status_code in (400, 409), r.text
+
+    con = sqlite3.connect(db_path)
+    users = con.execute("SELECT COUNT(*) FROM users WHERE email=?", ("unico12@sintetico.test",)).fetchone()[0]
+    memberships = con.execute(
+        "SELECT COUNT(*) FROM household_memberships hm JOIN users u ON u.id=hm.user_id WHERE u.email=?",
+        ("unico12@sintetico.test",),
+    ).fetchone()[0]
+    con.close()
+    assert users == 1 and memberships == 1
+
+
+def test_register_with_invitation_rolls_back_when_person_link_fails(open_client):
+    client, db_path = open_client
+    owner = _register_and_login(client, "owner13@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+    person_id = _create_person(client, owner, hid, display_name="Ficha Disputada")
+    inv = _invite(client, owner, hid, "tarde13@sintetico.test", person_id=person_id)
+
+    # La ficha se ocupa ANTES de que el invitado alcance a registrarse.
+    con = sqlite3.connect(db_path)
+    con.execute("UPDATE persons SET user_id='usuario-preexistente' WHERE id=?", (person_id,))
+    con.commit()
+    con.close()
+
+    r = client.post(
+        "/auth/register-with-invitation",
+        json={"token": inv["token"], "email": "tarde13@sintetico.test", "password": PASSWORD},
+    )
+    assert r.status_code == 409, r.text
+
+    # Rollback TOTAL: sin usuario, sin membresía, invitación NO consumida.
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    assert con.execute("SELECT COUNT(*) FROM users WHERE email=?", ("tarde13@sintetico.test",)).fetchone()[0] == 0
+    invitation = con.execute(
+        "SELECT accepted_at, accepted_by_user_id FROM household_invitations WHERE id=?", (inv["id"],),
+    ).fetchone()
+    person = con.execute("SELECT user_id FROM persons WHERE id=?", (person_id,)).fetchone()
+    con.close()
+    assert invitation["accepted_at"] is None and invitation["accepted_by_user_id"] is None
+    assert person["user_id"] == "usuario-preexistente"
+
+
+def test_register_with_invitation_rejects_foreign_person_link(open_client):
+    client, db_path = open_client
+    owner = _register_and_login(client, "owner14@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+    other_owner = _register_and_login(client, "owner14b@sintetico.test")
+    other_hid = _bootstrap_household(client, other_owner, name="Hogar Ajeno")
+    foreign_person = _create_person(client, other_owner, other_hid)
+
+    inv = _invite(client, owner, hid, "cruce14@sintetico.test")
+    # Manipulación directa: person_id de OTRO hogar inyectado en la invitación.
+    con = sqlite3.connect(db_path)
+    con.execute("UPDATE household_invitations SET person_id=? WHERE id=?", (foreign_person, inv["id"]))
+    con.commit()
+    con.close()
+
+    r = client.post(
+        "/auth/register-with-invitation",
+        json={"token": inv["token"], "email": "cruce14@sintetico.test", "password": PASSWORD},
+    )
+    assert r.status_code == 409, r.text
+
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    assert con.execute("SELECT COUNT(*) FROM users WHERE email=?", ("cruce14@sintetico.test",)).fetchone()[0] == 0
+    person = con.execute("SELECT user_id FROM persons WHERE id=?", (foreign_person,)).fetchone()
+    invitation = con.execute("SELECT accepted_at FROM household_invitations WHERE id=?", (inv["id"],)).fetchone()
+    con.close()
+    assert person["user_id"] is None
+    assert invitation["accepted_at"] is None
+
+
+def test_register_with_invitation_existing_account_gets_clear_path(open_client):
+    client, _ = open_client
+    owner = _register_and_login(client, "owner15@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+    _register_and_login(client, "yaexiste15@sintetico.test")
+    inv = _invite(client, owner, hid, "yaexiste15@sintetico.test")
+
+    r = client.post(
+        "/auth/register-with-invitation",
+        json={"token": inv["token"], "email": "yaexiste15@sintetico.test", "password": PASSWORD},
+    )
+    assert r.status_code == 409, r.text
+    # La invitación sigue viva: puede aceptarla autenticado por la vía normal.
+    guest = client.post("/auth/login", json={"email": "yaexiste15@sintetico.test", "password": PASSWORD}).json()["access_token"]
+    r = client.post(f"/households/invitations/{inv['token']}/accept", headers=_auth(guest))
+    assert r.status_code == 200, r.text
+
+
+def test_register_with_invitation_concurrent_requests_create_one_account(open_client):
+    import threading
+
+    client, db_path = open_client
+    owner = _register_and_login(client, "owner16@sintetico.test")
+    hid = _bootstrap_household(client, owner)
+    inv = _invite(client, owner, hid, "carrera16@sintetico.test")
+
+    results = []
+    barrier = threading.Barrier(2)
+
+    def _attempt():
+        barrier.wait()
+        try:
+            r = client.post(
+                "/auth/register-with-invitation",
+                json={"token": inv["token"], "email": "carrera16@sintetico.test", "password": PASSWORD},
+            )
+            results.append(r.status_code)
+        except Exception:
+            results.append(-1)
+
+    threads = [threading.Thread(target=_attempt) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30)
+
+    assert results.count(200) <= 1, results
+    con = sqlite3.connect(db_path)
+    users = con.execute("SELECT COUNT(*) FROM users WHERE email=?", ("carrera16@sintetico.test",)).fetchone()[0]
+    memberships = con.execute(
+        "SELECT COUNT(*) FROM household_memberships hm JOIN users u ON u.id=hm.user_id WHERE u.email=?",
+        ("carrera16@sintetico.test",),
+    ).fetchone()[0]
+    accepted = con.execute(
+        "SELECT COUNT(*) FROM household_invitations WHERE id=? AND accepted_at IS NOT NULL", (inv["id"],),
+    ).fetchone()[0]
+    con.close()
+    # Exactamente UNA cuenta, UNA membresía y UNA consumación de la invitación.
+    assert users == 1 and memberships == 1 and accepted == 1
+
+
+def test_register_with_invitation_is_rate_limited(open_client):
+    client, _ = open_client
+    statuses = []
+    for i in range(11):
+        r = client.post(
+            "/auth/register-with-invitation",
+            json={"token": f"token-invalido-{i:02d}-xxxxxxxxxxxx", "email": f"rl{i}@sintetico.test", "password": PASSWORD},
+        )
+        statuses.append(r.status_code)
+    assert statuses[-1] == 429, statuses
+
+
+def test_public_register_stays_closed_with_invitation_flow_active(closed_client):
+    client, _ = closed_client
+    r = client.post("/auth/register", json={"email": "cerrado@sintetico.test", "password": PASSWORD})
+    assert r.status_code == 403, r.text
+    r = client.get("/auth/config")
+    assert r.json() == {"public_registration": False}

@@ -8,6 +8,10 @@ APP_DIR = Path(__file__).resolve().parents[1]
 
 
 def _load_local_env() -> None:
+    # Suite determinista (CP1d-FAMILY-PILOT-1a): los tests NUNCA deben heredar
+    # los .env del desarrollador; conftest.py fija VANTDOMUS_SKIP_LOCAL_ENV=1.
+    if os.getenv("VANTDOMUS_SKIP_LOCAL_ENV", "").strip().lower() in {"1", "true", "yes"}:
+        return
     for env_path in (APP_DIR / ".env.local", APP_DIR / ".env"):
         if not env_path.exists():
             continue
