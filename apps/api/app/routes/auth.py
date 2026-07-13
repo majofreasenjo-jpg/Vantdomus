@@ -326,6 +326,16 @@ def _verified_totp(db, user_id: str, stored_secret: str, code: str) -> bool:
         db.execute("UPDATE user_mfa SET totp_secret=? WHERE user_id=?", (protect_totp_secret(secret), user_id))
     return verified
 
+@router.get("/config")
+def auth_config():
+    """
+    CP1d-FAMILY-PILOT-1a — Config pública NO sensible para la UI (evita usar
+    NEXT_PUBLIC_* para gating). Solo expone si el registro público está abierto.
+    """
+    from app.config import public_registration_enabled
+    return {"public_registration": public_registration_enabled()}
+
+
 @router.post("/register")
 def register(
     body: RegisterBody | None = None,
@@ -333,6 +343,15 @@ def register(
     password: str | None = None,
     db=Depends(get_db),
 ):
+    # CP1d-FAMILY-PILOT-1a — puerta cerrada: en piloto/producción el registro
+    # público se RECHAZA en el ENDPOINT (no basta ocultarlo en la UI). El alta
+    # de integrantes es por invitación privada del hogar (single-use, expira).
+    from app.config import public_registration_enabled
+    if not public_registration_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="El registro público está deshabilitado. Pide una invitación al administrador de tu hogar.",
+        )
     # Accept credentials from JSON body (preferred) or legacy query params
     # (deprecated; logs URLs and leaks the password).
     body_email = body.email if body else None
@@ -341,6 +360,8 @@ def register(
         body_email, body_password, None, email, password, None,
     )
     email = _normalize_email(resolved_email)
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("register", email)
     _validate_registration(email, password)
     row = db.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone()
     if row:
@@ -378,6 +399,8 @@ def login(
         body_email, body_password, body_mfa, email, password, mfa_code,
     )
     email = _normalize_email(resolved_email)
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("login", email)
     max_attempts, _window_seconds = _failed_login_limit()
     if _recent_failed_login_count(db, email) >= max_attempts:
         write_security_event(
@@ -562,6 +585,8 @@ def request_password_reset(
         raise HTTPException(status_code=400, detail="email is required")
     email = effective_email
     normalized = _normalize_email(email)
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("password_reset", normalized)
     row = db.execute("SELECT id FROM users WHERE email=?", (normalized,)).fetchone()
     response = {"status": "accepted"}
     if row:

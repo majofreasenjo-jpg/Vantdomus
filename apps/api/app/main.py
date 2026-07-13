@@ -110,6 +110,8 @@ async def security_headers(request, call_next):
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault("Cache-Control", "no-store")
+    # CP1d-FAMILY-PILOT-1a: la API del piloto familiar nunca debe indexarse.
+    response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
     return response
 
 

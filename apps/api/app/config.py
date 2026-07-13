@@ -35,6 +35,25 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+def public_registration_enabled() -> bool:
+    """
+    CP1d-FAMILY-PILOT-1a — Gate del registro público.
+
+    - Configuración explícita manda: VANTDOMUS_PUBLIC_REGISTRATION=true|false.
+    - Sin configuración: CERRADO en producción/staging (fail-closed), abierto
+      solo en entornos locales de desarrollo/demo/test.
+    El alta de integrantes en entornos cerrados es SIEMPRE por invitación
+    privada del hogar (tokens de un solo uso, expirables).
+    """
+    configured = os.getenv("VANTDOMUS_PUBLIC_REGISTRATION", "").strip().lower()
+    if configured in {"1", "true", "yes"}:
+        return True
+    if configured in {"0", "false", "no"}:
+        return False
+    env = settings.APP_ENV.strip().lower()
+    return env in {"local", "dev", "development", "demo", "test"}
+
+
 def validate_runtime_security() -> None:
     env = settings.APP_ENV.strip().lower()
     if env not in {"production", "prod", "staging"}:

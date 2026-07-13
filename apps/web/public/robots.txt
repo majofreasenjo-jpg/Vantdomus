@@ -1,0 +1,4 @@
+# VantDomus Hogar — piloto familiar privado (CP1d-FAMILY-PILOT-1a).
+# Esta aplicación no debe aparecer en buscadores.
+User-agent: *
+Disallow: /

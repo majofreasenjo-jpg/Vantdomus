@@ -265,3 +265,50 @@ def check_rate_limit(request: Request):
             headers={"Retry-After": str(retry_after), "X-RateLimit-Remaining": "0"},
         )
     return {"X-RateLimit-Remaining": str(remaining)}
+
+
+# =============================================================================
+# CP1d-FAMILY-PILOT-1a — Rate limits POR ACCION (login, registro, invitaciones,
+# reset, backup). Complementan el limite global: ventanas mas estrictas para
+# endpoints sensibles, con clave propia (email/usuario), independiente de IP.
+# =============================================================================
+
+def _action_limits() -> dict:
+    """Limites por accion: (max_requests, window_seconds). Ajustables por env."""
+    def _pair(name: str, default_max: int, default_window: int) -> tuple[int, int]:
+        return (
+            int(os.getenv(f"VANTDOMUS_RL_{name}_MAX", str(default_max))),
+            int(os.getenv(f"VANTDOMUS_RL_{name}_WINDOW", str(default_window))),
+        )
+    return {
+        "register": _pair("REGISTER", 5, 3600),          # 5/hora por email
+        "login": _pair("LOGIN", 10, 300),                # 10 cada 5 min por email
+        "password_reset": _pair("RESET", 3, 3600),       # 3/hora por email
+        "invitation_create": _pair("INV_CREATE", 10, 3600),   # 10/hora por usuario
+        "invitation_accept": _pair("INV_ACCEPT", 10, 3600),   # 10/hora por usuario
+        "backup": _pair("BACKUP", 3, 3600),              # 3/hora por usuario
+    }
+
+
+def enforce_action_limit(action: str, key: str) -> None:
+    """
+    Aplica el limite de la accion sobre la clave dada (email o user_id).
+    Lanza HTTPException 429 si se supera. Usa la misma memoria compartida
+    (con GC) del limitador global. No registra la clave en claro en eventos.
+    """
+    from fastapi import HTTPException  # import local para no ciclar
+
+    if not _enabled():
+        return
+    limits = _action_limits()
+    if action not in limits:
+        return
+    max_req, window = limits[action]
+    bucket_key = f"action:{action}:{(key or 'anon').strip().lower()}"
+    allowed, _remaining, retry_after = _check_memory_rate_limit(bucket_key, max_req, window)
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiados intentos. Espera unos minutos e intenta de nuevo.",
+            headers={"Retry-After": str(retry_after)},
+        )

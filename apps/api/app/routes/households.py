@@ -63,6 +63,14 @@ class InvitationCreate(BaseModel):
     email: str
     role: str = "viewer"
     ttl_hours: int = 168
+    # CP1d-FAMILY-PILOT-1a: vínculo opcional a una persona ya creada del hogar;
+    # al aceptar, el nuevo usuario queda enlazado a esa ficha (persons.user_id).
+    person_id: str | None = None
+
+
+class HouseholdBackupRequest(BaseModel):
+    # Reautenticación obligatoria: el backup toca la base completa del servidor.
+    password: str
 
 class HouseholdProfileUpdate(BaseModel):
     family_name: str | None = None
@@ -539,6 +547,18 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
     if not h:
         raise HTTPException(status_code=404, detail="Household not found")
     email = payload.email.strip().lower()
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("invitation_create", user["user_id"])
+    person_id = (payload.person_id or "").strip() or None
+    if person_id:
+        person = db.execute(
+            "SELECT id, user_id FROM persons WHERE id=? AND household_id=?",
+            (person_id, household_id),
+        ).fetchone()
+        if not person:
+            raise HTTPException(status_code=404, detail="Person not found in this household")
+        if person["user_id"]:
+            raise HTTPException(status_code=400, detail="Person is already linked to a user")
     ttl_hours = max(1, min(int(payload.ttl_hours or 168), 24 * 30))
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).isoformat()
     raw_token = secrets.token_urlsafe(32)
@@ -547,9 +567,9 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
         """
         INSERT INTO household_invitations (
           id, household_id, organization_id, email, role, token_hash, invited_by_user_id,
-          created_at, expires_at, accepted_at, revoked_at
+          created_at, expires_at, accepted_at, revoked_at, person_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)
         """,
         (
             invitation_id,
@@ -561,6 +581,7 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
             user["user_id"],
             now(),
             expires_at,
+            person_id,
         ),
     )
     write_audit_log(
@@ -570,7 +591,7 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
         household_id=household_id,
         user_id=user["user_id"],
         resource_id=invitation_id,
-        metadata={"email": email, "role": role, "expires_at": expires_at},
+        metadata={"email": email, "role": role, "expires_at": expires_at, "person_id": person_id},
     )
     write_security_event(
         db,
@@ -600,10 +621,12 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
 
 @router.post("/invitations/{token}/accept")
 def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("invitation_accept", user["user_id"])
     token_hash = _hash_invitation_token(token)
     invitation = db.execute(
         """
-        SELECT id, household_id, organization_id, email, role, expires_at, accepted_at, revoked_at
+        SELECT id, household_id, organization_id, email, role, expires_at, accepted_at, revoked_at, person_id
         FROM household_invitations
         WHERE token_hash=?
         """,
@@ -634,6 +657,21 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
         "UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=? WHERE id=?",
         (user["user_id"], accepted_at, invitation["id"]),
     )
+    # CP1d-FAMILY-PILOT-1a: si la invitación venía ligada a una persona del
+    # hogar y esa ficha sigue libre, enlazar al usuario recién incorporado.
+    linked_person_id = None
+    invited_person_id = invitation["person_id"]
+    if invited_person_id:
+        person = db.execute(
+            "SELECT id, user_id FROM persons WHERE id=? AND household_id=?",
+            (invited_person_id, invitation["household_id"]),
+        ).fetchone()
+        if person and not person["user_id"]:
+            db.execute(
+                "UPDATE persons SET user_id=? WHERE id=? AND household_id=?",
+                (user["user_id"], invited_person_id, invitation["household_id"]),
+            )
+            linked_person_id = invited_person_id
     write_audit_log(
         db,
         action="accept_invitation",
@@ -641,7 +679,7 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
         household_id=invitation["household_id"],
         user_id=user["user_id"],
         resource_id=invitation["id"],
-        metadata={"email": invitation["email"], "role": invitation["role"]},
+        metadata={"email": invitation["email"], "role": invitation["role"], "linked_person_id": linked_person_id},
     )
     write_security_event(
         db,
@@ -659,7 +697,12 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
         },
     )
     db.commit()
-    return {"ok": True, "household_id": invitation["household_id"], "role": invitation["role"]}
+    return {
+        "ok": True,
+        "household_id": invitation["household_id"],
+        "role": invitation["role"],
+        "linked_person_id": linked_person_id,
+    }
 
 
 @router.post("/{household_id}/invitations/{invitation_id}/revoke")
@@ -980,3 +1023,180 @@ def dashboard(household_id: str, user=Depends(get_current_user), db=Depends(get_
         "alerts": [{"id": a["id"], "severity": a["severity"], "title": a["title"], "message": a["message"], "status": a["status"], "created_at": a["created_at"]} for a in alerts],
         "events": [{"id": e["id"], "domain": e["domain"], "event_type": e["event_type"], "summary": e["summary"], "occurred_at": e["occurred_at"]} for e in events],
     }
+
+
+# ---------------------------------------------------------------------------
+# CP1d-FAMILY-PILOT-1a — Backup consistente del servidor (SQLite VACUUM INTO)
+# Reglas: owner + reautenticación con contraseña; snapshot server-side en
+# DB_PATH.parent/backups; verificación por restauración aislada (integrity_check
+# + conteos); retención de los 10 más recientes; SIN endpoint de descarga y
+# SIN rutas físicas en la respuesta.
+# ---------------------------------------------------------------------------
+
+_BACKUP_VERIFY_TABLES = [
+    "users",
+    "households",
+    "household_memberships",
+    "persons",
+    "household_invitations",
+]
+_BACKUP_KEEP = 10
+
+
+def _backups_dir() -> Path:
+    from ..config import settings
+    return Path(settings.DB_PATH).resolve().parent / "backups"
+
+
+def _require_backup_admin(db, user, household_id: str, password: str) -> None:
+    require_household_role(db, user["user_id"], household_id, "owner")
+    require_verified_email_for_sensitive_action(db, user["user_id"])
+    from ..security import verify_password
+    row = db.execute("SELECT password_hash FROM users WHERE id=?", (user["user_id"],)).fetchone()
+    if not row or not verify_password(password or "", row["password_hash"]):
+        write_security_event(
+            db,
+            event_type="household_backup_reauth_failed",
+            severity="high",
+            source="household_backup",
+            household_id=household_id,
+            user_id=user["user_id"],
+            metadata={},
+            commit=True,
+        )
+        raise HTTPException(status_code=403, detail="Reautenticación fallida: contraseña incorrecta")
+
+
+@router.post("/{household_id}/admin/backup")
+def create_household_backup(
+    household_id: str,
+    payload: HouseholdBackupRequest,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    _require_backup_admin(db, user, household_id, payload.password)
+    from ..rate_limit import enforce_action_limit
+    enforce_action_limit("backup", user["user_id"])
+    from ..config import settings
+    if settings.DATABASE_URL:
+        raise HTTPException(
+            status_code=501,
+            detail="El backup VACUUM INTO aplica solo a SQLite; con Postgres se usa el backup gestionado del proveedor",
+        )
+    import sqlite3
+    db_path = Path(settings.DB_PATH).resolve()
+    if not db_path.exists():
+        raise HTTPException(status_code=500, detail="Base de datos no encontrada en el servidor")
+    backups = _backups_dir()
+    backups.mkdir(parents=True, exist_ok=True)
+    created_at = datetime.now(timezone.utc)
+    backup_id = f"vantdomus_{created_at.strftime('%Y%m%dT%H%M%SZ')}_{secrets.token_hex(4)}"
+    snapshot_path = backups / f"{backup_id}.db"
+
+    source_counts = {
+        table: int(db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+        for table in _BACKUP_VERIFY_TABLES
+    }
+
+    # VACUUM INTO exige una conexión sin transacción abierta: usar una propia.
+    src = sqlite3.connect(str(db_path))
+    try:
+        src.execute("VACUUM INTO ?", (str(snapshot_path),))
+    finally:
+        src.close()
+
+    # Restauración aislada: abrir el snapshot como base independiente y verificar.
+    snap = sqlite3.connect(str(snapshot_path))
+    try:
+        integrity = str(snap.execute("PRAGMA integrity_check").fetchone()[0])
+        snapshot_counts = {
+            table: int(snap.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+            for table in _BACKUP_VERIFY_TABLES
+        }
+    finally:
+        snap.close()
+
+    if integrity.lower() != "ok":
+        snapshot_path.unlink(missing_ok=True)
+        write_security_event(
+            db,
+            event_type="household_backup_integrity_failed",
+            severity="high",
+            source="household_backup",
+            household_id=household_id,
+            user_id=user["user_id"],
+            metadata={"backup_id": backup_id, "integrity": integrity[:200]},
+            commit=True,
+        )
+        raise HTTPException(status_code=500, detail="El snapshot no pasó integrity_check y fue descartado")
+
+    counts_match = snapshot_counts == source_counts
+    sha256 = hashlib.sha256(snapshot_path.read_bytes()).hexdigest()
+    size_bytes = snapshot_path.stat().st_size
+
+    metadata = {
+        "backup_id": backup_id,
+        "created_at": created_at.isoformat(),
+        "size_bytes": size_bytes,
+        "sha256": sha256,
+        "integrity": "ok",
+        "verified": counts_match,
+        "tables": snapshot_counts,
+        "source_tables": source_counts,
+    }
+    (backups / f"{backup_id}.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    # Retención: conservar los N snapshots más recientes (nombre = timestamp UTC).
+    existing = sorted(backups.glob("vantdomus_*.db"))
+    for old in existing[:-_BACKUP_KEEP] if len(existing) > _BACKUP_KEEP else []:
+        old.unlink(missing_ok=True)
+        old.with_suffix(".json").unlink(missing_ok=True)
+
+    write_audit_log(
+        db,
+        action="household_backup_created",
+        resource_type="household_backup",
+        household_id=household_id,
+        user_id=user["user_id"],
+        resource_id=backup_id,
+        metadata={"sha256": sha256, "size_bytes": size_bytes, "verified": counts_match},
+    )
+    write_security_event(
+        db,
+        event_type="household_backup_created",
+        severity="medium",
+        source="household_backup",
+        household_id=household_id,
+        user_id=user["user_id"],
+        metadata={"backup_id": backup_id, "sha256": sha256, "verified": counts_match},
+    )
+    db.commit()
+    # Sin ruta física: el snapshot vive solo en el disco del servidor.
+    return metadata
+
+
+@router.get("/{household_id}/admin/backup")
+def list_household_backups(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "owner")
+    backups = _backups_dir()
+    items = []
+    if backups.exists():
+        for meta_file in sorted(backups.glob("vantdomus_*.json"), reverse=True):
+            try:
+                data = json.loads(meta_file.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            items.append(
+                {
+                    "backup_id": data.get("backup_id"),
+                    "created_at": data.get("created_at"),
+                    "size_bytes": data.get("size_bytes"),
+                    "sha256": data.get("sha256"),
+                    "integrity": data.get("integrity"),
+                    "verified": data.get("verified"),
+                    "tables": data.get("tables"),
+                }
+            )
+    return {"items": items, "keep": _BACKUP_KEEP}

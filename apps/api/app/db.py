@@ -174,7 +174,8 @@ def ensure_schema():
             "272_persons_user_link.sql", "273_document_route_candidates.sql",
             "274_family_board.sql", "275_household_shopping.sql",
             "276_daily_activities.sql", "277_persons_avatar_status.sql",
-            "278_family_post_comments.sql", "279_assistant_proposals.sql"
+            "278_family_post_comments.sql", "279_assistant_proposals.sql",
+            "280_invitation_person_link.sql"
         ]
 
         is_pg = isinstance(con, PostgresConnectionWrapper)
