@@ -127,7 +127,7 @@ DEVELOPMENT (actual)               FAMILY-PILOT (nuevo, estable)
 
 Después: Fase 2 pulir bandeja escolar (asignatura/fechas) · Fase 4 IA académica real (Fases B/C/D por usuario) · Fase 5 avisos push/email · **Medicamentos** (segunda línea, tras estabilizar Estudio).
 
-**Estimación honesta:** 1a-1b = 2-3 sesiones · 1c-1d = 2-3 sesiones · 1e = 2 sesiones · 1f = 1 sesión. La familia podría estar **cargando horarios reales al final de 1c/1d**.
+**Criterio de avance (corrección ChatGPT — sin compromisos por "sesiones"):** el avance es **por evidencia, no por tiempo**: `PILOT-1a aprobado → PILOT-1b aprobado → PILOT-1c aprobado → carga de datos reales de bajo riesgo`. Cada subcheckpoint tiene matriz de aceptación verificable; ninguno inicia sin cierre formal del anterior.
 
 ## 12. Archivos exactos del primer subcheckpoint (PILOT-1a)
 
@@ -144,6 +144,137 @@ Después: Fase 2 pulir bandeja escolar (asignatura/fechas) · Fase 4 IA académi
 - Rama `family-pilot` — creación (operación git, no archivo)
 
 **Fuera de alcance de 1a:** modelos académicos (1c), UI nueva (1d), IA (fases posteriores), medicamentos, home CP1b (no se toca).
+
+---
+
+# CORRECCIONES OBLIGATORIAS (revisión ChatGPT — v2)
+
+Estas correcciones **sustituyen y endurecen** lo dicho arriba donde corresponda.
+
+## A. Registro cerrado (UI + API, no solo ocultar)
+
+- `VANTDOMUS_PUBLIC_REGISTRATION=false` **por defecto en prod/staging**; el **backend rechaza** `/auth/register` (403 con mensaje claro) aunque se llame directo al endpoint; la UI además no lo ofrece.
+- Alta de integrantes **solo por invitación privada** del owner. El mecanismo existente se endurece a: token **de un solo uso** (ya es hash + `accepted_at`), **expirable** (ya existe `expires_at`), y ligado a **`household_id` + email + rol + persona esperada** (nuevo: columna `person_id` en `household_invitations` para vincular la invitación al perfil del hijo/padre correcto).
+- **Rate limit** en `/register`, `/invitations` y aceptación (el rate limiter global existe; se agregan reglas específicas) + **auditoría** de creación/aceptación/revocación de invitaciones (audit_log).
+
+## B. Menores y consentimiento (modelo consistente, no un booleano)
+
+Migración propuesta (PILOT-1b, no 1a):
+```
+persons.date_of_birth          TEXT NULL      -- o age_band cuando no se quiera fecha exacta
+persons.age_band               TEXT NULL      -- child|teen|adult (alternativa a DOB)
+persons.is_minor               -- DERIVADO (vista/propiedad calculada, NUNCA columna suelta)
+persons.guardian_person_id     TEXT NULL      -- adulto responsable
+persons.guardian_consent_status TEXT          -- pending|granted|revoked
+persons.guardian_consent_at    TEXT NULL
+persons.guardian_consent_by    TEXT NULL      -- user_id del adulto que consintió
+persons.privacy_profile        TEXT           -- standard|minor_restricted
+```
+- `is_minor` se **deriva** de `date_of_birth`/`age_band` (no puede quedar incoherente con la edad).
+- **En pruebas se usan fixtures sintéticos** — no se cargan fechas reales de nacimiento hasta que la infra esté aprobada y el consentimiento registrado.
+
+## C. Aislamiento entre hijos — matriz y tests OBLIGATORIOS
+
+| # | Escenario | Resultado exigido |
+|---|---|---|
+| C1 | Hijo A lee datos privados (funciones/evidencia/memoria/plan) de hijo B | ❌ 403/filtrado |
+| C2 | Hijo A modifica horario/tareas de hijo B | ❌ 403 |
+| C3 | Hijo B consulta conversaciones/propuestas privadas de hijo C | ❌ filtrado (proposals ya filtran por person para no-admin) |
+| C4 | Padre ve datos de cualquier hijo | ✅ según permiso (owner/admin) |
+| C5 | Eventos compartidos vs personales | ✅ distinguibles (household vs person_id) |
+| C6 | Cualquier query académica | ✅ filtrada por `household_id` **y** `person_id` |
+| C7 | Usuario de hogar ajeno accede a cualquier recurso | ❌ 403 SIEMPRE |
+| C8 | Enumeración de IDs (probar UUIDs ajenos secuencialmente) | ❌ 403/404 sin fuga de existencia; rate limited |
+
+Cada fila = al menos un test automatizado en `tests/test_family_isolation.py`. **PILOT-1b no cierra sin C1–C8 verdes.**
+
+## D. Scheduler — auditoría antes de confiar (no apto por existir)
+
+El scheduler (`vantguide_scheduler.py`) existe pero **NO se declara apto para el piloto** hasta probar en `tests/test_scheduler_pilot.py` + ensayo en el entorno online:
+1. Zona horaria `America/Santiago` (el código lee tz por hogar — verificar). 2. Cambio de horario de verano (fechas frontera). 3. Reinicio del servicio (Render reinicia; el scheduler debe correr como cron/loop que sobrevive). 4. **Catch-up**: recordatorios que vencieron durante downtime se emiten al reiniciar (una vez, marcados atrasados). 5. Idempotencia (dedupe_key ya existe — verificar bajo doble ejecución). 6. Cero duplicados. 7. Tareas vencidas → estado atrasado + evento. 8. Reprogramación de una función → recordatorios viejos no disparan. 9. Escalamiento al padre SOLO según regla (missed reiterado). 10. Comportamiento documentado si el backend estuvo detenido horas.
+Además: decidir el **mecanismo de ejecución online** (Render cron job vs loop en proceso con lock) — hoy está pensado como cron local.
+
+## E. Backup SQLite consistente (prohibido copiar en caliente)
+
+- Método elegido: **`VACUUM INTO '/data/backups/vantdomus-YYYYMMDD-HHMM.db'`** (snapshot transaccional consistente sin detener escrituras) — con fallback documentado a SQLite Backup API. **Nunca** `cp` del archivo vivo.
+- El gate PILOT-1a exige el ciclo completo: **crear backup → restaurarlo en entorno aislado → verificar conteos por tabla (origen == restaurado) → documentar RPO/RTO → rollback probado.**
+- Objetivos iniciales: **RPO ≤ 24 h** (snapshot diario + export JSON por hogar) · **RTO ≤ 1 h** (procedimiento documentado y ensayado).
+
+## F. Seguridad online mínima (checklist pre-deploy)
+
+| Control | Estado actual | Acción |
+|---|---|---|
+| HTTPS | Render/Vercel lo dan | Verificar redirect http→https |
+| Cookies `Secure/HttpOnly/SameSite` | Cookie de sesión del web (`vantdomus_access_token`) — auditar atributos en prod | Fijar Secure+HttpOnly+SameSite=Lax |
+| CSRF | Ya implementado en el proxy (cookie+header `X-VantDomus-CSRF`) | Test en prod |
+| CORS | `VANTDOMUS_ALLOWED_HOSTS` existe | Limitar a la URL EXACTA del frontend |
+| Rate limiting | Global existe | Reglas específicas login/invitaciones/reset |
+| Sesiones revocables | ✅ (jti + revoked_at) | Test logout en prod |
+| Expiración de sesión | ✅ (exp en JWT) | Revisar duración para piloto |
+| Rotación de secretos antiguos | Pendiente del incidente histórico | **Rotar TODOS los secretos al crear el entorno pilot (nuevos, generados en paneles)** |
+| Logs sin datos escolares sensibles | Sanitización existente en asistente | Auditar logs de uvicorn/Render |
+| `noindex` | No existe | Header `X-Robots-Tag: noindex` + meta + robots.txt |
+| Headers de seguridad | Middleware existente | Verificar en prod |
+| Separación pilot/dev | Diseñada (§8) | Ejecutar |
+
+## G. Criterio de avance
+
+Sin fechas ni "sesiones": **gates verificables** (ver §11 corregido). Cada subcheckpoint entrega evidencia, ChatGPT audita, se respalda, y recién entonces inicia el siguiente.
+
+---
+
+# MATRIZ DE ACEPTACIÓN — PILOT-1a (Base online cerrada)
+
+| # | Criterio | Verificación |
+|---|---|---|
+| 1 | `VANTDOMUS_PUBLIC_REGISTRATION=false` default en prod; `/register` devuelve 403 vía API directa | test + curl en prod |
+| 2 | Registro abierto solo en local/demo (dev no se rompe) | test |
+| 3 | Invitación privada: token un solo uso, expirable, ligado a household+email+rol(+person) | tests |
+| 4 | Rate limit + auditoría en invitaciones | test + audit_log |
+| 5 | Backup `VACUUM INTO` creado, restaurado en aislado, conteos verificados | evidencia del ciclo completo |
+| 6 | RPO/RTO documentados; rollback de código probado (tag anterior) | doc + ensayo |
+| 7 | Deploy Render (API+Disk) + Vercel (web) desde rama `family-pilot` | URL privada respondiendo |
+| 8 | Login/logout online multi-dispositivo | smoke manual Manuel |
+| 9 | CORS exacto, cookies seguras, CSRF, noindex, headers verificados en prod | checklist F con evidencia |
+| 10 | Secretos NUEVOS generados solo en paneles Render/Vercel; los históricos rotados | confirmación sin valores |
+| 11 | Flags de IA apagados en prod (`mock/false/false/false`) | endpoint/env check |
+| 12 | Smoke online: health, login, hogar demo sintético, chat Domi (mock) | evidencia |
+| 13 | Working tree limpio + commits pusheados + respaldo del checkpoint | protocolo estándar |
+
+**Datos en 1a: SOLO sintéticos.** La familia no entra aún (eso es 1b tras su propia matriz).
+
+# ARCHIVOS EXACTOS A MODIFICAR (PILOT-1a)
+
+**Backend:**
+1. `apps/api/app/config.py` — flag `VANTDOMUS_PUBLIC_REGISTRATION` (+ default por entorno)
+2. `apps/api/app/routes/auth.py` — gate 403 en `/register` cuando cerrado
+3. `apps/api/app/routes/households.py` — invitaciones: columna `person_id` opcional + auditoría; endpoint owner-only `POST /households/{hid}/admin/backup` (VACUUM INTO) + listado/descarga
+4. `apps/api/sqlite_migrations/280_invitation_person_link.sql` — vínculo invitación→persona
+5. `apps/api/app/rate_limit.py` — reglas específicas login/invitaciones/reset
+6. `apps/api/app/main.py` — header `X-Robots-Tag: noindex` (+ robots.txt en web)
+
+**Web:** 7. `apps/web/app/login/page.tsx` — sin enlace a registro cuando cerrado (flag público NO sensible) · 8. `apps/web/public/robots.txt` — Disallow all
+
+**Docs/ops:** 9. `docs/DEPLOY_FAMILY_PILOT_RUNBOOK.md` — runbook actualizado (incluye rotación de secretos históricos y flags IA off) · 10. rama `family-pilot` (operación git)
+
+# TESTS EXACTOS (PILOT-1a)
+
+`tests/test_family_pilot_access.py` (nuevo):
+1. `test_register_blocked_when_flag_off` (403 API directa) · 2. `test_register_open_in_local_demo` · 3. `test_invitation_single_use` (segunda aceptación falla) · 4. `test_invitation_expires` · 5. `test_invitation_bound_to_household_email_role` · 6. `test_invitation_person_link` · 7. `test_invitation_rate_limited` · 8. `test_invitation_audited` · 9. `test_backup_vacuum_into_creates_consistent_snapshot` (conteos por tabla origen==snapshot) · 10. `test_backup_restore_cycle` (restaurar en tmp y verificar) · 11. `test_backup_owner_only` (403 para member) · 12. `test_noindex_header`
+Más: regresión completa existente (55 tests) + tsc.
+
+# PLAN DE ROLLBACK (PILOT-1a)
+
+- **Código:** cada promoción a `family-pilot` = tag (`pilot-vN`); rollback = redeploy del tag anterior en Render/Vercel (ambos guardan historial de deploys — un clic) · ensayado 1 vez como parte del gate.
+- **Datos:** restaurar el snapshot `VACUUM INTO` más reciente (procedimiento: detener servicio → reemplazar archivo en `/data` → iniciar → smoke) · ensayado con datos sintéticos.
+- **Config:** flags y secretos viven en los paneles (no en el repo) → revertir un flag no requiere deploy.
+- **Local (desarrollo):** intacto — el rollback del piloto jamás toca `development`.
+
+# CONFIRMACIONES
+
+✅ **Cero IA externa** (flags apagados; adapter solo alcanzable por shadow harness) · ✅ **Cero datos familiares reales** (solo sintéticos hasta aprobar infra + consentimiento) · ✅ **Cero deploy todavía** (esta entrega es documental) · ✅ **Cero secretos** en chat/repo/doc · ✅ **MockProvider por defecto** (verificado por código y tests).
+
+**Frase de control adoptada:** *Primero cerraremos la puerta, separaremos correctamente a cada integrante y probaremos que los datos pueden recuperarse; solo después la familia entrará al piloto.*
 
 ---
 
