@@ -46,9 +46,17 @@ producción. Al arrancar, la API **falla en el arranque (fail-closed)** si no se
 cumple TODO esto:
 
 - `JWT_SECRET` fuerte (≥32, no default) y MFA key fuerte (≥32);
-- `VANTDOMUS_APP_PUBLIC_URL` con **https://**;
+- `VANTDOMUS_APP_PUBLIC_URL` con **https://** y hostname válido, y ese
+  hostname debe estar **incluido exactamente** en `VANTDOMUS_ALLOWED_HOSTS`
+  (vínculo obligatorio, igual que en producción);
 - `VANTDOMUS_ALLOWED_HOSTS` y `CORS_ALLOWED_ORIGINS` **explícitos**, sin
-  wildcard y sin localhost;
+  wildcard y sin loopback (detección por hostname exacto, no por substring);
+  cada origen CORS debe ser un origen **https real** (`https://host`, sin
+  path);
+- `VANTDOMUS_API_RATE_LIMIT_MODE` solo acepta `memory` (exige exactamente
+  1 instancia) o `redis` (admite ≥1 instancias pero exige
+  `VANTDOMUS_REDIS_URL`); cualquier otro valor, incluido `off`, aborta el
+  arranque; `VANTDOMUS_BACKEND_INSTANCES` debe ser entero ≥ 1;
 - registro público **cerrado** (`VANTDOMUS_PUBLIC_REGISTRATION` ausente o
   `false`; con `true` el arranque falla);
 - uploads públicos apagados;
@@ -117,7 +125,7 @@ piloto; decide Manuel con ChatGPT).
 | `JWT_SECRET` | **nuevo**, generado en panel (rotado del histórico) |
 | `VANTDOMUS_MFA_SECRET_KEY` | **nuevo**, 32+ chars |
 | `VANTDOMUS_PUBLIC_REGISTRATION` | `false` ← **la puerta del piloto** |
-| `VANTDOMUS_ALLOWED_HOSTS` | host exacto de Render (ej. `vantdomus-family-pilot.onrender.com`) |
+| `VANTDOMUS_ALLOWED_HOSTS` | host exacto de Render **más** el host de `VANTDOMUS_APP_PUBLIC_URL` (ej. `vantdomus-family-pilot.onrender.com,vantdomus-family-pilot.vercel.app`) — el arranque falla si el host público no está incluido |
 | `CORS_ALLOWED_ORIGINS` | **solo** el dominio exacto de Vercel (ej. `https://vantdomus-family-pilot.vercel.app`) |
 | `VANTDOMUS_ALLOW_DEMO_SEED` | `false` (el hogar del piloto se crea 1 vez, sin seed demo) |
 | `ASSISTANT_PROVIDER_MODE` | `mock` |
@@ -154,11 +162,16 @@ login 10/5min, reset 3/h, invitaciones 10/h, backup 3/h); ajustables por
   persona en una transacción que consume la invitación; rollback total ante
   fallo; anti-enumeración; rate limit por IP y fingerprint del token). Nunca
   se abre el registro público, ni siquiera temporalmente.
-- El email de verificación es un efecto lateral **post-commit**: si el envío
-  falla, la cuenta queda válida, se registra `email_verification_delivery_failed`
+- El email de verificación es un efecto lateral **post-commit** con **token
+  durable primero**: (1) la cuenta se commitea; (2) el token de verificación
+  se crea y COMMITEA; (3) recién entonces se llama al proveedor de email —
+  así un correo enviado jamás referencia un token inexistente. Si falla la
+  persistencia del token, NO se llama al proveedor
+  (`email_verification_token_persist_failed`); si falla el proveedor, la
+  cuenta y el token durable permanecen (`email_verification_delivery_failed`)
   y el reenvío controlado vive en `POST /auth/email/verification/request`
-  (rate limit 3/h). En `family-pilot` el token de verificación **nunca** viaja
-  en la respuesta HTTP (solo por email).
+  (rate limit 3/h). En `family-pilot` el token **nunca** viaja en la
+  respuesta HTTP (solo por email).
 
 ## 5. Backup y recuperación (RPO ≤ 24 h, RTO ≤ 1 h)
 

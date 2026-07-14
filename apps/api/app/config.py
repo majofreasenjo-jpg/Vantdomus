@@ -73,20 +73,51 @@ def _require_strong_secrets() -> None:
         raise RuntimeError("VANTDOMUS_MFA_SECRET_KEY or VANTDOMUS_MFA_SECRET_KEYS must contain only 32+ character keys for this environment")
 
 
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
+
+
 def _require_explicit_web_surface() -> None:
-    cors_origins = [origin.strip().lower() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
-    if not cors_origins or "*" in cors_origins:
-        raise RuntimeError("CORS_ALLOWED_ORIGINS must be explicit for this environment")
-    if any("localhost" in origin or "127.0.0.1" in origin for origin in cors_origins):
-        raise RuntimeError("CORS_ALLOWED_ORIGINS must not include localhost origins for this environment")
-    public_url = os.getenv("VANTDOMUS_APP_PUBLIC_URL", "").strip()
-    if not public_url.startswith("https://"):
-        raise RuntimeError("VANTDOMUS_APP_PUBLIC_URL must be configured with an https:// URL for this environment")
+    """
+    Superficie web explícita y VINCULADA (family-pilot):
+    - VANTDOMUS_ALLOWED_HOSTS: hosts exactos, sin wildcard ni loopback;
+    - VANTDOMUS_APP_PUBLIC_URL: https:// con hostname válido, y ese hostname
+      debe estar INCLUIDO exactamente en VANTDOMUS_ALLOWED_HOSTS;
+    - CORS_ALLOWED_ORIGINS: cada origen se PARSEA como URL https real
+      (scheme+host exactos, sin path); loopback se detecta por hostname
+      exacto, nunca por substring (un host legítimo tipo
+      notlocalhost.example no debe rechazarse).
+    """
     allowed_hosts = [host.strip().lower() for host in os.getenv("VANTDOMUS_ALLOWED_HOSTS", "").split(",") if host.strip()]
     if not allowed_hosts:
         raise RuntimeError("VANTDOMUS_ALLOWED_HOSTS must be explicit for this environment")
-    if "*" in allowed_hosts or any(host in {"localhost", "127.0.0.1"} for host in allowed_hosts):
-        raise RuntimeError("VANTDOMUS_ALLOWED_HOSTS must not include wildcard or localhost hosts for this environment")
+    if "*" in allowed_hosts or any(host in _LOOPBACK_HOSTS for host in allowed_hosts):
+        raise RuntimeError("VANTDOMUS_ALLOWED_HOSTS must not include wildcard or localhost/loopback hosts for this environment")
+
+    public_url = os.getenv("VANTDOMUS_APP_PUBLIC_URL", "").strip()
+    parsed = urlparse(public_url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise RuntimeError("VANTDOMUS_APP_PUBLIC_URL must be a valid https:// URL for this environment")
+    public_host = parsed.hostname.lower()
+    if public_host in _LOOPBACK_HOSTS:
+        raise RuntimeError("VANTDOMUS_APP_PUBLIC_URL must not point to a localhost/loopback host")
+    if public_host not in allowed_hosts:
+        raise RuntimeError("VANTDOMUS_ALLOWED_HOSTS must include the host from VANTDOMUS_APP_PUBLIC_URL")
+
+    cors_origins = [origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+    if not cors_origins or "*" in cors_origins:
+        raise RuntimeError("CORS_ALLOWED_ORIGINS must be explicit for this environment")
+    for origin in cors_origins:
+        parsed_origin = urlparse(origin)
+        if (
+            parsed_origin.scheme != "https"
+            or not parsed_origin.hostname
+            or parsed_origin.path not in ("", "/")
+            or parsed_origin.query
+            or parsed_origin.fragment
+        ):
+            raise RuntimeError(f"CORS_ALLOWED_ORIGINS contains a malformed origin (must be exact https origins): {origin[:80]}")
+        if parsed_origin.hostname.lower() in _LOOPBACK_HOSTS:
+            raise RuntimeError("CORS_ALLOWED_ORIGINS must not include localhost/loopback origins for this environment")
 
 
 def _flag_enabled(name: str) -> bool:
@@ -135,17 +166,22 @@ def _validate_family_pilot_runtime() -> None:
     normalized_db = str(db_path).replace("\\", "/").lower()
     if raw_db.startswith("/tmp") or "/tmp/" in normalized_db:
         raise RuntimeError("DB_PATH must not live in /tmp for family-pilot (no persiste entre redeploys)")
-    # Single instance: única condición bajo la cual el rate limiter en memoria
-    # es aceptable. Más de una réplica exige Redis (deuda documentada).
+    # Rate limiting: SOLO memory|redis (cualquier otro valor, incluido off,
+    # falla). memory se tolera únicamente con EXACTAMENTE una instancia;
+    # redis admite >=1 instancias pero exige VANTDOMUS_REDIS_URL.
     rate_limit_mode = os.getenv("VANTDOMUS_API_RATE_LIMIT_MODE", "memory").strip().lower()
-    if rate_limit_mode == "off":
-        raise RuntimeError("VANTDOMUS_API_RATE_LIMIT_MODE must not be off for family-pilot")
+    if rate_limit_mode not in {"memory", "redis"}:
+        raise RuntimeError("VANTDOMUS_API_RATE_LIMIT_MODE must be memory or redis for family-pilot")
     try:
         instances = int(os.getenv("VANTDOMUS_BACKEND_INSTANCES", "1"))
     except ValueError:
         raise RuntimeError("VANTDOMUS_BACKEND_INSTANCES must be an integer")
-    if instances != 1 and rate_limit_mode != "redis":
+    if instances < 1:
+        raise RuntimeError("VANTDOMUS_BACKEND_INSTANCES must be >= 1")
+    if rate_limit_mode == "memory" and instances != 1:
         raise RuntimeError("family-pilot with in-memory rate limiting requires exactly ONE backend instance; use Redis for multiple replicas")
+    if rate_limit_mode == "redis" and not os.getenv("VANTDOMUS_REDIS_URL", "").strip():
+        raise RuntimeError("VANTDOMUS_REDIS_URL is required when VANTDOMUS_API_RATE_LIMIT_MODE=redis for family-pilot")
 
 
 def validate_runtime_security() -> None:

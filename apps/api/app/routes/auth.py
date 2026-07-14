@@ -524,22 +524,26 @@ def register_with_invitation(
         db.rollback()
         raise
     # POST-COMMIT: el email de verificación es un efecto lateral que NUNCA
-    # revierte una cuenta ya creada. Si el envío falla, la cuenta y la
-    # membresía quedan válidas, se registra delivery_failed y el reenvío
-    # seguro queda disponible vía POST /auth/email/verification/request.
+    # revierte una cuenta ya creada. Orden seguro (auditoría DEPLOY-PREFLIGHT):
+    #   1) crear el token de verificación y COMMITEARLO (token DURABLE);
+    #   2) recién entonces llamar al proveedor de email — así un correo
+    #      enviado jamás referencia un token que no exista en la base;
+    #   3) registrar el resultado del envío en una transacción posterior.
+    # Si falla el paso 1, NO se llama al proveedor (reenvío disponible).
+    # Si falla el paso 2, la cuenta y el token durable permanecen.
     delivery: dict = {"ok": False, "provider": None}
     token_payload: dict = {}
+    raw_token: str | None = None
     try:
         raw_token = _create_email_verification_token(db, uid)
-        delivery = _send_email_verification(db, user_id=uid, email=email, raw_token=raw_token)
         db.commit()
-        token_payload = _local_token_payload(raw_token)
     except Exception:
         db.rollback()
+        raw_token = None
         try:
             write_security_event(
                 db,
-                event_type="email_verification_delivery_failed",
+                event_type="email_verification_token_persist_failed",
                 severity="medium",
                 source="auth",
                 user_id=uid,
@@ -548,6 +552,25 @@ def register_with_invitation(
             )
         except Exception:
             pass
+    if raw_token is not None:
+        try:
+            delivery = _send_email_verification(db, user_id=uid, email=email, raw_token=raw_token)
+            db.commit()
+            token_payload = _local_token_payload(raw_token)
+        except Exception:
+            db.rollback()
+            try:
+                write_security_event(
+                    db,
+                    event_type="email_verification_delivery_failed",
+                    severity="medium",
+                    source="auth",
+                    user_id=uid,
+                    metadata={"email_fingerprint": _email_fingerprint(email), "stage": "post_commit_register_with_invitation"},
+                    commit=True,
+                )
+            except Exception:
+                pass
     return {
         "ok": True,
         "user_id": uid,
