@@ -184,8 +184,12 @@ def _raw_action_token() -> str:
     return secrets.token_urlsafe(32)
 
 def _local_token_payload(raw_token: str) -> dict:
+    # Solo entornos de desarrollo local exponen el token en la respuesta (para
+    # tests/demo sin SMTP). family-pilot es ONLINE: el token viaja solo por
+    # email, nunca en la respuesta HTTP.
     env = os.getenv("APP_ENV", "local").strip().lower()
-    return {"token": raw_token} if env not in {"production", "prod", "staging"} else {}
+    online_envs = {"production", "prod", "staging", "family-pilot", "family_pilot", "familypilot"}
+    return {"token": raw_token} if env not in online_envs else {}
 
 def _public_app_url() -> str:
     return os.getenv("VANTDOMUS_APP_PUBLIC_URL", "http://127.0.0.1:3000").rstrip("/")
@@ -485,9 +489,7 @@ def register_with_invitation(
                     detail="La invitación no pudo completarse. Pide una nueva al administrador del hogar.",
                 )
             linked_person_id = invitation["person_id"]
-        # 5) Verificación de email + auditoría (sin token ni contraseña).
-        raw_token = _create_email_verification_token(db, uid)
-        delivery = _send_email_verification(db, user_id=uid, email=email, raw_token=raw_token)
+        # 5) Auditoría (sin token ni contraseña).
         write_audit_log(
             db,
             action="register_with_invitation",
@@ -521,6 +523,31 @@ def register_with_invitation(
     except Exception:
         db.rollback()
         raise
+    # POST-COMMIT: el email de verificación es un efecto lateral que NUNCA
+    # revierte una cuenta ya creada. Si el envío falla, la cuenta y la
+    # membresía quedan válidas, se registra delivery_failed y el reenvío
+    # seguro queda disponible vía POST /auth/email/verification/request.
+    delivery: dict = {"ok": False, "provider": None}
+    token_payload: dict = {}
+    try:
+        raw_token = _create_email_verification_token(db, uid)
+        delivery = _send_email_verification(db, user_id=uid, email=email, raw_token=raw_token)
+        db.commit()
+        token_payload = _local_token_payload(raw_token)
+    except Exception:
+        db.rollback()
+        try:
+            write_security_event(
+                db,
+                event_type="email_verification_delivery_failed",
+                severity="medium",
+                source="auth",
+                user_id=uid,
+                metadata={"email_fingerprint": _email_fingerprint(email), "stage": "post_commit_register_with_invitation"},
+                commit=True,
+            )
+        except Exception:
+            pass
     return {
         "ok": True,
         "user_id": uid,
@@ -528,7 +555,7 @@ def register_with_invitation(
         "role": invitation["role"],
         "linked_person_id": linked_person_id,
         "email_delivery": {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")},
-        **_local_token_payload(raw_token),
+        **token_payload,
     }
 
 
@@ -620,6 +647,10 @@ def email_status(user=Depends(get_current_user), db=Depends(get_db)):
 
 @router.post("/email/verification/request")
 def request_email_verification(user=Depends(get_current_user), db=Depends(get_db)):
+    # Reenvío controlado: idempotente en efecto (ya-verificado corta antes) y
+    # con rate limit propio para que no sea un cañón de correos.
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("verification_resend", user["user_id"])
     row = db.execute("SELECT email, email_verified_at FROM users WHERE id=?", (user["user_id"],)).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")

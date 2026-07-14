@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { API_BASE, loginWithPassword } from "../../lib/public-api";
 import { getHouseholds } from "../../lib/api";
 import { CSRF_COOKIE, newCsrfToken } from "../../lib/csrf";
+import { cookieSecure } from "../../lib/runtimeEnv";
 
 /**
  * Nivel de vista (densidad de la UI): "simple" oculta KPIs técnicos, márgenes
@@ -23,11 +24,6 @@ export async function setViewLevelAction(formData: FormData) {
     maxAge: 60 * 60 * 24 * 365,
   });
   revalidatePath("/", "layout");
-}
-
-function cookieSecure() {
-  const env = (process.env.APP_ENV || process.env.VANTDOMUS_DEPLOY_ENV || "local").toLowerCase();
-  return env === "production" || env === "prod" || env === "staging";
 }
 
 /**

@@ -32,11 +32,52 @@
    Ninguna llamada externa sin autorización expresa de ChatGPT.
 5. **Datos sintéticos** hasta el cierre formal de 1a y la autorización de 1b.
 
+## 0-bis. Perfil runtime `family-pilot` (DEPLOY-PREFLIGHT)
+
+El piloto NO se despliega con `APP_ENV=demo` (demo relaja cookies Secure y se
+salta `validate_runtime_security()`). El perfil correcto es:
+
+```
+APP_ENV=family-pilot
+```
+
+Es un entorno **ONLINE Y CERRADO**, distinto de local/demo/test y distinto de
+producción. Al arrancar, la API **falla en el arranque (fail-closed)** si no se
+cumple TODO esto:
+
+- `JWT_SECRET` fuerte (≥32, no default) y MFA key fuerte (≥32);
+- `VANTDOMUS_APP_PUBLIC_URL` con **https://**;
+- `VANTDOMUS_ALLOWED_HOSTS` y `CORS_ALLOWED_ORIGINS` **explícitos**, sin
+  wildcard y sin localhost;
+- registro público **cerrado** (`VANTDOMUS_PUBLIC_REGISTRATION` ausente o
+  `false`; con `true` el arranque falla);
+- uploads públicos apagados;
+- IA en jaula: `ASSISTANT_PROVIDER_MODE=mock` y real/shadow/external **false**
+  (no se requiere `OPENAI_API_KEY`);
+- SQLite en **Disk persistente FUERA del árbol del repo** (`/data/...`),
+  nunca `/tmp`, y `DATABASE_URL` vacío;
+- **exactamente UNA instancia de backend** (`VANTDOMUS_BACKEND_INSTANCES=1`):
+  es la única condición bajo la cual se acepta el rate limiter en memoria.
+  Más réplicas exigen Redis (deuda documentada para beta multi-instancia).
+
+En el frontend, `family-pilot` produce cookies de sesión y CSRF con
+`Secure=true` + `HttpOnly` (token/sesión) + `SameSite=Lax` (ver
+`apps/web/lib/runtimeEnv.js`; tests en `apps/web/tests/`).
+
+`family-pilot` NO exige Redis/ClamAV/SMTP/alertas: esos controles siguen
+siendo obligatorios (sin debilitarse) para staging/producción.
+
 ## 1. Rama y promoción
 
-- Rama estable del piloto: **`family-pilot`** (se crea desde el commit que
-  ChatGPT apruebe al cierre de 1a; la implementación vive en
-  `cp1d-family-pilot-1a`).
+- Rama estable del piloto: **`family-pilot`** — **todavía NO se crea**: queda
+  para cuando ChatGPT autorice la promoción estable tras auditar este
+  preflight (la implementación vive en `cp1d-family-pilot-1a`).
+- **Un preview automático de Vercel NO es una promoción**: Vercel compila cada
+  push de la rama y lo deja `READY` tras SSO; eso no constituye deploy estable
+  ni autoriza uso familiar. La promoción real requiere un proyecto Vercel
+  estable separado (o alias protegido) apuntado explícitamente a la rama
+  `family-pilot`, y un backend dedicado (o el servicio antiguo COMPLETAMENTE
+  auditado: variables limpias, secretos rotados, disco nuevo).
 - El desarrollo sigue en `develop`/ramas de checkpoint; **promoción semanal por
   tag**: `git tag pilot-YYYY-MM-DD && git push origin pilot-YYYY-MM-DD`, y
   Render/Vercel despliegan la rama `family-pilot` tras merge fast-forward del
@@ -70,7 +111,8 @@ piloto; decide Manuel con ChatGPT).
 
 | Variable | Valor |
 |---|---|
-| `APP_ENV` | `demo` (piloto cerrado; `production` exige ClamAV/Redis/SMTP — Sprint D) |
+| `APP_ENV` | **`family-pilot`** (perfil online cerrado con validación fail-closed; ver §0-bis. NUNCA `demo`: demo deja cookies sin Secure y omite la validación) |
+| `VANTDOMUS_BACKEND_INSTANCES` | `1` (obligatorio: una sola instancia; el arranque falla con más réplicas sin Redis) |
 | `DB_PATH` | `/data/vantdomus.db` |
 | `JWT_SECRET` | **nuevo**, generado en panel (rotado del histórico) |
 | `VANTDOMUS_MFA_SECRET_KEY` | **nuevo**, 32+ chars |
@@ -106,9 +148,17 @@ login 10/5min, reset 3/h, invitaciones 10/h, backup 3/h); ajustables por
   uso, expirable (1–720 h), hasheado en base, con email obligatorio que debe
   coincidir, y **vínculo opcional a la ficha de persona** (`person_id`): al
   aceptar, `persons.user_id` queda enlazado y esa persona ve "lo suyo".
-- **Nota registrada para 1b:** con el registro cerrado, un invitado sin cuenta
-  no puede crear una. El flujo de alta real (registro-mediante-token o apertura
-  temporal supervisada) se define y autoriza en PILOT-1b.
+- **Alta sin cuenta previa — RESUELTO (microcheckpoint 3c22c74):**
+  `POST /auth/register-with-invitation` permite que un invitado SIN cuenta se
+  registre de forma ATÓMICA con su token (usuario + membresía + vínculo de
+  persona en una transacción que consume la invitación; rollback total ante
+  fallo; anti-enumeración; rate limit por IP y fingerprint del token). Nunca
+  se abre el registro público, ni siquiera temporalmente.
+- El email de verificación es un efecto lateral **post-commit**: si el envío
+  falla, la cuenta queda válida, se registra `email_verification_delivery_failed`
+  y el reenvío controlado vive en `POST /auth/email/verification/request`
+  (rate limit 3/h). En `family-pilot` el token de verificación **nunca** viaja
+  en la respuesta HTTP (solo por email).
 
 ## 5. Backup y recuperación (RPO ≤ 24 h, RTO ≤ 1 h)
 
