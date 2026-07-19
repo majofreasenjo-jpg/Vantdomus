@@ -12,6 +12,11 @@ const scriptSrc = isProd
   : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
 const securityHeaders = [
+  // CP1d-FAMILY-PILOT-WEB-HARDENING: piloto familiar cerrado — NINGUNA página
+  // de la superficie web debe indexarse (aplica a /:path* completo, incluidos
+  // /, /login, /hogar/* y /api/*). Complementa robots.txt (Disallow: /) y la
+  // metadata robots del layout raíz. Vive en código, no en config del panel.
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

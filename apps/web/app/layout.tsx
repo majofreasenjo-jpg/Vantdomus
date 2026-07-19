@@ -1,4 +1,5 @@
 import "./globals.css";
+import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
@@ -16,6 +17,22 @@ const nunito = Nunito({
   variable: "--font-nunito",
   display: "swap",
 });
+
+// CP1d-FAMILY-PILOT-WEB-HARDENING: metadata robots global (genera el
+// <meta name="robots"> en TODAS las páginas). Tercera capa junto al header
+// X-Robots-Tag (next.config.js) y robots.txt (Disallow: /).
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let hid = "";
