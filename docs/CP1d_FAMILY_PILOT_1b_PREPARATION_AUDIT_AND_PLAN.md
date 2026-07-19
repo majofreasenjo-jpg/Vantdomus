@@ -12,9 +12,17 @@
 | Capa | Referencia | Estado |
 |---|---|---|
 | Frontend producción | Vercel `vantdomus-family-pilot`, rama `family-pilot` @ `698e049` | noindex 3 capas; `/`→`/login` |
-| Backend producción | Render `srv-d9e38trbc2fs73f5ct50` @ `e835bd9` | `APP_ENV=family-pilot` fail-closed; registro cerrado; 1 instancia; SQLite en Disk `/data`; IA mock |
-| Datos | Solo sintéticos | Hogar `Familia Sintetica Piloto` + `Hogar Aislado B`; 3 snapshots verificados |
+| Backend producción | `RENDER_FAMILY_PILOT_SERVICE` @ `e835bd9` | `APP_ENV=family-pilot` fail-closed; registro cerrado; 1 instancia; SQLite en Disk `/data`; IA mock |
+| Datos | Solo sintéticos | `SYNTHETIC_HOUSEHOLD_A` (5 fichas) + `SYNTHETIC_HOUSEHOLD_B` (vacío); 3 snapshots verificados |
 | Gates cerrados | 1a → deploy sintético (smoke 22/22, restore, rollback) → web hardening | Respaldos canónicos en Drive |
+
+> Los identificadores operativos exactos (service ID, IDs de hogares, nombres de snapshots, correos sintéticos) viven únicamente en el reporte privado de Drive; este documento público usa referencias sanitizadas.
+
+### 1.1 Historia de deployment de ESTA rama documental (precisión de auditoría)
+
+- Vercel generó **previews automáticos** de los commits de esta rama (SHA inicial `8499eb2` y SHA final `5067a96`), ambos **READY con target null**.
+- **No hubo deployment productivo ni promoción**: `family-pilot` permanece en `698e049` y Render no fue tocado.
+- Formulación canónica: *"Hubo previews automáticos; no hubo promoción ni deploy productivo."*
 
 ---
 
@@ -28,7 +36,7 @@
 | `persons` (`000_init.sql`: id, household_id, display_name, relation, created_at; + `user_id` en `272_persons_user_link.sql`; + avatar/status en `277_persons_avatar_status.sql`) | Operativo; SIN campos de menor | PARCIAL | **Nuevas columnas/tablas de menor y guardián (1b.1)**; sin FK físicas (SQLite sin FK enforcement aquí) → integridad por aplicación | Medio | Nuevas (matriz §12) |
 | `household_memberships` (`000_init.sql`: PK compuesta household+user, role) | Operativo; roles `owner/admin/member/viewer` (`apps/api/app/rbac.py::ROLE_RANK`) | SÍ | Mapeo de roles familiares (§10) sin migración | Bajo | `tests/security/test_tenant_isolation.py::test_household_member_management_is_role_scoped_and_audited` |
 | `household_invitations` (`200_household_invitations.sql`: token_hash UNIQUE, expires_at, accepted_at, revoked_at; + `person_id` en `280_invitation_person_link.sql`) | Operativo, single-use, hasheada | SÍ | Ninguno estructural | Bajo | `test_invitation_is_single_use`, `test_invitation_expires`, `test_invitation_create_is_audited_with_person` |
-| Alta atómica `POST /auth/register-with-invitation` (`apps/api/app/routes/auth.py::register_with_invitation`) | Operativo y probado ONLINE (smoke F7-F10) | SÍ (núcleo de 1b) | Ninguno backend; exponer vía proxy público (§5.4) | Bajo | 9 tests en `test_family_pilot_access.py` §5 + 3 token-durable en `test_family_pilot_runtime_profile.py` |
+| Alta atómica `POST /auth/register-with-invitation` (`apps/api/app/routes/auth.py::register_with_invitation`) | Operativo y probado ONLINE (smoke F7-F10) | SÍ (núcleo de 1b) | **SÍ requiere cambio backend en 1b.1: los invariantes de menores (§3.6) deben hacerse cumplir SERVER-SIDE dentro de la transacción del endpoint** — el modelo de menores no puede ser una convención de UI; además exponer vía proxy público (1b.2) | **Alto** | 9 tests existentes + suite nueva de invariantes §3.6 (incl. concurrencia) |
 | Aceptación autenticada `POST /households/invitations/{token}/accept` (`apps/api/app/routes/households.py::accept_invitation`) | Operativo (cuenta preexistente) | SÍ | Ninguno | Bajo | `test_register_with_invitation_existing_account_gets_clear_path` |
 | Sesiones (`220`: `auth_sessions`, jti revocable; `auth.py`: logout, sessions, revoke-others) | Operativo | SÍ | Política de sesión de menores (§4.5, diseño) | Medio | `test_email_verification_password_reset_and_session_revocation` |
 | Verificación email + reset (`auth.py`: `_create_email_verification_token`, `request_password_reset`; token durable post-commit) | Operativo; SMTP real NO configurado (entrega falla con evento `email_verification_delivery_failed`) | PARCIAL | **SMTP real u operación sin email saliente es DECISIÓN bloqueante de 1b.3** (§13) | Alto | `test_provider_failure_keeps_account_and_durable_token` |
@@ -47,7 +55,7 @@
 | Modelo de menores/guardianes | **NO EXISTE** (ni tablas ni endpoints; verificado en migraciones 000-280) | N/A | **Diseño §4 → migración 1b.1** | Alto | Matriz §12 |
 | Endpoints que exponen fichas (`/persons`, `/households/{hid}/panel` en `households.py`, `getPersonDetail` en `apps/web/lib/api.ts`) | Scoped por hogar | SÍ | Filtro por privacy_profile del menor (1b.1 diseño §6) | Medio | Matriz §12 |
 
-**Datos sintéticos existentes (inventario para §7):** 2 users (`mama.sintetica@…`, `papa.sintetico@…`), 2 households (`31de7d68…` con 5 persons + 1 invitación consumida; `410abce1…` vacío), 3 memberships, sesiones/tokens de smoke, eventos de auditoría, 3 snapshots (`vantdomus_20260719T045641Z_cc4c66bb`, `…T061719Z_31eb0d21`, `…T063611Z_08585c72`).
+**Datos sintéticos existentes (inventario para §7; identificadores exactos solo en el reporte privado de Drive):** 2 users sintéticos (`synthetic-owner@example.invalid`, `synthetic-adult2@example.invalid` como patrón), 2 households (`SYNTHETIC_HOUSEHOLD_A` con 5 persons + 1 invitación consumida; `SYNTHETIC_HOUSEHOLD_B` vacío), 3 memberships, sesiones/tokens de smoke, eventos de auditoría, 3 snapshots (`SNAPSHOT_SYNTHETIC_1/2/3`).
 
 ---
 
@@ -75,39 +83,72 @@
 |---|---|---|---|---|
 | ¿Puede existir cuenta? | NO (solo ficha) | SÍ, creada por guardián | SÍ, propia | SÍ |
 | ¿Quién crea la invitación? | — | Guardián (owner/admin) | Guardián (owner/admin) | Owner/admin |
-| ¿Quién define la contraseña? | — | El menor en el alta (o guardián si no puede) | **El menor, personal** | La persona |
+| ¿Quién define la contraseña? | — (si no puede completar el alta autónomamente, queda como ficha SIN cuenta) | **SIEMPRE el titular** (el guardián JAMÁS ve, elige ni recibe la contraseña) | **El menor, personal** (ídem: guardián jamás la conoce) | La persona |
 | ¿Quién acepta condiciones? | — | Guardián (`guardian_consent`) | Guardián + asentimiento del menor | La persona |
 | ¿Quién recupera acceso? | — | Guardián | Guardián (el menor NO auto-recupera por email en 1b) | La persona |
 | ¿Quién cambia email? | — | Guardián | Guardián | La persona |
-| ¿Quién cambia password? | — | Guardián puede forzar reset | El menor; guardián puede forzar reset | La persona |
+| ¿Quién cambia password? | — | El titular; el guardián solo INICIA un reset auditado (el token de reset llega al flujo del titular; el guardián nunca ve ni define la nueva contraseña) | Ídem | La persona |
 | ¿MFA? | — | No en 1b | Opcional, gestionado con guardián | Recomendado |
 | Rol de hogar al alta | — | `viewer` | `member` | `admin` (Adulto 2) / `owner` (Adulto 1) |
 | Revocación/suspensión | — | Guardián revoca sesiones + desactiva (`users.is_active=0`, sesiones jti revocadas) | Ídem | Owner |
 | Siempre reservado al adulto | Todo | Config del hogar, miembros, invitaciones, backup, finanzas, salud | Ídem | — |
 
-### 3.4 DECISIÓN sobre los tres hijos (respuesta explícita)
+### 3.4 Los tres hijos — PROPUESTA PENDIENTE DE CONFIRMACIÓN DEL PROPIETARIO
 
-**Opción elegida: D — política por banda, con default C (cuenta individual supervisada).**
+**Arquitectura elegida: opción D (política por banda).** La asignación concreta NO es una decisión ejecutiva de este documento: el sistema soporta cuenta supervisada o solo-ficha sin fricción, y **el propietario debe declarar** cada fila antes de implementar 1b.4. Las decisiones confirmadas se registrarán de forma privada (reporte de Drive), no necesariamente en este repositorio público.
 
-- **Hijo A, Hijo B, Hijo C:** cada uno recibirá **cuenta individual supervisada** (su propio email de acceso y su propia contraseña, definida por él/ella — intención expresa del Owner) **siempre que su guardián lo clasifique en banda `supervised_minor` o `supervised_teen`** al emitir la invitación.
-- Si el guardián clasifica a alguno como `child`, ese hijo queda **solo como ficha** (opción B) hasta nueva decisión del guardián — el sistema debe soportar ambos sin fricción.
-- La clasificación por banda la declara el guardián en el flujo de invitación (1b.2); **este documento no registra edades reales**.
-- **Guardianes:** Adulto 1 y Adulto 2 son ambos guardianes (`scope=full`) de Hijo A, B y C (`guardian_relationship` ×6 al ejecutar 1b.4).
+| PERSONA | BANDA FUNCIONAL | CUENTA / SOLO FICHA | GUARDIÁN 1 | GUARDIÁN 2 | SCOPE | CONFIRMADO |
+|---|---|---|---|---|---|---|
+| Adulto 1 (propietario) | adult | Cuenta (owner) | — | — | — | **PENDIENTE** |
+| Adulto 2 | adult | Cuenta (rol por confirmar) | — | — | — | **PENDIENTE** |
+| Hijo A | **PENDIENTE** | **PENDIENTE** | PENDIENTE | PENDIENTE | PENDIENTE | **PENDIENTE** |
+| Hijo B | **PENDIENTE** | **PENDIENTE** | PENDIENTE | PENDIENTE | PENDIENTE | **PENDIENTE** |
+| Hijo C | **PENDIENTE** | **PENDIENTE** | PENDIENTE | PENDIENTE | PENDIENTE | **PENDIENTE** |
 
-### 3.5 Sesiones y recuperación de menores (diseño)
+- La *sugerencia* técnica (no default ejecutivo) es cuenta individual supervisada donde la banda lo permita — coherente con la intención expresada por el propietario; pero ni "cuenta para los tres", ni "ambos adultos guardianes full", ni "Adulto 2 = admin" quedan establecidos hasta su confirmación explícita, incluida la definición de **quién puede ejecutar recuperación y revocación** por cada menor.
+- La clasificación por banda la declara el guardián; **este documento no registra edades reales**.
+- La **revisión jurídica chilena sigue siendo bloqueante** antes de crear cuentas de menores (§12).
+
+### 3.6 Invariantes backend obligatorios del alta con menores (a implementar y probar en 1b.1)
+
+El modelo de menores NO es una convención de UI: `register_with_invitation` (o una capa obligatoria invocada por él) debe hacer cumplir, **server-side y dentro de la misma transacción**:
+
+1. `age_band = child` ⇒ alta de cuenta **DENIED** (la ficha no puede recibir usuario).
+2. Banda supervisada ⇒ debe existir `guardian_relationship` **activo** (no revocado) para esa ficha.
+3. Debe existir `guardian_consent` de tipo `account_creation` **vigente y no revocado**.
+4. Guardián, menor, invitación y hogar deben **coincidir** entre sí (cero referencias cruzadas entre hogares).
+5. `invitation.person_id` debe coincidir con la ficha objetivo y `person.user_id` debe seguir **NULL** al consumar.
+6. El **rol proviene exclusivamente del registro persistido de la invitación**, jamás del payload del cliente.
+7. Una invitación **no puede elevar a un menor a `owner` o `admin`** (validación por banda persistida).
+8. La banda y la política de supervisión **no se aceptan desde payload no confiable** ni pueden cambiar durante la aceptación.
+9. Relaciones de tutela y consentimientos **no pueden pertenecer a otro hogar**.
+10. **Cualquier fallo revierte TODO**: cuenta, membresía, vínculo de persona e invitación (patrón atómico ya existente, extendido a los checks nuevos).
+
+Cada invariante tendrá test explícito propio + test de concurrencia (matriz §11).
+
+### 3.7 Sesiones y recuperación de menores (diseño)
 
 - Sesiones de bandas supervisadas: mismas cookies del piloto; expiración estándar (28800s, `ACCESS_TOKEN_EXPIRES_SECONDS`).
-- Recuperación: en 1b el reset por email queda **restringido a adultos** (los menores pueden no tener buzón propio confiable); la recuperación del menor la ejecuta el guardián (forzar reset desde su cuenta — endpoint de diseño 1b.1, reutilizando `password_reset_tokens` con emisión guardián-side auditada).
+- Recuperación: en 1b el auto-reset por email queda **restringido a adultos**. Para un menor, el guardián solo **INICIA** una operación de reset auditada (endpoint de diseño 1b.1 reutilizando `password_reset_tokens`): el token de reset se entrega **al flujo del titular**, quien define su nueva contraseña; **el guardián jamás ve, elige ni recibe la contraseña** ni el token materializado como credencial. Ningún password temporal se comunica por chat, correo ni panel administrativo.
 
 ---
 
 ## 4. Invitación familiar — experiencia completa (DISEÑO UI, no implementar)
 
-### 4.1 Ruta y transporte
+### 4.1 Ruta y custodia estricta del token
 
-- **Ruta recomendada: `/invitacion`** (verificada la estructura real de `apps/web/app/`: no existe colisión; convención de rutas en español ya usada en `/hogar`, `/compras`, `/avisos`). El token viaja como query (`/invitacion?t=<token>`); la página lo mueve a estado del cliente de inmediato.
-- Mitigaciones del token-en-URL (inherente a todo enlace de invitación): single-use + TTL corto (default 168h, configurable 1-720h ya en backend) + `Referrer-Policy` ya restrictiva + noindex global + revocación desde `settings/members`.
+- **Ruta recomendada: `/invitacion`** (verificada la estructura real de `apps/web/app/`: sin colisión; convención en español ya usada en `/hogar`, `/compras`, `/avisos`).
+- **Transporte del token — OPCIÓN ELEGIDA: A, fragmento de URL** → el enlace es **`/invitacion#t=<token>`**. Justificación: el fragmento **nunca se envía al servidor** (ni al edge/CDN de Vercel, ni a logs del frontend, ni viaja en `Referer`), elimina de raíz la exposición server-side sin crear infraestructura nueva. La opción B (query + intercambio inmediato por cookie efímera `HttpOnly/Secure/SameSite=Strict`) se descarta para 1b: requiere un endpoint adicional y una segunda credencial que ampliaría la superficie sin beneficio neto en single-instance.
+- **Custodia obligatoria en el cliente (invariantes de la página):**
+  1. El token se **extrae inmediatamente** de `location.hash` al montar.
+  2. Se **elimina de la URL con `history.replaceState()`** ANTES de renderizar contenido, cargar recursos adicionales o ejecutar cualquier `fetch`.
+  3. **Nunca** se persiste en `localStorage`, `sessionStorage`, analytics ni logs.
+  4. **Nunca** aparece en mensajes de error (ni parciales).
+  5. Vive **solo en memoria** (estado del componente) durante el submit.
+  6. Se **sobrescribe/elimina** del estado al terminar (éxito o error).
+- Mitigaciones adicionales ya vigentes: single-use + TTL (1-720h backend) + `Referrer-Policy` restrictiva + noindex global + revocación desde `settings/members`.
 - La URL **nunca** incluye password, email en claro, JWT, tokens de sesión ni datos personales.
+- **Pruebas futuras de custodia (matriz §11):** URL limpia antes del primer fetch · token ausente del history final · ausente de logs · ausente de storage · ausente de `Referer` · eliminado del estado tras éxito/error.
 
 ### 4.2 Flujo (13 pasos, mapeado a piezas reales)
 
@@ -169,9 +210,11 @@
 | Calendarios externos, cuentas Google/Facebook reales | **Prohibido en 1b** (OAuth es scaffolding no autorizado) |
 | Archivos adjuntos personales | **Diferido** |
 
-### 5.2 Retención y eliminación (política propuesta)
+### 5.2 Retención y eliminación (PROPUESTA PROVISIONAL — no implementar)
 
-| Registro | Retención | Eliminación |
+> Los plazos (90/30 días) son **provisionales**: no se implementan hasta contar con revisión jurídica, decisión de minimización y confirmación del propietario. Adicionalmente, `audit_log`/`security_events` **no deben preservar nombres, emails ni otros datos de menores tras una eliminación**: solo IDs internos o fingerprints no reversibles (el patrón `_email_fingerprint` ya existente es la referencia).
+
+| Registro | Retención (provisional) | Eliminación |
 |---|---|---|
 | Invitaciones consumidas/expiradas | 90 días | Purga por job manual autorizado (los token_hash no son reversibles) |
 | Sesiones (`auth_sessions`) | Hasta logout/revocación + expiración | Revocación jti inmediata disponible |
@@ -187,7 +230,7 @@
 
 ### 6.1 Inventario exacto a sanear (medido en producción-piloto)
 
-users: 2 sintéticos · households: 2 (`31de7d68…` con 5 persons, 1 invitación consumida; `410abce1…` vacío) · memberships: 3 · persons: 5 · invitación: 1 · sesiones y tokens de verificación de smoke · eventos de auditoría del smoke (SE CONSERVAN: son evidencia, sin PII real) · 3 snapshots (SE CONSERVAN por orden vigente) · credenciales sintéticas (QUEMADAS por definición: jamás reutilizar).
+users: 2 sintéticos · households: 2 (`SYNTHETIC_HOUSEHOLD_A` con 5 persons, 1 invitación consumida; `SYNTHETIC_HOUSEHOLD_B` vacío) · memberships: 3 · persons: 5 · invitación: 1 · sesiones y tokens de verificación de smoke · eventos de auditoría del smoke (SE CONSERVAN: son evidencia, sin PII real) · 3 snapshots `SNAPSHOT_SYNTHETIC_1/2/3` (SE CONSERVAN por orden vigente) · credenciales sintéticas (QUEMADAS por definición: jamás reutilizar). *(IDs exactos: reporte privado de Drive.)*
 
 ### 6.2 Alternativas
 
@@ -200,7 +243,18 @@ Justificación: (1) la regresión ya vive en la suite local determinista (230+ t
 
 ### 6.4 Precondiciones obligatorias antes de ejecutar (gate 1b.3)
 
-1. Snapshot final pre-saneamiento (VACUUM INTO) + 2. SHA256 + 3. `integrity_check` + 4. conteos + 5. restauración aislada verificada + 6. plan de rollback (restaurar ese snapshot) + 7. **autorización explícita de ChatGPT** + 8. lista literal de filas a eliminar (por id) presentada ANTES de borrar.
+1. Snapshot final pre-saneamiento + 2. SHA256 + 3. `integrity_check` + 4. conteos + 5. restauración aislada verificada + 6. plan de rollback POR HITOS (§6.5) + 7. **autorización explícita de ChatGPT** + 8. lista literal de filas a eliminar (por id) presentada ANTES de borrar.
+
+### 6.5 Rollback por hitos (tres snapshots, no uno)
+
+| Hito | Contenido | Uso de rollback |
+|---|---|---|
+| **SNAPSHOT A** | Estado sintético final, ANTES de purgar | Revierte la purga (solo mientras no exista ningún dato real) |
+| **SNAPSHOT B** | Base limpia POST-purga, antes de cualquier dato real | **Rollback operativo normal del bootstrap**: si el alta del propietario falla antes de completarse, se restaura B |
+| **SNAPSHOT C** | Estado inmediatamente posterior al alta del propietario real | Fallos posteriores al owner: restaurar C o reparación forward |
+
+- Restaurar **A después de que exista cualquier dato real** implica **borrar esos datos reales**: requiere autorización excepcional explícita que reconozca esa pérdida — jamás es el camino operativo normal.
+- Aclaración de la separación: *"Sintéticos y reales no coexisten en la base ACTIVA; los snapshots sintéticos permanecen retenidos y segregados en el Disk"* (la retención de snapshots no viola la separación).
 
 Nunca reutilizar: passwords sintéticas, emails sintéticos, invitaciones antiguas, sesiones, tokens, ni **fichas sintéticas para personas reales** (las fichas reales se crean nuevas).
 
@@ -247,24 +301,35 @@ Garantías: registro público sigue cerrado · password definida por la persona 
 
 ## 9. Matriz de autorización familiar (mínima, para 1b)
 
-Mapeo a mecánica real: roles de `household_memberships` + `module_visibility` (#17) + nueva capa guardián (§3). Módulos no autorizados quedan **NOT_IMPLEMENTED** o **DENIED** — sin simulación.
+Mapeo a mecánica real: roles de `household_memberships` + `module_visibility` (#17) + nueva capa guardián (§3).
 
-| Permiso | Propietario adulto (owner) | Adulto (admin) | Guardián (relación, no rol) | Adolescente supervisado (member) | Menor acceso limitado (viewer) | Menor sin cuenta |
+**Principio rector de 1b: la capacidad técnica existente NO equivale a autorización del piloto.** Durante TODO PILOT-1b los módulos sensibles quedan cerrados **para TODOS los roles, adultos incluidos** (aunque los endpoints existan de fases previas), y debe existir un **criterio de prueba que confirme que permanecen cerrados**:
+
+| Módulo | Estado en 1b (todos los roles) |
+|---|---|
+| Salud | **DENIED** |
+| Medicamentos | **NOT_IMPLEMENTED** (gate futuro propio) |
+| Finanzas reales | **DENIED** |
+| Documentos personales | **DENIED** |
+| OAuth / conexiones externas | **DENIED** |
+| IA externa | **DENIED** (MockProvider) |
+| Escuela/estudio real | **NOT_IMPLEMENTED** hasta su gate (1c) |
+| Ubicación, voz, fotografía real, adjuntos | **DENIED** |
+
+**Lo ÚNICO utilizable en 1b:** autenticación · fichas mínimas (§5.1) · relaciones familiares/tutela · invitaciones · tareas/actividades básicas (ya auditadas) · compras básicas (sin datos financieros).
+
+Matriz de permisos sobre lo utilizable:
+
+| Permiso | Propietario adulto (owner) | Adulto (rol por confirmar §3.4) | Guardián (relación, no rol) | Adolescente supervisado (member) | Menor acceso limitado (viewer) | Menor sin cuenta |
 |---|---|---|---|---|---|---|
 | Ver fichas del hogar | SÍ | SÍ | SÍ | SÍ (lista; detalle según privacy_profile) | SÍ (ídem) | — |
 | Editar fichas | SÍ | SÍ | Su(s) menor(es) | Solo la propia (campos básicos) | NO | — |
-| Miembros e invitaciones | SÍ | SÍ | NO (salvo owner/admin) | NO | NO | — |
-| Config del hogar / visibilidad módulos | SÍ | SÍ | NO | NO | NO | — |
-| Estudio (1c) | NOT_IMPLEMENTED | NOT_IMPLEMENTED | NOT_IMPLEMENTED | NOT_IMPLEMENTED | NOT_IMPLEMENTED | — |
-| Tareas / actividades | SÍ | SÍ | — | SÍ (propias + hogar) | Ver | — |
-| Compras | SÍ | SÍ | — | SÍ | Ver | — |
-| Finanzas | SÍ | Según module_visibility | — | DENIED (default) | DENIED | — |
-| Documentos | SÍ | Según module_visibility | — | DENIED (default) | DENIED | — |
-| Salud | SÍ | Según module_visibility | Ver la de su menor | Solo propia (limitada) | DENIED | — |
-| Medicamentos | NOT_IMPLEMENTED (gate futuro) | NOT_IMPLEMENTED | NOT_IMPLEMENTED | NOT_IMPLEMENTED | NOT_IMPLEMENTED | — |
-| Auditoría | SÍ | SÍ | NO | NO | NO | — |
-| Backup / eliminación / exportación | SÍ (backup ya exige owner+reauth) | Export sí; backup NO | NO | NO | NO | — |
-| Conexiones externas (OAuth/IA) | DENIED (no autorizado) | DENIED | DENIED | DENIED | DENIED | — |
+| Miembros e invitaciones | SÍ | Según rol confirmado | NO (salvo que además sea owner/admin) | NO | NO | — |
+| Config del hogar / visibilidad módulos | SÍ | Según rol confirmado | NO | NO | NO | — |
+| Tareas / actividades básicas | SÍ | SÍ | — | SÍ (propias + hogar) | Ver | — |
+| Compras básicas (sin finanzas) | SÍ | SÍ | — | SÍ | Ver | — |
+| Auditoría | SÍ | Según rol confirmado | NO | NO | NO | — |
+| Backup / eliminación / exportación | SÍ (backup ya exige owner+reauth) | Export según rol; backup NO | NO | NO | NO | — |
 
 ---
 
@@ -273,13 +338,13 @@ Mapeo a mecánica real: roles de `household_memberships` + `module_visibility` (
 | MC | Alcance | Archivos/migraciones previstos | Pruebas | Rollback | Gate |
 |---|---|---|---|---|---|
 | **1b.0** (ESTE) | Auditoría + modelo + plan | Solo `docs/` | N/A | git revert | Auditoría de este doc |
-| **1b.1** | Modelo menores/guardianes, SOLO sintéticos: migración `281_minor_guardian_model.sql` (`persons.age_band`, `guardian_relationship`, `guardian_consent`, privacy_profile) + endpoints guardián (crear relación, consentir, forzar reset de menor) + política de supervisión en endpoints existentes | `apps/api/sqlite_migrations/281…`, `app/routes/households.py` o router nuevo `guardians.py`, `db.py` | Suite nueva `tests/test_minor_guardian_model.py` (matriz §12 filas guardián) + regresión completa | Migración aditiva (columnas/tablas nuevas; sin ALTER destructivo) + snapshot local | Autorización previa + auditoría posterior |
+| **1b.1** | Modelo menores/guardianes, SOLO sintéticos: migración `281_minor_guardian_model.sql` (`persons.age_band`, `guardian_relationship`, `guardian_consent`, privacy_profile) + endpoints guardián (crear relación, consentir, **iniciar** reset del menor con token al titular) + **los 10 invariantes de §3.6 hechos cumplir dentro de la transacción de `register_with_invitation`** | `apps/api/sqlite_migrations/281…`, `app/routes/auth.py::register_with_invitation`, router `guardians.py`, `db.py` | Suite nueva `tests/test_minor_guardian_model.py` (un test por invariante §3.6 + concurrencia + matriz §11) + regresión completa | Migración aditiva (columnas/tablas nuevas; sin ALTER destructivo) + snapshot local | Autorización previa + auditoría posterior |
 | **1b.2** | UI `/invitacion` + allowlist proxy + mejoras UI members (ficha+banda) + commit de copy §8; SOLO sintéticos | `apps/web/app/invitacion/…`, `app/api/public/[...path]/route.ts` (1 línea), `settings/members`, `layout.tsx` | node tests UI/allowlist + matriz §12 (estados de pantalla) + smoke sintético online | Vercel rollback de deploy | Ídem |
-| **1b.3** | Saneamiento sintético (§6, opción A) + bootstrap owner real (§7 opción B) + decisión SMTP | Solo scripts operativos documentados (sin cambios de app salvo decisión SMTP) | Verificación post-purga (conteos=solo hogar real) + alta owner E2E | Restaurar snapshot pre-saneamiento | **Autorización explícita de ChatGPT con lista literal de filas** |
+| **1b.3** | Saneamiento sintético (§6, opción A) + bootstrap owner real (§7 opción B) + decisión SMTP | Solo scripts operativos documentados (sin cambios de app salvo decisión SMTP) | Verificación post-purga (conteos=solo hogar real) + alta owner E2E | **Por hitos §6.5: purga→SNAPSHOT A; bootstrap fallido→SNAPSHOT B; post-owner→SNAPSHOT C/forward** | **Autorización explícita de ChatGPT con lista literal de filas** |
 | **1b.4** | Alta controlada de los otros 4 integrantes vía UI (Adulto 2 → luego Hijos según banda) | Ninguno (operación) | Checklist por integrante + verificación vínculos/roles/guardianes | Revocar invitación fallida; desactivar cuenta errónea | Autorización + evidencia por alta |
 | **1b.5** | Validación familiar, backup post-alta, cierre y respaldo Drive | Ninguno | Smoke familiar + backup verificado | Snapshot | Cierre formal |
 
-Separaciones garantizadas: frontend `698e049`/sucesor auditado · backend `e835bd9`/sucesor auditado · rama `family-pilot` solo avanza por fast-forward autorizado · main sin merge · datos sintéticos y reales JAMÁS coexisten tras 1b.3.
+Separaciones garantizadas: frontend `698e049`/sucesor auditado · backend `e835bd9`/sucesor auditado · rama `family-pilot` solo avanza por fast-forward autorizado · main sin merge · tras 1b.3, **sintéticos y reales no coexisten en la base ACTIVA** (los snapshots sintéticos permanecen retenidos y segregados en el Disk, §6.5).
 
 ---
 
@@ -290,7 +355,10 @@ Separaciones garantizadas: frontend `698e049`/sucesor auditado · backend `e835b
 | Invitación válida/ inválida/ expirada/ revocada/ reutilizada/ email mismatch/ cuenta existente/ ficha vinculada/ concurrencia/ rollback atómico | Positiva+negativa | **YA CUBIERTO** (`test_family_pilot_access.py` §5, 9 tests) — se re-ejecuta con la UI encima |
 | UI: cada estado de pantalla §4.3 renderiza el mensaje correcto sin filtrar existencia | Negativa/UX | NUEVA (node/Playwright ligero) |
 | Allowlist proxy: `register-with-invitation` permitido; rutas no listadas 404 | Seguridad | NUEVA |
-| Guardián correcto puede: consentir, forzar reset, revocar sesiones del menor | Positiva | NUEVA |
+| Guardián correcto puede: consentir, INICIAR reset (token al titular), revocar sesiones del menor | Positiva | NUEVA |
+| Invariantes §3.6 (uno a uno) + concurrencia del alta con menores | Seguridad | NUEVA |
+| Custodia del token de invitación: URL limpia antes del primer fetch; ausente de history/logs/storage/Referer; eliminado tras éxito/error | Seguridad | NUEVA |
+| Módulos prohibidos en 1b (salud/finanzas/documentos/OAuth/IA) permanecen cerrados PARA TODOS los roles aunque existan endpoints previos | Seguridad | NUEVA |
 | Guardián de OTRO hogar / no-guardián: 403 en todas las anteriores | Abuso | NUEVA |
 | Menor (member/viewer) no puede: invitar, cambiar config, ver finanzas/documentos DENIED, tocar auditoría | Abuso | Parcial (#17) → ampliar |
 | Menor no puede cambiar su email; sí su password; guardián puede forzar reset | Positiva+negativa | NUEVA |
@@ -325,17 +393,17 @@ Separaciones garantizadas: frontend `698e049`/sucesor auditado · backend `e835b
 
 ## 13. Criterios de autorización y cierre — respuestas inequívocas (§16 del gate)
 
-1. **¿Qué integrantes tendrán cuenta?** Adulto 1 (owner), Adulto 2 (admin) y cada hijo clasificado por su guardián en banda `supervised_minor`/`supervised_teen` (default esperado: los tres, cuentas supervisadas).
-2. **¿Qué integrantes serán solo ficha?** Cualquier hijo clasificado `child` por su guardián (y toda persona del hogar antes de aceptar su invitación).
+1. **¿Qué integrantes tendrán cuenta?** Con certeza Adulto 1 (owner, bootstrap §7). Adulto 2 e Hijos A/B/C: **PROPUESTA PENDIENTE de confirmación del propietario** (tabla §3.4); la sugerencia técnica es cuenta supervisada donde la banda lo permita.
+2. **¿Qué integrantes serán solo ficha?** Cualquier hijo clasificado `child` por su guardián (decisión pendiente §3.4) y toda persona antes de aceptar su invitación.
 3. **¿Cómo se representa un menor?** Ficha `persons` + `age_band` + `minor_privacy_profile` + relación `guardian_relationship`; cuenta `users` solo si su banda lo permite, enlazada vía `persons.user_id`.
-4. **¿Quién es guardián de quién?** Adulto 1 y Adulto 2, ambos con `scope=full`, de Hijo A, Hijo B e Hijo C (6 relaciones).
-5. **¿Quién puede recuperar su acceso?** Adultos: auto-reset por email (cuando SMTP esté decidido). Menores: SOLO su guardián (reset forzado auditado).
+4. **¿Quién es guardián de quién?** **PROPUESTA PENDIENTE** (tabla §3.4): la sugerencia es ambos adultos como guardianes de los tres hijos, pero relaciones, scope y quién ejecuta recuperación/revocación los confirma el propietario (registro privado).
+5. **¿Quién puede recuperar su acceso?** Adultos: auto-reset por email (cuando SMTP esté decidido). Menores: su guardián **INICIA** un reset auditado y el token llega al flujo del titular, que define su nueva contraseña — **el guardián jamás conoce la contraseña** (§3.7).
 6. **¿Cómo se obtiene consentimiento?** `guardian_consent` otorgado por la CUENTA de un guardián (creación de cuenta, acceso a módulos, ingreso de datos), auditado y revocable; asentimiento del adolescente en el alta.
 7. **¿Qué datos reales mínimos se cargarán?** Solo §5.1 imprescindibles: alias/nombre visible, email de acceso (quien tenga cuenta), rol familiar, vínculo, guardianes, banda funcional.
 8. **¿Qué datos quedan prohibidos?** RUN/RUT, dirección, salud/medicamentos, finanzas reales, ubicación, fotos reales, biometría, voz, OAuth real, documentos personales; fecha de nacimiento completa y datos escolares: diferidos.
 9. **¿Cómo se crea el primer propietario?** Opción B §7: invitación bootstrap server-side single-use → el propietario define su contraseña en `/invitacion`; registro público jamás se abre.
 10. **¿Cómo se purga lo sintético?** Opción A §6: purga completa (lista literal de filas presentada antes), conservando auditoría y snapshots.
-11. **¿Cómo se revierte la purga?** Restaurando el snapshot final pre-saneamiento (SHA256 + integrity_check + conteos verificados antes de purgar).
+11. **¿Cómo se revierte la purga?** Por hitos (§6.5): la purga se revierte con **SNAPSHOT A** (solo mientras no exista dato real); un bootstrap fallido se revierte con **SNAPSHOT B**; tras el owner real, se opera desde **SNAPSHOT C** o reparación forward. Restaurar A con datos reales presentes = pérdida de esos datos y exige autorización excepcional.
 12. **¿Cómo se invita al resto?** Desde la cuenta propietaria vía UI (1b.4): Adulto 2 primero; luego cada hijo según banda, con ficha y guardianes ya creados.
 13. **¿Qué pruebas deben pasar?** Matriz §11 completa + regresión íntegra (hoy 230+ local, 22 smoke online) verde en cada microcheckpoint.
 14. **¿Qué riesgo sigue abierto?** Los 3 bloqueantes de §12: SMTP/entregabilidad, recuperación de menores (diseñada, no implementada) y revisión jurídica; más las deudas pre-beta listadas.
