@@ -20,8 +20,11 @@
 
 ### 1.1 Historia de deployment de ESTA rama documental (precisión de auditoría)
 
-- Vercel generó **previews automáticos** de los commits de esta rama (SHA inicial `8499eb2` y SHA final `5067a96`), ambos **READY con target null**.
-- **No hubo deployment productivo ni promoción**: `family-pilot` permanece en `698e049` y Render no fue tocado.
+- Vercel generó **previews automáticos** de los commits de esta rama, todos **READY con target null**:
+  - `8499eb2` (borrador inicial) y `5067a96` (commit base auditado);
+  - `96392999ea60a1c2d0f9bf7a3063b81b7ea52126` (R1) → deployment `dpl_FyhRdyYe5i1BA4Mamry2gYnAZc2R`, READY, target null;
+  - (el commit R2 generará previsiblemente otro preview automático equivalente).
+- **No hubo deployment productivo ni promoción**: producción continúa en `family-pilot @ 698e049d84148dbb21cb55dc17d07d46da8892b6` y Render no fue tocado.
 - Formulación canónica: *"Hubo previews automáticos; no hubo promoción ni deploy productivo."*
 
 ---
@@ -81,7 +84,7 @@
 
 | Capacidad | `child` (niño sin cuenta) | `supervised_minor` (acceso supervisado) | `supervised_teen` (cuenta individual supervisada) | `adult` |
 |---|---|---|---|---|
-| ¿Puede existir cuenta? | NO (solo ficha) | SÍ, creada por guardián | SÍ, propia | SÍ |
+| ¿Puede existir cuenta? | NO (solo ficha) | SÍ, habilitada mediante invitación emitida por un guardián y **completada autónomamente por el titular** (quien no puede completarla queda como ficha) | SÍ, propia | SÍ |
 | ¿Quién crea la invitación? | — | Guardián (owner/admin) | Guardián (owner/admin) | Owner/admin |
 | ¿Quién define la contraseña? | — (si no puede completar el alta autónomamente, queda como ficha SIN cuenta) | **SIEMPRE el titular** (el guardián JAMÁS ve, elige ni recibe la contraseña) | **El menor, personal** (ídem: guardián jamás la conoce) | La persona |
 | ¿Quién acepta condiciones? | — | Guardián (`guardian_consent`) | Guardián + asentimiento del menor | La persona |
@@ -89,9 +92,11 @@
 | ¿Quién cambia email? | — | Guardián | Guardián | La persona |
 | ¿Quién cambia password? | — | El titular; el guardián solo INICIA un reset auditado (el token de reset llega al flujo del titular; el guardián nunca ve ni define la nueva contraseña) | Ídem | La persona |
 | ¿MFA? | — | No en 1b | Opcional, gestionado con guardián | Recomendado |
-| Rol de hogar al alta | — | `viewer` | `member` | `admin` (Adulto 2) / `owner` (Adulto 1) |
+| Rol de hogar al alta | — | `viewer` **propuesto, pendiente de política aprobada** | `member` **propuesto, pendiente de política aprobada** | Adulto 1: `owner` (sujeto al bootstrap autorizado §7); Adulto 2: **PENDIENTE DE CONFIRMACIÓN** (§3.4) |
 | Revocación/suspensión | — | Guardián revoca sesiones + desactiva (`users.is_active=0`, sesiones jti revocadas) | Ídem | Owner |
-| Siempre reservado al adulto | Todo | Config del hogar, miembros, invitaciones, backup, finanzas, salud | Ídem | — |
+| Siempre reservado al adulto | Todo | Configuración del hogar, miembros, invitaciones, auditoría, backup/export según rol | Ídem | — |
+
+> **Salud, finanzas reales, documentos personales, medicamentos, OAuth, IA externa y estudio real permanecen DENIED o NOT_IMPLEMENTED para TODOS durante 1b** (§9) — no son capacidades de ningún rol en este gate.
 
 ### 3.4 Los tres hijos — PROPUESTA PENDIENTE DE CONFIRMACIÓN DEL PROPIETARIO
 
@@ -154,7 +159,7 @@ Cada invariante tendrá test explícito propio + test de concurrencia (matriz §
 
 1. Adulto owner/admin abre **Ajustes → Integrantes** (`settings/[householdId]/members/page.tsx`) o el Onboarding; selecciona/crea ficha (`POST /persons`).
 2. Elige **rol familiar + banda funcional** (nueva selección UI; banda → rol de hogar según §3.3).
-3. Genera invitación (`POST /households/{hid}/invitations` con `email`, `role`, `person_id`) → obtiene enlace `/invitacion?t=…`.
+3. Genera invitación (`POST /households/{hid}/invitations` con `email`, `role`, `person_id`) → obtiene enlace `/invitacion#t=…` (fragmento, §4.1 — jamás query string).
 4. Destinatario abre la URL segura.
 5. La UI valida el token **sin revelar información innecesaria**: no existe endpoint de "preview" y NO debe crearse uno que filtre; la validación real ocurre al enviar el formulario (anti-enumeración intacta).
 6. Pantalla familiar (no técnica): saludo cálido, nombre del HOGAR únicamente si el alta tiene éxito.
@@ -272,15 +277,20 @@ Nunca reutilizar: passwords sintéticas, emails sintéticos, invitaciones antigu
 
 ### 7.2 Diseño de B (ejecutable solo en 1b.3, con autorización)
 
-Script único en Render Shell (server-side, reproducible, sin secretos en chat/logs):
+Script único server-side (reproducible, auditado):
 1. Crea el **hogar real** (vacío) + las 5 **fichas alias** (Adulto 1/2, Hijo A/B/C con `age_band` que declare el guardián después).
-2. Inserta una **invitación owner** ligada a la ficha Adulto 1, con email real de acceso del propietario, TTL corto (24h), `token_hash` en base; **el token en claro se muestra UNA vez en el Shell** (pantalla del propietario, no chat).
-3. El propietario abre `/invitacion?t=…` y **define su propia contraseña** en la UI (nunca compartida).
-4. Alta atómica ya probada → owner real vinculado a su ficha; auditoría completa; reutilización imposible.
-5. Rollback: si algo falla antes de aceptar, revocar la invitación (`POST /households/{hid}/invitations/{id}/revoke`) y/o restaurar snapshot pre-bootstrap.
-6. **Las otras 4 cuentas** nacen por invitaciones emitidas DESDE la cuenta propietaria vía la UI (1b.4), jamás por Shell.
+2. Genera una **invitación owner** ligada a la ficha Adulto 1, con email real de acceso del propietario, TTL corto (24h); en base persiste **solo el `token_hash`**. El token se genera server-side **después de confirmar el commit** de la invitación.
+3. **Custodia del token bootstrap (sin suponer que la consola del proveedor es segura):**
+   - el token **nunca** aparece como argumento del comando, variable visible, archivo persistente, log, screenshot, chat ni documentación;
+   - **solo** puede mostrarse una vez al operador autenticado **si previamente se confirma que la consola del proveedor no persiste stdout ni transcripciones** — no se da por hecho: es una verificación previa;
+   - **si esa garantía no puede demostrarse, este método de entrega queda BLOQUEADO** y se usa un canal seguro aprobado (p. ej., entrega por SMTP real ya configurado, o un mecanismo administrativo de un solo uso auditado);
+   - **el método definitivo de entrega se decide y audita en 1b.3, no en 1b.1.**
+4. El propietario abre `/invitacion#t=…` (fragmento, §4.1) y **define su propia contraseña** en la UI (jamás compartida ni vista por nadie).
+5. Alta atómica ya probada → owner real vinculado a su ficha; auditoría completa; reutilización imposible.
+6. Rollback por hitos (§6.5): fallo antes de completar el alta → revocar la invitación (`POST /households/{hid}/invitations/{id}/revoke`) y/o restaurar **SNAPSHOT B**.
+7. **Las otras 4 cuentas** nacen por invitaciones emitidas DESDE la cuenta propietaria vía la UI (1b.4), jamás server-side.
 
-Garantías: registro público sigue cerrado · password definida por la persona · single-use + expiración · vinculación correcta · auditoría · rollback · cero secretos en logs (token solo en pantalla del Shell, mostrado una vez).
+Garantías: registro público sigue cerrado · password definida por la persona · single-use + expiración · vinculación correcta · auditoría · rollback por hitos · token jamás en argumentos/archivos/logs/chat, con canal de entrega validado o bloqueado en 1b.3.
 
 ---
 
