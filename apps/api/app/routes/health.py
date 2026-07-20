@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from ..deps import get_db, get_current_user, require_household_role, require_person_in_household
 from ..tenancy import get_household_organization_id
+from ..rbac import require_module_visible
 
 router = APIRouter(prefix="/health", tags=["Health"])
 
@@ -20,6 +21,8 @@ def set_plan(household_id: str, person_id: str, med_name: str, reminder_times: s
         raise HTTPException(status_code=400, detail="verification_mode must be none|tap|voice")
     require_household_role(db, user["user_id"], household_id, "member")
     require_person_in_household(db, person_id, household_id)
+    # CP1d-1b.1: gate central de módulo (family-pilot => health DENIED para todos).
+    require_module_visible(db, user["user_id"], household_id, "health")
     times = [t.strip() for t in reminder_times.split(",") if t.strip()]
     if not times:
         raise HTTPException(status_code=400, detail="reminder_times required")
@@ -46,6 +49,8 @@ def set_plan(household_id: str, person_id: str, med_name: str, reminder_times: s
 def get_plan(household_id: str, person_id: str, med_name: str, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "viewer")
     require_person_in_household(db, person_id, household_id)
+    # CP1d-1b.1: gate central de módulo (family-pilot => health DENIED para todos).
+    require_module_visible(db, user["user_id"], household_id, "health")
     row = db.execute("SELECT reminder_times, verification_mode, updated_at FROM adherence_plans WHERE household_id=? AND person_id=? AND med_name=?",
                      (household_id, person_id, med_name)).fetchone()
     if not row:
@@ -58,6 +63,8 @@ def checkin(household_id: str, person_id: str, med_name: str, status: str, user=
         raise HTTPException(status_code=400, detail="status must be taken|missed")
     require_household_role(db, user["user_id"], household_id, "member")
     require_person_in_household(db, person_id, household_id)
+    # CP1d-1b.1: gate central de módulo (family-pilot => health DENIED para todos).
+    require_module_visible(db, user["user_id"], household_id, "health")
     organization_id = get_household_organization_id(db, household_id)
 
     ts = now()

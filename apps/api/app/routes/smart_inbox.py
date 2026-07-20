@@ -28,6 +28,7 @@ from pydantic import BaseModel
 
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role
+from ..rbac import require_module_visible
 from ..tenancy import get_household_organization_id
 from .unit_functions import create_unit_function_internal
 from .vantguide_library import log_evidence_internal, upsert_memory_internal
@@ -401,6 +402,8 @@ async def analyze_document(
 ):
     """Sube/pega un documento, lo clasifica y crea un DocumentRouteCandidate."""
     require_household_role(db, user["user_id"], household_id, "member")
+    # CP1d-1b.1: bandeja de documentos = modulo "documents" (family-pilot => DENIED).
+    require_module_visible(db, user["user_id"], household_id, "documents")
 
     source = "pasted_text"
     text = (pasted_text or "").strip()
@@ -471,6 +474,7 @@ def list_candidates(
     """Lista candidatos. Scoping: owner/admin ven todos; un integrante (member)
     ve los no asignados o los de su propia persona."""
     role = require_household_role(db, user["user_id"], household_id, "viewer")
+    require_module_visible(db, user["user_id"], household_id, "documents")
     rows = db.execute(
         "SELECT * FROM document_route_candidates WHERE household_id=? AND status=? "
         "ORDER BY created_at DESC LIMIT 200",
@@ -501,6 +505,7 @@ def confirm_candidate(
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
     cand = _row_to_dict(row)
     require_household_role(db, user["user_id"], cand["household_id"], "member")
+    require_module_visible(db, user["user_id"], cand["household_id"], "documents")
     if cand["status"] != "pending":
         raise HTTPException(status_code=409, detail=f"El candidato ya está {cand['status']}")
 
@@ -647,6 +652,7 @@ def reject_candidate(
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
     cand = _row_to_dict(row)
     require_household_role(db, user["user_id"], cand["household_id"], "member")
+    require_module_visible(db, user["user_id"], cand["household_id"], "documents")
     if cand["status"] != "pending":
         raise HTTPException(status_code=409, detail=f"El candidato ya está {cand['status']}")
 

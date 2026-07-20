@@ -455,6 +455,22 @@ def register_with_invitation(
     uid = str(uuid.uuid4())
     linked_person_id = None
     try:
+        # 0) CP1d-1b.1 — política de menores COMPARTIDA, re-validada DENTRO de
+        #    la transacción (banda/tutela/consentimiento pueden haber cambiado
+        #    desde que se creó la invitación). El rol es el PERSISTIDO en la
+        #    invitación; nada de banda/scope/rol viene del payload del cliente.
+        #    Vía pública: todo rechazo de política usa el mensaje genérico
+        #    anti-enumeración.
+        from app.config import is_family_pilot
+        from app.minor_guardian_policy import validate_invitation_person_policy
+        policy = validate_invitation_person_policy(
+            db,
+            household_id=invitation["household_id"],
+            person_id=invitation["person_id"],
+            role=invitation["role"],
+            require_person=is_family_pilot(),
+            generic_error=_INVITATION_GENERIC_ERROR,
+        )
         # 1) Consumir la invitación PRIMERO, con guardia de concurrencia: solo
         #    una transacción puede pasar de accepted_at NULL a consumida.
         cur = db.execute(
@@ -502,6 +518,9 @@ def register_with_invitation(
                 "linked_person_id": linked_person_id,
                 "email_fingerprint": _email_fingerprint(email),
                 "token_fingerprint": token_fp,
+                "age_band": policy.get("age_band"),
+                "relationship_id": policy.get("relationship_id"),
+                "consent_id": policy.get("consent_id"),
             },
         )
         write_security_event(

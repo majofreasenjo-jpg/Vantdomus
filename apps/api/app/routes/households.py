@@ -550,15 +550,18 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
     from app.rate_limit import enforce_action_limit
     enforce_action_limit("invitation_create", user["user_id"])
     person_id = (payload.person_id or "").strip() or None
-    if person_id:
-        person = db.execute(
-            "SELECT id, user_id FROM persons WHERE id=? AND household_id=?",
-            (person_id, household_id),
-        ).fetchone()
-        if not person:
-            raise HTTPException(status_code=404, detail="Person not found in this household")
-        if person["user_id"]:
-            raise HTTPException(status_code=400, detail="Person is already linked to a user")
+    # CP1d-1b.1 — validador COMPARTIDO (etapa de creación): banda, tutela y
+    # consentimiento se validan aquí y SE RE-VALIDAN en cada aceptación.
+    # En family-pilot la ficha es obligatoria.
+    from app.config import is_family_pilot
+    from app.minor_guardian_policy import validate_invitation_person_policy
+    policy = validate_invitation_person_policy(
+        db,
+        household_id=household_id,
+        person_id=person_id,
+        role=role,
+        require_person=is_family_pilot(),
+    )
     ttl_hours = max(1, min(int(payload.ttl_hours or 168), 24 * 30))
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).isoformat()
     raw_token = secrets.token_urlsafe(32)
@@ -584,6 +587,7 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
             person_id,
         ),
     )
+    # CP1d-1b.1 — auditoría SIN PII: fingerprint en lugar de email en claro.
     write_audit_log(
         db,
         action="create_invitation",
@@ -591,7 +595,15 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
         household_id=household_id,
         user_id=user["user_id"],
         resource_id=invitation_id,
-        metadata={"email": email, "role": role, "expires_at": expires_at, "person_id": person_id},
+        metadata={
+            "email_fingerprint": _email_fingerprint(email),
+            "role": role,
+            "expires_at": expires_at,
+            "person_id": person_id,
+            "age_band": policy.get("age_band"),
+            "relationship_id": policy.get("relationship_id"),
+            "consent_id": policy.get("consent_id"),
+        },
     )
     write_security_event(
         db,
@@ -648,39 +660,69 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
     if existing:
         raise HTTPException(status_code=400, detail="User is already a household member")
 
-    db.execute(
-        "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
-        (invitation["household_id"], user["user_id"], invitation["role"], now()),
-    )
-    accepted_at = now()
-    db.execute(
-        "UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=? WHERE id=?",
-        (user["user_id"], accepted_at, invitation["id"]),
-    )
-    # CP1d-FAMILY-PILOT-1a: si la invitación venía ligada a una persona del
-    # hogar y esa ficha sigue libre, enlazar al usuario recién incorporado.
+    # CP1d-1b.1 — MISMA política que register_with_invitation (una cuenta
+    # preexistente NO puede evadir banda/tutela/consentimiento/rol/aislamiento).
+    # Se RE-VALIDA TODO dentro de la transacción: las condiciones pueden haber
+    # cambiado desde que se creó la invitación. El rol usado es SIEMPRE el
+    # persistido en la invitación.
+    from app.config import is_family_pilot
+    from app.minor_guardian_policy import validate_invitation_person_policy
     linked_person_id = None
-    invited_person_id = invitation["person_id"]
-    if invited_person_id:
-        person = db.execute(
-            "SELECT id, user_id FROM persons WHERE id=? AND household_id=?",
-            (invited_person_id, invitation["household_id"]),
-        ).fetchone()
-        if person and not person["user_id"]:
-            db.execute(
-                "UPDATE persons SET user_id=? WHERE id=? AND household_id=?",
-                (user["user_id"], invited_person_id, invitation["household_id"]),
+    try:
+        policy = validate_invitation_person_policy(
+            db,
+            household_id=invitation["household_id"],
+            person_id=invitation["person_id"],
+            role=invitation["role"],
+            require_person=is_family_pilot(),
+        )
+        # Guardia de concurrencia: solo UNA transacción consuma la invitación.
+        accepted_at = now()
+        cur = db.execute(
+            """
+            UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=?
+            WHERE id=? AND accepted_at IS NULL AND revoked_at IS NULL
+            """,
+            (user["user_id"], accepted_at, invitation["id"]),
+        )
+        if cur.rowcount != 1:
+            raise HTTPException(status_code=400, detail="Invitation already accepted")
+        db.execute(
+            "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
+            (invitation["household_id"], user["user_id"], invitation["role"], now()),
+        )
+        # Ficha ligada: DEBE poder enlazarse; si está ocupada, FALLO ATÓMICO
+        # (jamás se enlaza en silencio ni se consume la invitación a medias).
+        if invitation["person_id"]:
+            cur = db.execute(
+                "UPDATE persons SET user_id=? WHERE id=? AND household_id=? AND user_id IS NULL",
+                (user["user_id"], invitation["person_id"], invitation["household_id"]),
             )
-            linked_person_id = invited_person_id
-    write_audit_log(
-        db,
-        action="accept_invitation",
-        resource_type="household_invitation",
-        household_id=invitation["household_id"],
-        user_id=user["user_id"],
-        resource_id=invitation["id"],
-        metadata={"email": invitation["email"], "role": invitation["role"], "linked_person_id": linked_person_id},
-    )
+            if cur.rowcount != 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail="La invitación no pudo completarse. Pide una nueva al administrador del hogar.",
+                )
+            linked_person_id = invitation["person_id"]
+        write_audit_log(
+            db,
+            action="accept_invitation",
+            resource_type="household_invitation",
+            household_id=invitation["household_id"],
+            user_id=user["user_id"],
+            resource_id=invitation["id"],
+            metadata={
+                "email_fingerprint": _email_fingerprint(invitation["email"]),
+                "role": invitation["role"],
+                "linked_person_id": linked_person_id,
+                "age_band": policy.get("age_band"),
+                "relationship_id": policy.get("relationship_id"),
+                "consent_id": policy.get("consent_id"),
+            },
+        )
+    except Exception:
+        db.rollback()
+        raise
     write_security_event(
         db,
         event_type="household_invitation_accepted",
@@ -725,7 +767,7 @@ def revoke_invitation(household_id: str, invitation_id: str, user=Depends(get_cu
         household_id=household_id,
         user_id=user["user_id"],
         resource_id=invitation_id,
-        metadata={"email": invitation["email"], "role": invitation["role"], "revoked_at": revoked_at},
+        metadata={"email_fingerprint": _email_fingerprint(invitation["email"]), "role": invitation["role"], "revoked_at": revoked_at},
     )
     write_security_event(
         db,

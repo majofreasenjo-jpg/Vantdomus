@@ -85,14 +85,21 @@ def _bootstrap_household(client: TestClient, token: str, name="Familia Piloto") 
     return r.json()["id"]
 
 
-def _create_person(client: TestClient, token: str, hid: str, display_name="Hijo Sintetico") -> str:
+def _create_person(client: TestClient, token: str, hid: str, display_name="Hijo Sintetico", band="adult") -> str:
     r = client.post(
         "/persons",
         params={"household_id": hid, "display_name": display_name, "relation": "Hijo"},
         headers=_auth(token),
     )
     assert r.status_code in (200, 201), r.text
-    return r.json()["id"]
+    pid = r.json()["id"]
+    # CP1d-1b.1: una ficha unclassified no puede recibir cuenta; estos tests de
+    # 1a usan la ficha como ADULTO que se da de alta por invitación, así que el
+    # owner la clasifica explícitamente (el token que crea la persona es owner).
+    if band is not None:
+        rc = client.patch(f"/persons/{pid}/classification", json={"age_band": band}, headers=_auth(token))
+        assert rc.status_code == 200, rc.text
+    return pid
 
 
 # ---------------------------------------------------------------------------
@@ -506,7 +513,9 @@ def test_register_with_invitation_rolls_back_when_person_link_fails(open_client)
         "/auth/register-with-invitation",
         json={"token": inv["token"], "email": "tarde13@sintetico.test", "password": PASSWORD},
     )
-    assert r.status_code == 409, r.text
+    # CP1d-1b.1: la politica de menores intercepta la ficha ocupada ANTES, con
+    # el mensaje generico anti-enumeracion (400) de la via publica.
+    assert r.status_code in (400, 409), r.text
 
     # Rollback TOTAL: sin usuario, sin membresía, invitación NO consumida.
     con = sqlite3.connect(db_path)
@@ -540,7 +549,8 @@ def test_register_with_invitation_rejects_foreign_person_link(open_client):
         "/auth/register-with-invitation",
         json={"token": inv["token"], "email": "cruce14@sintetico.test", "password": PASSWORD},
     )
-    assert r.status_code == 409, r.text
+    # CP1d-1b.1: person_id de otro hogar => rechazo generico anti-enumeracion (400).
+    assert r.status_code in (400, 409), r.text
 
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row

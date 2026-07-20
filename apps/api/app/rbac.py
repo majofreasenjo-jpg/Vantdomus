@@ -35,9 +35,22 @@ def module_min_role(db, household_id: str, module: str) -> str:
         return "viewer"
 
 
+# CP1d-FAMILY-PILOT-1b.1: durante el piloto familiar estos módulos quedan
+# DENIED para TODOS los roles (adultos incluidos), ANTES de evaluar
+# module_visibility. La capacidad técnica previa no equivale a autorización.
+FAMILY_PILOT_DENIED_MODULES = {"health", "finance", "documents"}
+
+
 def require_module_visible(db, user_id: str, household_id: str, module: str):
     """Exige que el usuario tenga rol suficiente para ver el módulo sensible."""
     role = require_household_role(db, user_id, household_id, "viewer")  # al menos miembro/viewer del hogar
+    # Fail-closed del piloto: evaluado PRIMERO, sin excepciones por rol.
+    from .config import is_family_pilot
+    if is_family_pilot() and module in FAMILY_PILOT_DENIED_MODULES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Módulo '{module}' no disponible durante el piloto familiar",
+        )
     if module in SENSITIVE_MODULES:
         need = module_min_role(db, household_id, module)
         if ROLE_RANK.get(role, -1) < ROLE_RANK[need]:

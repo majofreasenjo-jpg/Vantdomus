@@ -231,6 +231,9 @@ def test_email_failure_after_commit_does_not_revert_account(monkeypatch, tmp_pat
             headers=_auth(owner),
         )
         person_id = r.json()["id"]
+        # CP1d-1b.1: clasificar como adulto para que la ficha pueda recibir cuenta.
+        rc = client.patch(f"/persons/{person_id}/classification", json={"age_band": "adult"}, headers=_auth(owner))
+        assert rc.status_code == 200, rc.text
         r = client.post(
             f"/households/{hid}/invitations",
             json={"email": "hija-mail@sintetico.test", "role": "member", "person_id": person_id},

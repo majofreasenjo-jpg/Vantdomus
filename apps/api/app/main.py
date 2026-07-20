@@ -23,6 +23,7 @@ from .routes import (
     finance,
     forensics,
     gerencia,
+    guardians,
     health,
     households,
     logbook,
@@ -135,6 +136,7 @@ def healthcheck():
 app.include_router(auth.router)
 app.include_router(auth_oauth.router)
 app.include_router(households.router)
+app.include_router(guardians.router)
 app.include_router(persons.router)
 app.include_router(health.router)
 app.include_router(tasks.router)
