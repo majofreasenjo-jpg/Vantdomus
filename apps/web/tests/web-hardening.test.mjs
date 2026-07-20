@@ -58,3 +58,27 @@ test("7. cookies y proxy NO se modificaron en este bloque", () => {
   const proxy = readFileSync(join(WEB_ROOT, "app", "api", "public", "[...path]", "route.ts"), "utf-8");
   assert.match(proxy, /ALLOWED_PUBLIC_PATHS/, "proxy publico conserva su allowlist");
 });
+
+
+// CP1d-1b.2 — proxy público: allowlist exacta y register-with-invitation.
+test("8. proxy público allowlist incluye register-with-invitation y NADA de wildcard", () => {
+  const route = readFileSync(join(WEB_ROOT, "app", "api", "public", "[...path]", "route.ts"), "utf-8");
+  assert.match(route, /auth\/register-with-invitation/);
+  // No agregar rutas peligrosas
+  assert.doesNotMatch(route, /ALLOWED_PUBLIC_PATHS[\s\S]*households/);
+  assert.doesNotMatch(route, /ALLOWED_PUBLIC_PATHS[\s\S]*"\*"/);
+  assert.doesNotMatch(route, /ALLOWED_PUBLIC_PATHS[\s\S]*guardians/);
+  assert.doesNotMatch(route, /ALLOWED_PUBLIC_PATHS[\s\S]*"auth\/register"[,\s]/);
+});
+
+test("9. /invitacion page declara noindex + dynamic no-cache", () => {
+  const page = readFileSync(join(WEB_ROOT, "app", "invitacion", "page.tsx"), "utf-8");
+  assert.match(page, /robots:\s*\{\s*index:\s*false/);
+  assert.match(page, /force-dynamic/);
+});
+
+test("10. login oculta OAuth en family-pilot", () => {
+  const login = readFileSync(join(WEB_ROOT, "app", "login", "page.tsx"), "utf-8");
+  assert.match(login, /oauthVisible/);
+  assert.match(login, /family-pilot/);
+});

@@ -1166,3 +1166,105 @@ def test_r2_family_board_school_blocked_in_family_pilot(monkeypatch, tmp_path):
         con.commit(); con.close()
         listed = client.get(f"/family_board/{hid}", headers=_auth(owner)).json()["items"]
         assert all(p["post_type"] != "school" for p in listed)
+
+
+# ===========================================================================
+# 1b.2 — aceptación con token en body, legacy bloqueada, minimización residual
+# ===========================================================================
+
+def test_b2_accept_by_body_token(local_client):
+    client, db_path = local_client
+    owner = _register_and_login(client, "owner-b2body@sintetico.test")
+    hid = _household(client, owner)
+    pid = _person(client, owner, hid, "Adulto B2")
+    _classify(client, owner, pid, band="adult")
+    guest_email = "invitado-b2body@sintetico.test"
+    guest = _register_and_login(client, guest_email)
+    inv = _invite(client, owner, hid, guest_email, person_id=pid, role="member")
+    # aceptar con token en BODY (no en pathname)
+    r = client.post("/households/invitations/accept", json={"token": inv["token"]}, headers=_auth(guest))
+    assert r.status_code == 200, r.text
+    assert r.json()["linked_person_id"] == pid
+    # reuso => rechazado
+    r = client.post("/households/invitations/accept", json={"token": inv["token"]}, headers=_auth(guest))
+    assert r.status_code in (400, 409), r.text
+
+
+def test_b2_legacy_pathname_accept_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        pid = _person(client, owner, hid, "Adulto Legacy")
+        client.patch(f"/persons/{pid}/classification", json={"age_band": "adult"}, headers=_auth(owner))
+        inv = _invite(client, owner, hid, "legacy-b2@sintetico.test", person_id=pid, role="member")
+        # ruta legacy con token en pathname => fail-closed 404, sin exponer el token
+        r = client.post(f"/households/invitations/{inv['token']}/accept", headers=_auth(owner))
+        assert r.status_code == 404, r.text
+
+
+def test_b2_legacy_pathname_accept_works_locally(local_client):
+    client, _ = local_client
+    owner = _register_and_login(client, "owner-legacy-local@sintetico.test")
+    hid = _household(client, owner)
+    pid = _person(client, owner, hid, "Adulto LL")
+    _classify(client, owner, pid, band="adult")
+    email = "invitado-legacy-local@sintetico.test"
+    guest = _register_and_login(client, email)
+    inv = _invite(client, owner, hid, email, person_id=pid, role="member")
+    r = client.post(f"/households/invitations/{inv['token']}/accept", headers=_auth(guest))
+    assert r.status_code == 200, r.text
+
+
+def test_b2_members_no_third_party_user_id_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        tutor = _person(client, owner, hid, "Tutor B2")
+        client.patch(f"/persons/{tutor}/classification", json={"age_band": "adult"}, headers=_auth(owner))
+        inv = _invite(client, owner, hid, "tutor-b2@sintetico.test", person_id=tutor, role="admin")
+        _register_with_invitation(client, inv["token"], "tutor-b2@sintetico.test")
+        minor = _person(client, owner, hid, "Menor B2")
+        client.patch(f"/persons/{minor}/classification", json={"age_band": "supervised_minor"}, headers=_auth(owner))
+        guardian = _login(client, "tutor-b2@sintetico.test")
+        rel = client.post(f"/households/{hid}/guardians/relationships",
+                          json={"minor_person_id": minor, "guardian_person_id": tutor, "scope": "full"},
+                          headers=_auth(owner)).json()
+        client.post(f"/households/{hid}/guardians/consents",
+                    json={"relationship_id": rel["id"], "consent_type": "account_creation"}, headers=_auth(guardian))
+        inv2 = _invite(client, owner, hid, "menor-b2@sintetico.test", person_id=minor, role="viewer")
+        _register_with_invitation(client, inv2["token"], "menor-b2@sintetico.test")
+        child = _login(client, "menor-b2@sintetico.test")
+        items = client.get(f"/households/{hid}/members", headers=_auth(child)).json()["items"]
+        for it in items:
+            if it.get("is_self"):
+                continue
+            assert "user_id" not in it, f"user_id de tercero filtrado: {it}"
+            assert "email" not in it
+
+
+def test_b2_households_hides_org_id_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        items = client.get("/households", headers=_auth(owner)).json()["items"]
+        assert items, "debe listar al menos el hogar del piloto"
+        for it in items:
+            assert "organization_id" not in it, f"organization_id expuesto: {it}"
+            assert set(it.keys()) <= {"id", "name"}
+
+
+def test_b2_register_with_invitation_token_not_in_response_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        pid = _person(client, owner, hid, "Adulto Tok")
+        client.patch(f"/persons/{pid}/classification", json={"age_band": "adult"}, headers=_auth(owner))
+        inv = _invite(client, owner, hid, "adulto-tok-b2@sintetico.test", person_id=pid, role="member")
+        r = client.post("/auth/register-with-invitation",
+                        json={"token": inv["token"], "email": "adulto-tok-b2@sintetico.test", "password": PASSWORD})
+        assert r.status_code == 200, r.text
+        assert "token" not in r.json()

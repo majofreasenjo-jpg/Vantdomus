@@ -15,44 +15,18 @@ from ..tenancy import backfill_user_households, ensure_user_default_organization
 
 router = APIRouter(prefix="/households", tags=["Households"])
 
-def _family_safe_backfill(db, user_id: str) -> None:
-    """CP1d-1b.1-R2: repara organization_id de hogares del usuario SIN crear
-    ninguna organización nueva (a diferencia de backfill_user_households)."""
-    rows = db.execute(
-        """
-        SELECT h.id, h.organization_id
-        FROM households h
-        JOIN household_memberships m ON m.household_id=h.id
-        WHERE m.user_id=? AND (h.organization_id IS NULL OR h.organization_id='')
-        """,
-        (user_id,),
-    ).fetchall()
-    for row in rows:
-        # Solo si YA existe una organización asociada por otra vía; en el piloto
-        # los hogares se crean por bootstrap con su organización técnica.
-        existing = db.execute(
-            "SELECT organization_id FROM households WHERE id=? AND organization_id IS NOT NULL AND organization_id<>''",
-            (row["id"],),
-        ).fetchone()
-        # No hay organización que crear; se deja como está (sin autoprovisión).
-        _ = existing
-
-
 @router.get("")
 def list_households(user=Depends(get_current_user), db=Depends(get_db)):
     try:
-        # CP1d-1b.1-R2 (hallazgo 4): backfill_user_households llama a
-        # ensure_user_default_organization, que crea una organización + una
-        # organization_membership owner por cada usuario sin org. En
-        # family-pilot NO se autoprovisionan organizaciones empresariales por el
-        # solo hecho de listar hogares — solo se repara el organization_id de
-        # hogares existentes, sin crear nada nuevo (variante read-only/safe).
+        # CP1d-1b.2 (deuda 9C): en family-pilot se OMITE el backfill por
+        # completo. backfill_user_households autoprovisiona organizaciones
+        # empresariales; el hogar del piloto llega por bootstrap con su
+        # organization_id válido, así que no hay nada honesto que "reparar".
         from app.config import is_family_pilot
-        if is_family_pilot():
-            _family_safe_backfill(db, user["user_id"])
-        else:
+        family_pilot = is_family_pilot()
+        if not family_pilot:
             backfill_user_households(db, user["user_id"])
-        db.commit()
+            db.commit()
         cur = db.cursor()
         cur.execute(
             """
@@ -65,6 +39,10 @@ def list_households(user=Depends(get_current_user), db=Depends(get_db)):
             (user["user_id"],)
         )
         rows = cur.fetchall()
+        # CP1d-1b.2 (deuda 9B): en family-pilot no se expone organization_id a
+        # los integrantes familiares (dato operativo/empresarial innecesario).
+        if family_pilot:
+            return {"items": [{"id": r[0], "name": r[1]} for r in rows]}
         return {"items": [{"id": r[0], "name": r[1], "organization_id": r[2]} for r in rows]}
     except Exception as e:
         print(f"ERROR list_households: {e}")
@@ -493,15 +471,22 @@ def list_members(household_id: str, user=Depends(get_current_user), db=Depends(g
             (household_id,),
         ).fetchall()
     }
+    from app.config import is_family_pilot
+    family_pilot = is_family_pilot()
     items = []
     for row in rows:
         is_self = row["user_id"] == user["user_id"]
         entry = {
-            "user_id": row["user_id"],
             "display_name": display_by_user.get(row["user_id"]),
             "role": row["role"],
             "presence": _presence_status(row["last_seen_at"]),
+            "is_self": is_self,
         }
+        # CP1d-1b.2 (deuda 9A): en family-pilot los integrantes NO
+        # administrativos no reciben el user_id interno de terceros. Owner/admin
+        # conservan los IDs necesarios para administrar; cada uno recibe el suyo.
+        if is_admin_view or is_self or not family_pilot:
+            entry["user_id"] = row["user_id"]
         if is_admin_view or is_self:
             # Vista administrativa completa, o el propio integrante sobre sí mismo.
             entry["email"] = row["email"]
@@ -693,8 +678,10 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
     }
 
 
-@router.post("/invitations/{token}/accept")
-def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get_db)):
+def _accept_invitation_core(db, user, token: str):
+    """CP1d-1b.2 — núcleo transaccional COMPARTIDO por ambas rutas de aceptación
+    (token en pathname legacy y token en body). Reusa la política central; nunca
+    registra el token en claro."""
     from app.rate_limit import enforce_action_limit
     enforce_action_limit("invitation_accept", user["user_id"])
     token_hash = _hash_invitation_token(token)
@@ -807,6 +794,29 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
         "role": invitation["role"],
         "linked_person_id": linked_person_id,
     }
+
+
+class InvitationAcceptBody(BaseModel):
+    token: str
+
+
+@router.post("/invitations/accept")
+def accept_invitation_by_body(payload: InvitationAcceptBody, user=Depends(get_current_user), db=Depends(get_db)):
+    """CP1d-1b.2 — aceptacion con token en el BODY (no en el pathname): evita
+    que el token aparezca en logs de Next/CDN/Render. Reusa el nucleo comun."""
+    return _accept_invitation_core(db, user, (payload.token or "").strip())
+
+
+@router.post("/invitations/{token}/accept")
+def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get_db)):
+    # CP1d-1b.2 — ruta legacy con token en pathname: en family-pilot responde
+    # fail-closed ANTES de consultar la invitacion (no se registra el pathname
+    # con el token, no se redirige, no se expone el token). El flujo del piloto
+    # usa exclusivamente POST /invitations/accept (token en body).
+    from app.config import is_family_pilot
+    if is_family_pilot():
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    return _accept_invitation_core(db, user, token)
 
 
 @router.post("/{household_id}/invitations/{invitation_id}/revoke")

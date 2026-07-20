@@ -23,6 +23,10 @@ export default async function LoginPage({
   const email = params.email || "";
   const next = params.next || "/inicio";
   const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
+  // CP1d-1b.2: en family-pilot OAuth continúa DENIED → se ocultan los botones
+  // Google/Facebook (scaffolding no autorizado durante el piloto).
+  const appEnv = (process.env.APP_ENV || process.env.VANTDOMUS_DEPLOY_ENV || "local").toLowerCase();
+  const oauthVisible = !["family-pilot", "family_pilot", "familypilot"].includes(appEnv);
 
   return (
     <div id="vantdomus-login" className={`${inter.variable} ${grotesk.variable}`}>
@@ -115,11 +119,15 @@ export default async function LoginPage({
           </div>
         </form>
 
-        <div className="vdl-sep"><span className="line" />o<span className="line" /></div>
-        <div className="vdl-row">
-          <a className="vdl-btn vdl-oauth" href={`${apiBase}/auth/oauth/google/start`}>Continuar con Google</a>
-          <a className="vdl-btn vdl-oauth" href={`${apiBase}/auth/oauth/facebook/start`}>Continuar con Facebook</a>
-        </div>
+        {oauthVisible ? (
+          <>
+            <div className="vdl-sep"><span className="line" />o<span className="line" /></div>
+            <div className="vdl-row">
+              <a className="vdl-btn vdl-oauth" href={`${apiBase}/auth/oauth/google/start`}>Continuar con Google</a>
+              <a className="vdl-btn vdl-oauth" href={`${apiBase}/auth/oauth/facebook/start`}>Continuar con Facebook</a>
+            </div>
+          </>
+        ) : null}
 
         <p className="vdl-safe">🔒 Acceso seguro · Tus datos son tuyos</p>
       </section>
