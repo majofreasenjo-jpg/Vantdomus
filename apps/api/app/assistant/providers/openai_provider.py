@@ -139,6 +139,36 @@ class OpenAIProvider(Provider):
             raise ValueError("salida no es un objeto JSON")
         return json.loads(text)
 
+    def vision_extract_text(self, *, image_b64: str, mime: str, max_tokens: int = 900) -> str:
+        """
+        OPS-1.D — OCR por visión: transcribe el texto visible de una imagen
+        (boleta/circular/receta fotografiada). Exige los mismos gates duros.
+        Devuelve texto plano; NO clasifica, NO escribe DB, NO decide rutas: eso
+        lo hace el clasificador por reglas + la confirmación humana posterior.
+        """
+        if not self.is_available():
+            raise RuntimeError("OpenAIProvider no disponible: faltan gates server-side.")
+        system = (
+            "Eres un OCR. Transcribe TODO el texto visible de la imagen "
+            "(boletas, circulares escolares, recetas, cuentas). Devuelve SOLO el "
+            "texto plano transcrito, sin comentarios, sin interpretar ni resumir."
+        )
+        raw = self._transport({
+            "model": self.model,
+            "temperature": 0,
+            "max_tokens": max_tokens,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "Transcribe literalmente el texto de esta imagen."},
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{image_b64}"}},
+                ]},
+            ],
+        }, timeout=float(os.getenv("ASSISTANT_VISION_TIMEOUT", "20")))
+        self.last_usage = raw.get("usage") or {}
+        content = (raw.get("choices") or [{}])[0].get("message", {}).get("content", "")
+        return (content or "").strip()
+
     def _parse_strict(self, content: str) -> ProviderResult:
         """JSON estricto: sin Markdown, sin texto alrededor, sin campos extra."""
         text = (content or "").strip()

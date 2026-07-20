@@ -408,6 +408,7 @@ async def analyze_document(
     source = "pasted_text"
     text = (pasted_text or "").strip()
     pending_image = False
+    ocr_used = False
     if file is not None:
         data = await file.read()
         if len(data) > _MAX_BYTES:
@@ -417,8 +418,17 @@ async def analyze_document(
         if extracted:
             text = extracted
         elif not text:
-            # Imagen/otro sin OCR: queda pendiente de revisión manual.
-            pending_image = True
+            # OPS-1.D: antes de rendir a revisión manual, intentamos OCR por
+            # visión (solo si el perfil operativo tiene IA real disponible). El
+            # texto transcrito sigue el MISMO clasificador por reglas + la
+            # confirmación humana; nada se archiva sin que la familia lo apruebe.
+            from ..assistant.document_ocr import ocr_image_text
+            ocr_text = ocr_image_text(data, file.filename or "")
+            if ocr_text:
+                text = ocr_text
+                ocr_used = True
+            else:
+                pending_image = True
     if not text and not pending_image:
         raise HTTPException(status_code=400, detail="No hay texto para analizar (pegá texto o subí un PDF)")
 
@@ -435,12 +445,15 @@ async def analyze_document(
     else:
         result = _classify(text, file.filename if file else "")
         # Detalle de boleta (producto -> precio) desde el PDF, por coordenadas.
-        if result["route_type"] == "receipt_to_finance" and file is not None:
+        if result["route_type"] == "receipt_to_finance" and file is not None and not ocr_used:
             line_items = _extract_receipt_items(data)
             if line_items:
                 result["proposed_payload"]["line_items"] = line_items
                 n = len(line_items)
                 result["summary"] = f"Boleta detectada con {n} producto{'s' if n != 1 else ''}. Revisá el detalle y el total."
+        if ocr_used:
+            result["proposed_payload"]["read_by_ocr"] = True
+            result["summary"] = "Foto leída por Domi (OCR). " + result["summary"] + " Revisá que el texto sea correcto."
 
     organization_id = get_household_organization_id(db, household_id)
     cid = str(uuid.uuid4())
@@ -456,7 +469,7 @@ async def analyze_document(
             (text or "")[:_PREVIEW_LEN], result["confidence"],
             1 if result["requires_confirmation"] else 0, "pending",
             json.dumps(result["proposed_payload"], ensure_ascii=False),
-            0, user["user_id"], _now(),
+            1 if ocr_used else 0, user["user_id"], _now(),
         ),
     )
     db.commit()
