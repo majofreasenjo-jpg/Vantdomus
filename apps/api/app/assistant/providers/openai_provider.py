@@ -113,6 +113,32 @@ class OpenAIProvider(Provider):
         content = (raw.get("choices") or [{}])[0].get("message", {}).get("content", "")
         return self._parse_strict(content)
 
+    def complete_json(self, *, system: str, user: str, max_tokens: int = 600) -> dict:
+        """
+        OPS-1 — Llamada JSON GENÉRICA para tareas distintas de `propose`
+        (p. ej. el planificador de estudio). Exige los MISMOS gates duros que
+        `propose`, fuerza response_format json_object y devuelve el dict parseado
+        (crudo); el caller valida la forma. Nunca escribe DB ni ejecuta nada.
+        """
+        if not self.is_available():
+            raise RuntimeError("OpenAIProvider no disponible: faltan gates server-side.")
+        raw = self._transport({
+            "model": self.model,
+            "temperature": 0,
+            "max_tokens": max_tokens,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }, timeout=float(os.getenv("ASSISTANT_PROVIDER_TIMEOUT", "12")))
+        self.last_usage = raw.get("usage") or {}
+        content = (raw.get("choices") or [{}])[0].get("message", {}).get("content", "")
+        text = (content or "").strip()
+        if not text.startswith("{") or not text.endswith("}"):
+            raise ValueError("salida no es un objeto JSON")
+        return json.loads(text)
+
     def _parse_strict(self, content: str) -> ProviderResult:
         """JSON estricto: sin Markdown, sin texto alrededor, sin campos extra."""
         text = (content or "").strip()

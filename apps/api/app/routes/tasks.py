@@ -121,70 +121,71 @@ def create_school_plan(
         extracted_text, extraction = _extract_text(path)
         attachment_name = file.filename
     source_text = "\n".join([evaluation_title, notes, extracted_text]).strip()
-    candidates = _extract_calendar_candidates(source_text)
-    if not candidates:
-        candidates = [{
-            "due": _parse_due_date(due_date),
-            "label": evaluation_title.strip() or subject.strip() or "Evaluacion / entrega escolar",
-        }]
+    base_subject = subject.strip() or "Ramo pendiente"
+    student_label = student.strip() or "estudiante"
+
+    # OPS-1.C: plan REAL con IA cuando el perfil operativo la habilita; si no,
+    # cae de forma segura a la plantilla determinista de siempre. La IA solo
+    # estructura el plan que el usuario pidió al enviar el formulario.
+    steps, plan_mode = build_study_steps(
+        source_text=source_text,
+        subject=subject,
+        student=student,
+        due_date=due_date,
+        evaluation_title=evaluation_title,
+        notes=notes,
+    )
+
     created = []
     unit_function_ids = []
-    for item in candidates[:8]:
-        due = item["due"]
-        label = item["label"]
-        base_subject = subject.strip() or "Ramo pendiente"
-        student_label = student.strip() or "estudiante"
-        plan = [
-            (f"Diagnostico de estudio: {base_subject} - {label} ({student_label})", due - timedelta(days=10), "medium", ["estudio", "diagnostico", base_subject]),
-            (f"Resumen y materia clave: {base_subject} - {label}", due - timedelta(days=7), "medium", ["estudio", "resumen", base_subject]),
-            (f"Practica guiada: {base_subject} - {label}", due - timedelta(days=4), "high", ["estudio", "practica", base_subject]),
-            (f"Repaso final y materiales: {base_subject} - {label}", due - timedelta(days=1), "high", ["estudio", "repaso", base_subject]),
-            (f"Evaluacion / entrega: {base_subject} - {label}", due, "high", ["evaluacion", base_subject]),
-        ]
-        for title, task_due, priority, tags in plan:
-            task_due_clamped = max(task_due, datetime.now(timezone.utc))
+    for step in steps:
+        title = step["title"]
+        task_due_clamped = step["due"]
+        priority = step["priority"]
+        tags = step["tags"]
+        step_subject = step.get("subject") or base_subject
 
-            # VantGuide: crea la UnitFunction primaria (categoría=study) con
-            # dual_write_task=True para que se inserte ADEMÁS un task_items
-            # atado vía legacy_task_id. Esto mantiene retrocompat con kanban
-            # web/mobile sin tener que tocar esas pantallas.
-            if assigned_person_id:
-                uf_id = create_unit_function_internal(
-                    db,
-                    household_id=household_id,
-                    organization_id=organization_id,
-                    person_id=assigned_person_id,
-                    category="study",
-                    title=title,
-                    source_type="school_notice",
-                    created_by_user_id=user["user_id"],
-                    created_by_ai=False,
-                    description=f"Generado desde planificador escolar — {base_subject}",
-                    due_at=task_due_clamped.isoformat(),
-                    priority=priority,
-                    metadata={
-                        "subject": base_subject,
-                        "evaluation_label": label,
-                        "student_label": student_label,
-                        "step_tags": tags,
-                    },
-                    dual_write_task=True,
-                )
-                unit_function_ids.append(uf_id)
-                # Encontrar el task_id que el dual-write generó
-                row = db.execute(
-                    "SELECT legacy_task_id FROM unit_functions WHERE id=?",
-                    (uf_id,),
-                ).fetchone()
-                if row and row["legacy_task_id"]:
-                    created.append(row["legacy_task_id"])
-            else:
-                # Sin persona asignada → fallback al insert legacy (no se
-                # puede crear UnitFunction sin person_id NOT NULL en schema).
-                created.append(_insert_task(
-                    db, household_id, organization_id, title,
-                    task_due_clamped, assigned_person_id, priority, tags,
-                ))
+        # VantGuide: crea la UnitFunction primaria (categoría=study) con
+        # dual_write_task=True para que se inserte ADEMÁS un task_items
+        # atado vía legacy_task_id. Esto mantiene retrocompat con kanban
+        # web/mobile sin tener que tocar esas pantallas.
+        if assigned_person_id:
+            uf_id = create_unit_function_internal(
+                db,
+                household_id=household_id,
+                organization_id=organization_id,
+                person_id=assigned_person_id,
+                category="study",
+                title=title,
+                source_type="school_notice",
+                created_by_user_id=user["user_id"],
+                created_by_ai=(plan_mode == "ai"),
+                description=f"Generado desde planificador escolar ({'IA' if plan_mode == 'ai' else 'plantilla'}) — {step_subject}",
+                due_at=task_due_clamped.isoformat(),
+                priority=priority,
+                metadata={
+                    "subject": step_subject,
+                    "student_label": student_label,
+                    "step_tags": tags,
+                    "plan_mode": plan_mode,
+                },
+                dual_write_task=True,
+            )
+            unit_function_ids.append(uf_id)
+            # Encontrar el task_id que el dual-write generó
+            row = db.execute(
+                "SELECT legacy_task_id FROM unit_functions WHERE id=?",
+                (uf_id,),
+            ).fetchone()
+            if row and row["legacy_task_id"]:
+                created.append(row["legacy_task_id"])
+        else:
+            # Sin persona asignada → fallback al insert legacy (no se
+            # puede crear UnitFunction sin person_id NOT NULL en schema).
+            created.append(_insert_task(
+                db, household_id, organization_id, title,
+                task_due_clamped, assigned_person_id, priority, tags,
+            ))
 
     write_audit_log(
         db,
@@ -200,17 +201,24 @@ def create_school_plan(
             "attachment_name": attachment_name,
             "tasks_created": len(created),
             "unit_functions_created": len(unit_function_ids),
+            "plan_mode": plan_mode,
             "via": "schoolplanner_adapter→UnitFunction",
         },
     )
     db.commit()
+    _msg = (
+        "Plan de estudio a la medida generado por Domi (IA), con recordatorios y seguimiento."
+        if plan_mode == "ai"
+        else "Plan de estudio generado con recordatorios y seguimiento."
+    )
     return {
         "ok": True,
         "tasks_created": len(created),
         "unit_functions_created": len(unit_function_ids),
-        "detected_items": len(candidates),
+        "detected_items": len(steps),
+        "plan_mode": plan_mode,
         "attachment_name": attachment_name,
-        "message": "Plan de estudio familiar generado con recordatorios y seguimiento.",
+        "message": _msg,
     }
 
 @router.get("")
