@@ -40,6 +40,21 @@ def module_min_role(db, household_id: str, module: str) -> str:
 # module_visibility. La capacidad técnica previa no equivale a autorización.
 FAMILY_PILOT_DENIED_MODULES = {"health", "finance", "documents"}
 
+# CP1d-1b.1-R1: post_type del muro que son sensibles y quedan bloqueados en
+# family-pilot (creación, actualización-hacia, y no se listan/exponen).
+FAMILY_PILOT_DENIED_BOARD_TYPES = {"health", "finance", "document"}
+
+
+def family_pilot_deny(module_or_reason: str):
+    """CP1d-1b.1-R1: corta con 403 cuando el módulo/vía está prohibido en el
+    piloto. Usar en rutas transversales sin gate de módulo (alerts, board)."""
+    from .config import is_family_pilot
+    if is_family_pilot():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"'{module_or_reason}' no disponible durante el piloto familiar",
+        )
+
 
 def require_module_visible(db, user_id: str, household_id: str, module: str):
     """Exige que el usuario tenga rol suficiente para ver el módulo sensible."""

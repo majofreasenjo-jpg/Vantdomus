@@ -466,6 +466,15 @@ def list_members(household_id: str, user=Depends(get_current_user), db=Depends(g
 @router.post("/{household_id}/members")
 def add_member(household_id: str, payload: MemberCreate, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "admin")
+    # CP1d-1b.1-R1 — bloqueador 1: en family-pilot esta vía DIRECTA evadiría el
+    # modelo de menores (sin ficha/banda/tutela/consentimiento). La única vía
+    # para incorporar una cuenta preexistente es POST /invitations/{token}/accept.
+    from app.config import is_family_pilot
+    if is_family_pilot():
+        raise HTTPException(
+            status_code=403,
+            detail="El alta directa está deshabilitada en el piloto familiar. Incorpora integrantes por invitación.",
+        )
     require_verified_email_for_sensitive_action(db, user["user_id"])
     role = _validate_member_role(payload.role)
     _require_owner_for_owner_role(db, user["user_id"], household_id, role)
@@ -479,6 +488,10 @@ def add_member(household_id: str, payload: MemberCreate, user=Depends(get_curren
     ).fetchone()
     if existing:
         raise HTTPException(status_code=400, detail="User is already a household member")
+    # Tope de rol por banda de la ficha vinculada (compat: fuera de family-pilot
+    # no exige ficha; si existe, se respeta).
+    from app.minor_guardian_policy import validate_membership_role_for_person
+    validate_membership_role_for_person(db, household_id=household_id, user_id=target["id"], proposed_role=role)
 
     db.execute(
         "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
@@ -801,6 +814,10 @@ def update_member_role(
     _require_owner_for_owner_role(db, user["user_id"], household_id, role)
     _require_owner_to_change_owner(db, user["user_id"], household_id, target_user_id)
     _prevent_last_owner_change(db, household_id, target_user_id, next_role=role)
+    # CP1d-1b.1-R1 — bloqueador 2: el tope de rol por banda se aplica también
+    # DESPUÉS del alta. Un menor no puede ser promovido a member/admin/owner.
+    from app.minor_guardian_policy import validate_membership_role_for_person
+    validate_membership_role_for_person(db, household_id=household_id, user_id=target_user_id, proposed_role=role)
     current = db.execute(
         "SELECT role FROM household_memberships WHERE household_id=? AND user_id=?",
         (household_id, target_user_id),

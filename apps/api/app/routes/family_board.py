@@ -17,9 +17,26 @@ from pydantic import BaseModel, Field
 
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role
+from ..rbac import FAMILY_PILOT_DENIED_BOARD_TYPES, family_pilot_deny
 from ..tenancy import get_household_organization_id
 
 router = APIRouter(prefix="/family_board", tags=["FamilyBoard"])
+
+
+def _deny_sensitive_type(post_type: str | None):
+    """CP1d-1b.1-R1: en family-pilot, tipos health/finance/document DENIED."""
+    if post_type in FAMILY_PILOT_DENIED_BOARD_TYPES:
+        family_pilot_deny(f"post_type:{post_type}")
+
+
+def _deny_existing_sensitive_post(db, post_id: str, household_id: str):
+    """Bloquea acceso por ID (patch/resolve/archive/comments) a un post sensible."""
+    row = db.execute(
+        "SELECT post_type FROM family_board_posts WHERE id=? AND household_id=?",
+        (post_id, household_id),
+    ).fetchone()
+    if row is not None:
+        _deny_sensitive_type(row["post_type"])
 
 ALLOWED_TYPES = {
     "notice", "alert", "reminder", "message", "emergency_note",
@@ -109,6 +126,10 @@ def list_posts(
         tuple(params),
     ).fetchall()
     items = [_row_to_dict(r) for r in rows]
+    # CP1d-1b.1-R1: en family-pilot los avisos sensibles no se exponen a nadie.
+    from ..config import is_family_pilot
+    if is_family_pilot():
+        items = [p for p in items if p.get("post_type") not in FAMILY_PILOT_DENIED_BOARD_TYPES]
     if role not in ("owner", "admin"):
         my_pid = _current_person_id(db, user["user_id"], household_id)
         out = []
@@ -133,6 +154,7 @@ def create_post(
 ):
     require_household_role(db, user["user_id"], household_id, "member")
     _validate(True, body.post_type, body.priority)
+    _deny_sensitive_type(body.post_type)  # CP1d-1b.1-R1
     org = get_household_organization_id(db, household_id)
     pid = _current_person_id(db, user["user_id"], household_id)
     now = _now()
@@ -173,6 +195,8 @@ def patch_post(
 ):
     require_household_role(db, user["user_id"], household_id, "member")
     _validate(False, body.post_type, body.priority)
+    _deny_sensitive_type(body.post_type)  # CP1d-1b.1-R1: no se puede virar a sensible
+    _deny_existing_sensitive_post(db, post_id, household_id)  # ni tocar uno sensible
     row = db.execute(
         "SELECT * FROM family_board_posts WHERE id=? AND household_id=?",
         (post_id, household_id),
@@ -202,6 +226,7 @@ def patch_post(
 @router.post("/{household_id}/{post_id}/resolve")
 def resolve_post(household_id: str, post_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "member")
+    _deny_existing_sensitive_post(db, post_id, household_id)  # CP1d-1b.1-R1
     db.execute(
         "UPDATE family_board_posts SET resolved_at=?, resolved_by_user_id=?, updated_at=? "
         "WHERE id=? AND household_id=?",
@@ -214,6 +239,7 @@ def resolve_post(household_id: str, post_id: str, user=Depends(get_current_user)
 @router.post("/{household_id}/{post_id}/archive")
 def archive_post(household_id: str, post_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "admin")
+    _deny_existing_sensitive_post(db, post_id, household_id)  # CP1d-1b.1-R1
     db.execute(
         "UPDATE family_board_posts SET archived_at=?, updated_at=? WHERE id=? AND household_id=?",
         (_now(), _now(), post_id, household_id),
@@ -241,6 +267,7 @@ def _person_for_user(db, household_id: str, user_id: str) -> Optional[str]:
 @router.get("/{household_id}/{post_id}/comments")
 def list_comments(household_id: str, post_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "viewer")
+    _deny_existing_sensitive_post(db, post_id, household_id)  # CP1d-1b.1-R1
     rows = db.execute(
         "SELECT c.id, c.body, c.reaction, c.created_at, c.author_person_id, p.display_name "
         "FROM family_post_comments c LEFT JOIN persons p ON p.id=c.author_person_id "
@@ -257,6 +284,7 @@ def list_comments(household_id: str, post_id: str, user=Depends(get_current_user
 @router.post("/{household_id}/{post_id}/comments")
 def add_comment(household_id: str, post_id: str, body: CommentCreate, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "member")
+    _deny_existing_sensitive_post(db, post_id, household_id)  # CP1d-1b.1-R1
     post = db.execute("SELECT id FROM family_board_posts WHERE id=? AND household_id=?", (post_id, household_id)).fetchone()
     if not post:
         raise HTTPException(status_code=404, detail="Aviso no encontrado")

@@ -112,19 +112,61 @@ def guardian_relationship_for_user(db, household_id: str, minor_person_id: str, 
 
 
 def active_account_creation_consent(db, household_id: str, minor_person_id: str):
-    """(relación_full_activa, consentimiento_account_creation_activo) o (None, None)."""
-    for rel in active_guardian_relationships(db, household_id, minor_person_id, ACCOUNT_CREATION_SCOPES):
+    """
+    (relación_full_activa, consentimiento_activo) o (None, None), con
+    REVALIDACIÓN INTEGRAL (CP1d-1b.1-R1): coherencia interna del par
+    relación/consentimiento + el guardián sigue siendo un adulto activo,
+    miembro del hogar, con la versión de política vigente.
+    """
+    for rel in db.execute(
+        """
+        SELECT id, household_id, minor_person_id, guardian_person_id, scope
+        FROM guardian_relationships
+        WHERE household_id=? AND minor_person_id=? AND scope='full' AND revoked_at IS NULL
+        """,
+        (household_id, minor_person_id),
+    ).fetchall():
         consent = db.execute(
             """
-            SELECT id, relationship_id, policy_version
+            SELECT id, relationship_id, household_id, minor_person_id,
+                   guardian_person_id, granted_by_user_id, policy_version
             FROM guardian_consents
-            WHERE relationship_id=? AND household_id=? AND minor_person_id=?
-              AND consent_type='account_creation' AND revoked_at IS NULL
+            WHERE relationship_id=? AND consent_type='account_creation' AND revoked_at IS NULL
             """,
-            (rel["id"], household_id, minor_person_id),
+            (rel["id"],),
         ).fetchone()
-        if consent:
-            return rel, consent
+        if not consent:
+            continue
+        # Coherencia interna consentimiento <-> relación.
+        if (consent["household_id"] != household_id
+                or consent["minor_person_id"] != minor_person_id
+                or consent["guardian_person_id"] != rel["guardian_person_id"]):
+            continue
+        # policy_version vigente (un consentimiento de versión antigua no sirve).
+        if consent["policy_version"] != POLICY_VERSION:
+            continue
+        # El guardián debe seguir siendo adulto, con cuenta activa, miembro del hogar.
+        guardian = db.execute(
+            "SELECT id, user_id, age_band FROM persons WHERE id=? AND household_id=?",
+            (rel["guardian_person_id"], household_id),
+        ).fetchone()
+        if not guardian or guardian["age_band"] != "adult" or not guardian["user_id"]:
+            continue
+        # granted_by_user_id debe coincidir con la cuenta actual del guardián.
+        if consent["granted_by_user_id"] != guardian["user_id"]:
+            continue
+        guardian_user = db.execute(
+            "SELECT is_active FROM users WHERE id=?", (guardian["user_id"],)
+        ).fetchone()
+        if not guardian_user or not guardian_user["is_active"]:
+            continue
+        membership = db.execute(
+            "SELECT 1 FROM household_memberships WHERE household_id=? AND user_id=?",
+            (household_id, guardian["user_id"]),
+        ).fetchone()
+        if not membership:
+            continue
+        return rel, consent
     return None, None
 
 
@@ -190,6 +232,44 @@ def validate_invitation_person_policy(
     # adult: sin tutela ni consentimiento; el rol lo rigen las reglas existentes
     # (owner-para-owner etc.), siempre desde el registro persistido.
     return {"person_id": person["id"], "age_band": band, "relationship_id": None, "consent_id": None}
+
+
+def validate_membership_role_for_person(db, *, household_id: str, user_id: str, proposed_role: str, generic_error: str | None = None):
+    """
+    CP1d-1b.1-R1 — Tope de rol PERSISTENTE por banda de la ficha vinculada.
+    Se usa en TODA alta o cambio de rol (aceptación, alta directa fuera de
+    family-pilot, y PATCH de rol). En family-pilot un usuario debe tener ficha
+    vinculada; su banda impone el rol máximo permitido.
+
+    Devuelve la banda validada (o None si no aplica en el entorno). Lanza
+    HTTPException 403 ante cualquier violación.
+    """
+    from .config import is_family_pilot
+
+    def deny(detail: str):
+        raise HTTPException(status_code=403, detail=generic_error or detail)
+
+    person = db.execute(
+        "SELECT id, age_band FROM persons WHERE household_id=? AND user_id=?",
+        (household_id, user_id),
+    ).fetchone()
+
+    if not person:
+        # Fuera de family-pilot puede no haber ficha vinculada (compat local).
+        if is_family_pilot():
+            deny("En el piloto familiar cada cuenta debe tener una ficha vinculada")
+        return None
+
+    band = person["age_band"]
+    if band in ("unclassified", "child"):
+        deny(f"Una ficha en banda {band} no puede tener membresía")
+    if band in SUPERVISED_BANDS:
+        max_role = MAX_ROLE_BY_BAND[band]
+        # viewer(0) < member(1) < admin(2) < owner(3)
+        rank = {"viewer": 0, "member": 1, "admin": 2, "owner": 3}
+        if rank.get(proposed_role, 99) > rank[max_role]:
+            deny(f"Banda {band}: el rol máximo permitido es {max_role}")
+    return band
 
 
 # ---------------------------------------------------------------------------

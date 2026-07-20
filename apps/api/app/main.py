@@ -102,6 +102,41 @@ app.add_middleware(
 )
 
 
+# CP1d-FAMILY-PILOT-1b.1-R1 — superficie enterprise/no-familiar bloqueada
+# fail-closed en family-pilot. Estos routers no forman parte de la experiencia
+# familiar y algunos exponen tablas sensibles (expenses, adherence, evidencia,
+# archivos privados) por vías transversales sin gate de módulo. Se bloquea el
+# PREFIJO completo; el export del hogar (vuelca expenses+adherence) también.
+_FAMILY_PILOT_BLOCKED_PREFIXES = (
+    "/ceo", "/gerencia", "/forensics", "/logbook", "/vision", "/scores",
+    "/unit_functions", "/coupling", "/organizations", "/audio",
+    "/library/evidence", "/library/memory",
+)
+
+
+def _is_family_pilot_blocked_path(path: str) -> bool:
+    # Rutas de prefijo enterprise.
+    for prefix in _FAMILY_PILOT_BLOCKED_PREFIXES:
+        if path == prefix or path.startswith(prefix + "/"):
+            return True
+    # Export del hogar: /households/{id}/export vuelca tablas sensibles.
+    if path.startswith("/households/") and path.endswith("/export"):
+        return True
+    return False
+
+
+@app.middleware("http")
+async def family_pilot_surface_lockdown(request, call_next):
+    from .config import is_family_pilot
+    if is_family_pilot() and _is_family_pilot_blocked_path(request.url.path):
+        from starlette.responses import JSONResponse
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Esta sección no está disponible durante el piloto familiar"},
+        )
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)

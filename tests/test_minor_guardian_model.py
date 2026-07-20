@@ -700,3 +700,335 @@ def test_recovery_authorization_only_no_token(local_client):
     assert len(events) == 2
     assert any('"authorized": true' in (e["metadata"] or "") for e in events)
     assert any('"authorized": false' in (e["metadata"] or "") for e in events)
+
+
+# ===========================================================================
+# R1 — CIERRE DE BYPASSES (bloqueadores 1-6)
+# ===========================================================================
+
+def _pilot_owner_and_client(monkeypatch, tmp_path):
+    """Owner sembrado + login, sobre perfil family-pilot."""
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        yield client, db_path, owner, hid
+
+
+# --- Bloqueador 1: alta directa /members deshabilitada en family-pilot ---
+
+def test_r1_add_member_disabled_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        # Sembrar un segundo usuario directamente (sin membresía).
+        from app.security import hash_password
+        con = sqlite3.connect(db_path)
+        con.execute(
+            "INSERT INTO users (id,email,password_hash,is_active,created_at) VALUES (?,?,?,?,?)",
+            ("u2-r1", "preexistente@sintetico.test", hash_password(PASSWORD), 1,
+             datetime.now(timezone.utc).isoformat()),
+        )
+        con.commit(); con.close()
+        r = client.post(
+            f"/households/{hid}/members",
+            json={"email": "preexistente@sintetico.test", "role": "member"},
+            headers=_auth(owner),
+        )
+        assert r.status_code == 403, r.text
+        con = sqlite3.connect(db_path)
+        n = con.execute(
+            "SELECT COUNT(*) FROM household_memberships WHERE household_id=? AND user_id=?",
+            (hid, "u2-r1"),
+        ).fetchone()[0]
+        con.close()
+        assert n == 0
+
+
+def test_r1_add_member_still_works_locally(local_client):
+    client, _ = local_client
+    owner = _register_and_login(client, "owner-local-add@sintetico.test")
+    hid = _household(client, owner)
+    _register_and_login(client, "invitee-local@sintetico.test")
+    r = client.post(
+        f"/households/{hid}/members",
+        json={"email": "invitee-local@sintetico.test", "role": "viewer"},
+        headers=_auth(owner),
+    )
+    assert r.status_code == 200, r.text
+
+
+# --- Bloqueador 2: tope de rol persistente en PATCH de miembro ---
+
+def test_r1_role_escalation_blocked_post_alta(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, minor = _standard_setup(client)
+    _relationship(client, owner, hid, minor, tutor)
+    rel = client.post(
+        f"/households/{hid}/guardians/relationships",
+        json={"minor_person_id": minor, "guardian_person_id": tutor, "scope": "full"},
+        headers=_auth(owner),
+    )
+    # ya existe una relación por _relationship arriba; conseguir su id:
+    rels = client.get(f"/households/{hid}/guardians/relationships", headers=_auth(owner)).json()["items"]
+    rel_id = [r for r in rels if r["revoked_at"] is None][0]["id"]
+    client.post(f"/households/{hid}/guardians/consents",
+                json={"relationship_id": rel_id, "consent_type": "account_creation"},
+                headers=_auth(guardian))
+    inv = _invite(client, owner, hid, "menor-esc@sintetico.test", person_id=minor, role="viewer")
+    _register_with_invitation(client, inv["token"], "menor-esc@sintetico.test")
+    # user_id del menor
+    con = sqlite3.connect(db_path)
+    minor_uid = con.execute("SELECT user_id FROM persons WHERE id=?", (minor,)).fetchone()[0]
+    con.close()
+    # intentar promover el menor a member/admin => 403
+    for bad in ("member", "admin"):
+        r = client.patch(f"/households/{hid}/members/{minor_uid}", json={"role": bad}, headers=_auth(owner))
+        assert r.status_code == 403, f"{bad}: {r.text}"
+
+
+def test_r1_supervised_teen_member_to_viewer_allowed(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, _minor = _standard_setup(client)
+    teen = _person(client, owner, hid, "Teen Rol")
+    _classify(client, owner, teen, band="supervised_teen")
+    rel = _relationship(client, owner, hid, teen, tutor)
+    _consent(client, guardian, hid, rel["id"])
+    inv = _invite(client, owner, hid, "teen-rol@sintetico.test", person_id=teen, role="member")
+    _register_with_invitation(client, inv["token"], "teen-rol@sintetico.test")
+    con = sqlite3.connect(db_path)
+    teen_uid = con.execute("SELECT user_id FROM persons WHERE id=?", (teen,)).fetchone()[0]
+    con.close()
+    # bajar a viewer permitido; subir a admin denegado
+    assert client.patch(f"/households/{hid}/members/{teen_uid}", json={"role": "viewer"}, headers=_auth(owner)).status_code == 200
+    assert client.patch(f"/households/{hid}/members/{teen_uid}", json={"role": "admin"}, headers=_auth(owner)).status_code == 403
+
+
+# --- Bloqueador 3: transiciones de banda protegidas ---
+
+def test_r1_cannot_downgrade_linked_account_to_child(local_client):
+    client, _ = local_client
+    owner, _guardian, hid, tutor, _minor = _standard_setup(client)
+    # tutor está vinculado (adult con cuenta): no puede caer a child/unclassified
+    _classify(client, owner, tutor, band="child", expect=409)
+    _classify(client, owner, tutor, band="unclassified", expect=409)
+
+
+def test_r1_active_guardian_cannot_leave_adult(local_client):
+    client, _ = local_client
+    owner, _guardian, hid, tutor, minor = _standard_setup(client)
+    _relationship(client, owner, hid, minor, tutor)  # tutor es guardián activo
+    _classify(client, owner, tutor, band="supervised_teen", expect=409)
+
+
+def test_r1_minor_with_tutela_cannot_become_adult(local_client):
+    client, _ = local_client
+    owner, _guardian, hid, tutor, minor = _standard_setup(client)
+    _relationship(client, owner, hid, minor, tutor)
+    _classify(client, owner, minor, band="adult", expect=409)
+
+
+# --- Bloqueador 4: revalidación integral de tutela/consentimiento ---
+
+def _authorized_minor_invitation(client, db_path):
+    owner, guardian, hid, tutor, minor = _standard_setup(client)
+    rel = _relationship(client, owner, hid, minor, tutor)
+    _consent(client, guardian, hid, rel["id"])
+    inv = _invite(client, owner, hid, "menor-rev@sintetico.test", person_id=minor, role="viewer")
+    return owner, guardian, hid, tutor, minor, rel, inv
+
+
+def test_r1_guardian_leaves_household_denies_acceptance(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, minor, rel, inv = _authorized_minor_invitation(client, db_path)
+    con = sqlite3.connect(db_path)
+    guardian_uid = con.execute("SELECT user_id FROM persons WHERE id=?", (tutor,)).fetchone()[0]
+    con.execute("DELETE FROM household_memberships WHERE household_id=? AND user_id=?", (hid, guardian_uid))
+    con.commit(); con.close()
+    _register_with_invitation(client, inv["token"], "menor-rev@sintetico.test", expect=400)
+
+
+def test_r1_guardian_deactivated_denies_acceptance(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, minor, rel, inv = _authorized_minor_invitation(client, db_path)
+    con = sqlite3.connect(db_path)
+    guardian_uid = con.execute("SELECT user_id FROM persons WHERE id=?", (tutor,)).fetchone()[0]
+    con.execute("UPDATE users SET is_active=0 WHERE id=?", (guardian_uid,))
+    con.commit(); con.close()
+    _register_with_invitation(client, inv["token"], "menor-rev@sintetico.test", expect=400)
+
+
+def test_r1_consent_tampered_guardian_denies_acceptance(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, minor, rel, inv = _authorized_minor_invitation(client, db_path)
+    con = sqlite3.connect(db_path)
+    # alterar guardian_person_id del consentimiento => incoherencia detectada
+    con.execute("UPDATE guardian_consents SET guardian_person_id='otro' WHERE relationship_id=?", (rel["id"],))
+    con.commit(); con.close()
+    _register_with_invitation(client, inv["token"], "menor-rev@sintetico.test", expect=400)
+
+
+def test_r1_consent_old_policy_version_denies_acceptance(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, minor, rel, inv = _authorized_minor_invitation(client, db_path)
+    con = sqlite3.connect(db_path)
+    con.execute("UPDATE guardian_consents SET policy_version='antigua-0' WHERE relationship_id=?", (rel["id"],))
+    con.commit(); con.close()
+    _register_with_invitation(client, inv["token"], "menor-rev@sintetico.test", expect=400)
+
+
+# --- Bloqueador 5: matriz de scopes ---
+
+def test_r1_scope_matrix(local_client):
+    client, _ = local_client
+    owner, guardian, hid, tutor, minor = _standard_setup(client)
+    rel_full = _relationship(client, owner, hid, minor, tutor, scope="full")
+    # full: los tres tipos
+    for ct in ("account_creation", "module_access", "data_entry"):
+        _consent(client, guardian, hid, rel_full["id"], consent_type=ct)
+    otro_minor = _person(client, owner, hid, "Otro Menor Scope")
+    _classify(client, owner, otro_minor, band="supervised_minor")
+    rel_view = _relationship(client, owner, hid, otro_minor, tutor, scope="view")
+    # view: solo module_access
+    _consent(client, guardian, hid, rel_view["id"], consent_type="module_access")
+    _consent(client, guardian, hid, rel_view["id"], consent_type="account_creation", expect=403)
+    _consent(client, guardian, hid, rel_view["id"], consent_type="data_entry", expect=403)
+    tercer_minor = _person(client, owner, hid, "Tercer Menor Scope")
+    _classify(client, owner, tercer_minor, band="supervised_minor")
+    rel_rec = _relationship(client, owner, hid, tercer_minor, tutor, scope="recovery")
+    # recovery: NINGÚN consentimiento
+    for ct in ("account_creation", "module_access", "data_entry"):
+        _consent(client, guardian, hid, rel_rec["id"], consent_type=ct, expect=403)
+
+
+# --- Bloqueador 6: migración recuperable de estados parciales ---
+
+def test_r1_migration_recovers_from_partial_states(monkeypatch, tmp_path):
+    import importlib
+    # 1) Base con SOLO age_band presente (simula fallo tras el 1er ALTER).
+    db_path = tmp_path / "partial.db"
+    _base_env(monkeypatch, db_path)
+    monkeypatch.setenv("APP_ENV", "test")
+    sys.path.insert(0, str(API_ROOT))
+    _purge_app_modules()
+    # arrancar app una vez para tener el esquema base completo
+    main = importlib.import_module("app.main")
+    with TestClient(main.app):
+        pass
+    # simular estado parcial: dropear tablas/columna nuevas y dejar solo age_band
+    con = sqlite3.connect(db_path)
+    con.execute("DROP TABLE IF EXISTS guardian_relationships")
+    con.execute("DROP TABLE IF EXISTS guardian_consents")
+    # (no se puede DROP COLUMN facilmente en sqlite viejo; simulamos 'tablas ausentes')
+    con.commit(); con.close()
+    # 2) Replay: re-arrancar debe recrear tablas e índices pese a que age_band ya existe
+    _purge_app_modules()
+    main = importlib.import_module("app.main")
+    with TestClient(main.app):
+        pass
+    con = sqlite3.connect(db_path)
+    names = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type IN ('table','index')").fetchall()}
+    assert "guardian_relationships" in names
+    assert "guardian_consents" in names
+    assert "uq_guardian_rel_active" in names
+    assert con.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    con.close()
+
+
+# --- Lockdown real de módulos (bloqueador 5 de ChatGPT) ---
+
+def test_r1_finance_post_denied_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        r = client.post("/finance/expenses", params={"household_id": hid, "amount": 100}, headers=_auth(owner))
+        assert r.status_code == 403, r.text
+        con = sqlite3.connect(db_path)
+        n = con.execute("SELECT COUNT(*) FROM expenses WHERE household_id=?", (hid,)).fetchone()[0]
+        con.close()
+        assert n == 0
+
+
+def test_r1_alerts_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        r = client.get("/alerts", params={"household_id": hid}, headers=_auth(owner))
+        assert r.status_code == 403, r.text
+
+
+def test_r1_family_board_sensitive_types_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        # creación de tipo sensible => 403
+        for ptype in ("health", "finance", "document"):
+            r = client.post(f"/family_board/{hid}", json={"post_type": ptype, "title": "x", "body": "y"}, headers=_auth(owner))
+            assert r.status_code == 403, f"{ptype}: {r.text}"
+        # tipo NO sensible sigue permitido
+        r = client.post(f"/family_board/{hid}", json={"post_type": "notice", "title": "ok", "body": "z"}, headers=_auth(owner))
+        assert r.status_code == 200, r.text
+        # un post sensible inyectado directamente no se lista ni se puede tocar
+        con = sqlite3.connect(db_path)
+        con.execute(
+            "INSERT INTO family_board_posts (id, household_id, author_user_id, post_type, title, body, priority, pinned, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ("sensitive-post", hid, _uid, "health", "Salud", "privado", "normal", 0,
+             datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat()),
+        )
+        con.commit(); con.close()
+        listed = client.get(f"/family_board/{hid}", headers=_auth(owner)).json()["items"]
+        assert all(p["post_type"] != "health" for p in listed)
+        assert client.post(f"/family_board/{hid}/sensitive-post/resolve", headers=_auth(owner)).status_code == 403
+        assert client.patch(f"/family_board/{hid}/sensitive-post", json={"title": "hack"}, headers=_auth(owner)).status_code == 403
+        assert client.get(f"/family_board/{hid}/sensitive-post/comments", headers=_auth(owner)).status_code == 403
+
+
+# --- R1: lockdown de superficie enterprise/transversal (middleware) ---
+
+def test_r1_enterprise_surface_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        for path in ("/ceo/overview", "/forensics/x", "/logbook/x", "/vision/x",
+                     "/scores/x", "/coupling/x", "/gerencia/x", "/organizations",
+                     "/audio/x", "/library/evidence/x"):
+            r = client.get(path, params={"household_id": hid}, headers=_auth(owner))
+            assert r.status_code == 403, f"{path}: {r.status_code}"
+
+
+def test_r1_household_export_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        r = client.get(f"/households/{hid}/export", headers=_auth(owner))
+        assert r.status_code == 403, r.text
+
+
+def test_r1_family_surface_still_reachable_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        # El middleware NO debe sobre-bloquear la superficie familiar legítima.
+        assert client.get(f"/households/{hid}/members", headers=_auth(owner)).status_code == 200
+        pid = _person(client, owner, hid, "Ficha Familiar")
+        assert client.get(f"/persons/{pid}", headers=_auth(owner)).status_code == 200
+        assert client.get(f"/family_board/{hid}", headers=_auth(owner)).status_code == 200
+
+
+def test_r1_enterprise_surface_reachable_in_local(local_client):
+    client, _ = local_client
+    owner = _register_and_login(client, "owner-ent-local@sintetico.test")
+    hid = _household(client, owner)
+    # En local el middleware NO bloquea (comportamiento previo preservado):
+    # la ruta responde su propio código (no 403 del middleware family-pilot).
+    r = client.get(f"/households/{hid}/export", headers=_auth(owner))
+    assert r.status_code in (200, 403), r.text  # 403 sería por email no verificado, no por el middleware
+    assert "piloto familiar" not in r.text

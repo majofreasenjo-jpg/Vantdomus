@@ -234,9 +234,21 @@ def grant_consent(
     # Regla 7: relación revocada no sirve para consentir.
     if rel["revoked_at"]:
         raise HTTPException(status_code=403, detail="La relación de tutela está revocada")
-    # Regla 9: scope=view no autoriza account_creation. Regla 10/11.
-    if consent_type == "account_creation" and rel["scope"] != "full":
-        raise HTTPException(status_code=403, detail="Solo una relación scope=full puede consentir account_creation")
+    # CP1d-1b.1-R1 — matriz de scopes explícita y fail-closed:
+    #   full     => account_creation, module_access, data_entry;
+    #   view     => solo module_access;
+    #   recovery => NINGÚN consentimiento (solo habilita el chequeo de recuperación).
+    scope = rel["scope"]
+    allowed_by_scope = {
+        "full": {"account_creation", "module_access", "data_entry"},
+        "view": {"module_access"},
+        "recovery": set(),
+    }
+    if consent_type not in allowed_by_scope.get(scope, set()):
+        raise HTTPException(
+            status_code=403,
+            detail=f"La relación scope={scope} no puede consentir {consent_type}",
+        )
     # Regla 6: quien otorga debe ser el usuario vinculado a guardian_person_id.
     guardian = get_person(db, rel["guardian_person_id"])
     if not guardian or guardian["user_id"] != user["user_id"]:
