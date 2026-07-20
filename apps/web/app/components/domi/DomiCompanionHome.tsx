@@ -552,23 +552,37 @@ export default function DomiCompanionHome({
   };
 
   const handlePrepareStudy = () => {
+    // OPS-1.E: el botón ya NO simula un plan. Con datos reales del hogar lleva
+    // al PLANIFICADOR DE ESTUDIO REAL (/tasks/{hid}): ahí se sube el aviso
+    // escolar y Domi arma el plan con IA (o plantilla si la IA está apagada),
+    // que queda como tareas reales con recordatorios. Sin sesión real, se avisa
+    // honestamente que es una vista de demostración (sin fingir "Álgebra lista").
+    if (hid && dataState === "real") {
+      if (typeof window !== "undefined") {
+        window.location.href = `/tasks/${hid}`;
+      }
+      return;
+    }
     setDomiState("pensando");
     setDomiMood("thinking");
-    addNotification("Analizando contenido", "Domi está procesando los temarios escolares de Diego...", "study");
-    
+    addNotification(
+      "Vista de demostración",
+      "El plan de estudio real se genera en el planificador desde un aviso escolar. Conéctate con tu hogar para usarlo.",
+      "study"
+    );
     setTimeout(() => {
       setStudyPrepared(true);
       setDomiState("proponiendo");
       setDomiMood("happy");
       addNotification(
-        "Plan de Estudio Organizado",
-        "Domi ha estructurado los bloques de repaso de Diego. ¡Álgebra lista!",
+        "Ejemplo (demostración)",
+        "Esto es una vista de ejemplo. En tu hogar real, Domi arma el plan a partir del aviso escolar y lo deja como tareas con recordatorios.",
         "study"
       );
       setTimeout(() => {
         setDomiState(activeTheme === "night" ? "descanso" : "listo");
       }, 4000);
-    }, 2000);
+    }, 1200);
   };
 
   const handleUpdateFamilyStatus = (id: string, status: string) => {

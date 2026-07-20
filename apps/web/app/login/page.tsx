@@ -1,6 +1,7 @@
 import { Inter, Space_Grotesk } from "next/font/google";
 import { loginAction } from "./actions";
 import DomiFaceMark from "../components/domi/DomiFaceMark";
+import { isFamilyProfileEnv } from "../../lib/runtimeEnv";
 
 // Tipografías de Domi (mismas que la home companion) para coherencia visual.
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--vdl-inter", display: "swap" });
@@ -23,10 +24,10 @@ export default async function LoginPage({
   const email = params.email || "";
   const next = params.next || "/inicio";
   const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8001";
-  // CP1d-1b.2: en family-pilot OAuth continúa DENIED → se ocultan los botones
-  // Google/Facebook (scaffolding no autorizado durante el piloto).
-  const appEnv = (process.env.APP_ENV || process.env.VANTDOMUS_DEPLOY_ENV || "local").toLowerCase();
-  const oauthVisible = !["family-pilot", "family_pilot", "familypilot"].includes(appEnv);
+  // CP1d-1b.2 / OPS-1: en cualquier perfil familiar cerrado (pilot o live) OAuth
+  // continúa DENIED → se ocultan los botones Google/Facebook (el alta es solo por
+  // invitación privada; el scaffolding social no está autorizado).
+  const oauthVisible = !isFamilyProfileEnv();
 
   return (
     <div id="vantdomus-login" className={`${inter.variable} ${grotesk.variable}`}>

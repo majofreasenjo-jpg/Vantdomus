@@ -6,16 +6,26 @@
 // Entornos ONLINE => cookies Secure obligatorias:
 //   - production / prod / staging (sin cambios)
 //   - family-pilot (piloto familiar cerrado bajo HTTPS; NO equivale a demo)
+//   - family-live (piloto OPERATIVO bajo HTTPS; mismo blindaje, con IA/docs/estudio)
 // Entornos de desarrollo local (local/dev/development/demo/test) siguen sin
 // Secure para poder trabajar en http://localhost.
+
+// Perfiles familiares CERRADOS (OPS-1): ambos son online, por invitación, sin
+// OAuth público. family-live añade las funciones de valor (IA/docs/estudio).
+export const FAMILY_PROFILE_ENVS = Object.freeze([
+  "family-pilot",
+  "family_pilot",
+  "familypilot",
+  "family-live",
+  "family_live",
+  "familylive",
+]);
 
 export const SECURE_COOKIE_ENVS = Object.freeze([
   "production",
   "prod",
   "staging",
-  "family-pilot",
-  "family_pilot",
-  "familypilot",
+  ...FAMILY_PROFILE_ENVS,
 ]);
 
 /**
@@ -40,4 +50,14 @@ export function resolveAppEnv(explicit) {
  */
 export function cookieSecure(explicitEnv) {
   return SECURE_COOKIE_ENVS.includes(resolveAppEnv(explicitEnv));
+}
+
+/**
+ * true si el entorno es un perfil familiar cerrado (pilot o live): online,
+ * por invitación, sin registro público ni OAuth público.
+ * @param {string} [explicitEnv]
+ * @returns {boolean}
+ */
+export function isFamilyProfileEnv(explicitEnv) {
+  return FAMILY_PROFILE_ENVS.includes(resolveAppEnv(explicitEnv));
 }

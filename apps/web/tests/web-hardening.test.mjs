@@ -77,8 +77,21 @@ test("9. /invitacion page declara noindex + dynamic no-cache", () => {
   assert.match(page, /force-dynamic/);
 });
 
-test("10. login oculta OAuth en family-pilot", () => {
+test("10. login oculta OAuth en cualquier perfil familiar (pilot o live)", () => {
   const login = readFileSync(join(WEB_ROOT, "app", "login", "page.tsx"), "utf-8");
   assert.match(login, /oauthVisible/);
-  assert.match(login, /family-pilot/);
+  assert.match(login, /isFamilyProfileEnv/);
+});
+
+// OPS-1 — family-live hereda blindaje: cookies Secure + perfil familiar cerrado.
+test("11. runtimeEnv: family-live lleva cookies Secure y es perfil familiar", async () => {
+  const mod = await import(pathToFileURL(join(WEB_ROOT, "lib", "runtimeEnv.js")).href);
+  for (const env of ["family-live", "family_live", "familylive"]) {
+    assert.equal(mod.cookieSecure(env), true, `${env} debe llevar cookies Secure`);
+    assert.equal(mod.isFamilyProfileEnv(env), true, `${env} debe ser perfil familiar`);
+  }
+  // family-pilot sigue siéndolo; local NO.
+  assert.equal(mod.isFamilyProfileEnv("family-pilot"), true);
+  assert.equal(mod.isFamilyProfileEnv("local"), false);
+  assert.equal(mod.cookieSecure("local"), false);
 });
