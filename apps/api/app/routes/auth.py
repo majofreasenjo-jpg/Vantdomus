@@ -461,14 +461,14 @@ def register_with_invitation(
         #    invitación; nada de banda/scope/rol viene del payload del cliente.
         #    Vía pública: todo rechazo de política usa el mensaje genérico
         #    anti-enumeración.
-        from app.config import is_family_pilot
+        from app.config import is_family_profile
         from app.minor_guardian_policy import validate_invitation_person_policy
         policy = validate_invitation_person_policy(
             db,
             household_id=invitation["household_id"],
             person_id=invitation["person_id"],
             role=invitation["role"],
-            require_person=is_family_pilot(),
+            require_person=is_family_profile(),
             generic_error=_INVITATION_GENERIC_ERROR,
         )
         # 1) Consumir la invitación PRIMERO, con guardia de concurrencia: solo

@@ -35,37 +35,64 @@ def module_min_role(db, household_id: str, module: str) -> str:
         return "viewer"
 
 
-# CP1d-FAMILY-PILOT-1b.1: durante el piloto familiar estos módulos quedan
-# DENIED para TODOS los roles (adultos incluidos), ANTES de evaluar
-# module_visibility. La capacidad técnica previa no equivale a autorización.
-FAMILY_PILOT_DENIED_MODULES = {"health", "finance", "documents"}
+# CP1d-FAMILY-PILOT-1b.1 / OPS-1: módulos DENIED para TODOS los roles (adultos
+# incluidos), ANTES de evaluar module_visibility. La capacidad técnica previa no
+# equivale a autorización. Se separan en dos clases:
+#   - ALWAYS (health/finance): cerrados en family-pilot Y family-live (sensible;
+#     no fue pedido para el piloto operativo).
+#   - PILOT_ONLY (documents): cerrado en family-pilot; ABIERTO en family-live
+#     (función de valor solicitada por el Owner en OPS-1).
+FAMILY_ALWAYS_DENIED_MODULES = {"health", "finance"}
+FAMILY_PILOT_ONLY_DENIED_MODULES = {"documents"}
+# Compat: la unión conserva el nombre histórico para quien lo importe.
+FAMILY_PILOT_DENIED_MODULES = FAMILY_ALWAYS_DENIED_MODULES | FAMILY_PILOT_ONLY_DENIED_MODULES
 
-# CP1d-1b.1-R1/R2: post_type del muro sensibles/no-autorizados, bloqueados en
-# family-pilot (creación, actualización-hacia, y no se listan/exponen).
-# 'school' se añade en R2: escuela/estudio real es NOT_IMPLEMENTED hasta su gate.
-FAMILY_PILOT_DENIED_BOARD_TYPES = {"health", "finance", "document", "school"}
+# CP1d-1b.1-R1/R2 / OPS-1: post_type del muro. health/finance cerrados en ambos
+# perfiles; document/school ABIERTOS en family-live (estudio y documentos son
+# funciones de valor de OPS-1) y cerrados solo en el piloto sellado.
+FAMILY_ALWAYS_DENIED_BOARD_TYPES = {"health", "finance"}
+FAMILY_PILOT_ONLY_DENIED_BOARD_TYPES = {"document", "school"}
+FAMILY_PILOT_DENIED_BOARD_TYPES = FAMILY_ALWAYS_DENIED_BOARD_TYPES | FAMILY_PILOT_ONLY_DENIED_BOARD_TYPES
+
+
+def denied_modules_for_profile() -> set:
+    """Módulos cerrados según el perfil activo (pilot vs live)."""
+    from .config import is_family_profile, is_family_pilot
+    denied = set(FAMILY_ALWAYS_DENIED_MODULES) if is_family_profile() else set()
+    if is_family_pilot():
+        denied |= FAMILY_PILOT_ONLY_DENIED_MODULES
+    return denied
+
+
+def denied_board_types_for_profile() -> set:
+    """post_type del muro cerrados según el perfil activo (pilot vs live)."""
+    from .config import is_family_profile, is_family_pilot
+    denied = set(FAMILY_ALWAYS_DENIED_BOARD_TYPES) if is_family_profile() else set()
+    if is_family_pilot():
+        denied |= FAMILY_PILOT_ONLY_DENIED_BOARD_TYPES
+    return denied
 
 
 def family_pilot_deny(module_or_reason: str):
-    """CP1d-1b.1-R1: corta con 403 cuando el módulo/vía está prohibido en el
-    piloto. Usar en rutas transversales sin gate de módulo (alerts, board)."""
-    from .config import is_family_pilot
-    if is_family_pilot():
+    """CP1d-1b.1-R1: corta con 403 cuando la vía está prohibida en cualquier
+    perfil familiar cerrado (pilot o live). Usar en rutas transversales sin gate
+    de módulo (alerts). Para post_type usar denied_board_types_for_profile."""
+    from .config import is_family_profile
+    if is_family_profile():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"'{module_or_reason}' no disponible durante el piloto familiar",
+            detail=f"'{module_or_reason}' no disponible en el perfil familiar",
         )
 
 
 def require_module_visible(db, user_id: str, household_id: str, module: str):
     """Exige que el usuario tenga rol suficiente para ver el módulo sensible."""
     role = require_household_role(db, user_id, household_id, "viewer")  # al menos miembro/viewer del hogar
-    # Fail-closed del piloto: evaluado PRIMERO, sin excepciones por rol.
-    from .config import is_family_pilot
-    if is_family_pilot() and module in FAMILY_PILOT_DENIED_MODULES:
+    # Fail-closed del perfil familiar: evaluado PRIMERO, sin excepciones por rol.
+    if module in denied_modules_for_profile():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Módulo '{module}' no disponible durante el piloto familiar",
+            detail=f"Módulo '{module}' no disponible en el perfil familiar actual",
         )
     if module in SENSITIVE_MODULES:
         need = module_min_role(db, household_id, module)

@@ -22,8 +22,8 @@ def list_households(user=Depends(get_current_user), db=Depends(get_db)):
         # completo. backfill_user_households autoprovisiona organizaciones
         # empresariales; el hogar del piloto llega por bootstrap con su
         # organization_id válido, así que no hay nada honesto que "reparar".
-        from app.config import is_family_pilot
-        family_pilot = is_family_pilot()
+        from app.config import is_family_profile
+        family_pilot = is_family_profile()
         if not family_pilot:
             backfill_user_households(db, user["user_id"])
             db.commit()
@@ -471,8 +471,8 @@ def list_members(household_id: str, user=Depends(get_current_user), db=Depends(g
             (household_id,),
         ).fetchall()
     }
-    from app.config import is_family_pilot
-    family_pilot = is_family_pilot()
+    from app.config import is_family_profile
+    family_pilot = is_family_profile()
     items = []
     for row in rows:
         is_self = row["user_id"] == user["user_id"]
@@ -503,11 +503,11 @@ def add_member(household_id: str, payload: MemberCreate, user=Depends(get_curren
     # CP1d-1b.1-R1 — bloqueador 1: en family-pilot esta vía DIRECTA evadiría el
     # modelo de menores (sin ficha/banda/tutela/consentimiento). La única vía
     # para incorporar una cuenta preexistente es POST /invitations/{token}/accept.
-    from app.config import is_family_pilot
-    if is_family_pilot():
+    from app.config import is_family_profile
+    if is_family_profile():
         raise HTTPException(
             status_code=403,
-            detail="El alta directa está deshabilitada en el piloto familiar. Incorpora integrantes por invitación.",
+            detail="El alta directa está deshabilitada en el perfil familiar. Incorpora integrantes por invitación.",
         )
     require_verified_email_for_sensitive_action(db, user["user_id"])
     role = _validate_member_role(payload.role)
@@ -600,14 +600,14 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
     # CP1d-1b.1 — validador COMPARTIDO (etapa de creación): banda, tutela y
     # consentimiento se validan aquí y SE RE-VALIDAN en cada aceptación.
     # En family-pilot la ficha es obligatoria.
-    from app.config import is_family_pilot
+    from app.config import is_family_profile
     from app.minor_guardian_policy import validate_invitation_person_policy
     policy = validate_invitation_person_policy(
         db,
         household_id=household_id,
         person_id=person_id,
         role=role,
-        require_person=is_family_pilot(),
+        require_person=is_family_profile(),
     )
     ttl_hours = max(1, min(int(payload.ttl_hours or 168), 24 * 30))
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).isoformat()
@@ -714,7 +714,7 @@ def _accept_invitation_core(db, user, token: str):
     # Se RE-VALIDA TODO dentro de la transacción: las condiciones pueden haber
     # cambiado desde que se creó la invitación. El rol usado es SIEMPRE el
     # persistido en la invitación.
-    from app.config import is_family_pilot
+    from app.config import is_family_profile
     from app.minor_guardian_policy import validate_invitation_person_policy
     linked_person_id = None
     try:
@@ -723,7 +723,7 @@ def _accept_invitation_core(db, user, token: str):
             household_id=invitation["household_id"],
             person_id=invitation["person_id"],
             role=invitation["role"],
-            require_person=is_family_pilot(),
+            require_person=is_family_profile(),
         )
         # Guardia de concurrencia: solo UNA transacción consuma la invitación.
         accepted_at = now()
@@ -813,8 +813,8 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
     # fail-closed ANTES de consultar la invitacion (no se registra el pathname
     # con el token, no se redirige, no se expone el token). El flujo del piloto
     # usa exclusivamente POST /invitations/accept (token en body).
-    from app.config import is_family_pilot
-    if is_family_pilot():
+    from app.config import is_family_profile
+    if is_family_profile():
         raise HTTPException(status_code=404, detail="Invitation not found")
     return _accept_invitation_core(db, user, token)
 
@@ -956,11 +956,11 @@ def create_household(name: str, user=Depends(get_current_user), db=Depends(get_d
     # hogares queda bloqueada (creaba household+organization+membership owner
     # sin política de banda). El hogar del piloto se crea solo por el bootstrap
     # administrativo autorizado de 1b.3.
-    from app.config import is_family_pilot
-    if is_family_pilot():
+    from app.config import is_family_profile
+    if is_family_profile():
         raise HTTPException(
             status_code=403,
-            detail="El hogar del piloto se crea exclusivamente mediante el bootstrap administrativo autorizado.",
+            detail="El hogar se crea exclusivamente mediante el bootstrap administrativo autorizado.",
         )
     hid = str(uuid.uuid4())
     organization_id = ensure_user_default_organization(db, user["user_id"], name=f"{name} Organization")

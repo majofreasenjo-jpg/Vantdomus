@@ -244,7 +244,7 @@ def validate_membership_role_for_person(db, *, household_id: str, user_id: str, 
     Devuelve la banda validada (o None si no aplica en el entorno). Lanza
     HTTPException 403 ante cualquier violación.
     """
-    from .config import is_family_pilot
+    from .config import is_family_profile
 
     def deny(detail: str):
         raise HTTPException(status_code=403, detail=generic_error or detail)
@@ -255,9 +255,10 @@ def validate_membership_role_for_person(db, *, household_id: str, user_id: str, 
     ).fetchone()
 
     if not person:
-        # Fuera de family-pilot puede no haber ficha vinculada (compat local).
-        if is_family_pilot():
-            deny("En el piloto familiar cada cuenta debe tener una ficha vinculada")
+        # Fuera de un perfil familiar cerrado puede no haber ficha vinculada
+        # (compat local). En family-pilot/family-live la ficha es obligatoria.
+        if is_family_profile():
+            deny("En el perfil familiar cada cuenta debe tener una ficha vinculada")
         return None
 
     band = person["age_band"]

@@ -17,16 +17,20 @@ from pydantic import BaseModel, Field
 
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role
-from ..rbac import FAMILY_PILOT_DENIED_BOARD_TYPES, family_pilot_deny
+from ..rbac import denied_board_types_for_profile, family_pilot_deny
 from ..tenancy import get_household_organization_id
 
 router = APIRouter(prefix="/family_board", tags=["FamilyBoard"])
 
 
 def _deny_sensitive_type(post_type: str | None):
-    """CP1d-1b.1-R1: en family-pilot, tipos health/finance/document DENIED."""
-    if post_type in FAMILY_PILOT_DENIED_BOARD_TYPES:
-        family_pilot_deny(f"post_type:{post_type}")
+    """CP1d-1b.1-R1 / OPS-1: health/finance DENIED en ambos perfiles familiares;
+    document/school DENIED solo en el piloto sellado (abiertos en family-live)."""
+    if post_type in denied_board_types_for_profile():
+        raise HTTPException(
+            status_code=403,
+            detail=f"'post_type:{post_type}' no disponible en el perfil familiar",
+        )
 
 
 def _deny_existing_sensitive_post(db, post_id: str, household_id: str):
@@ -126,10 +130,11 @@ def list_posts(
         tuple(params),
     ).fetchall()
     items = [_row_to_dict(r) for r in rows]
-    # CP1d-1b.1-R1: en family-pilot los avisos sensibles no se exponen a nadie.
-    from ..config import is_family_pilot
-    if is_family_pilot():
-        items = [p for p in items if p.get("post_type") not in FAMILY_PILOT_DENIED_BOARD_TYPES]
+    # CP1d-1b.1-R1 / OPS-1: los avisos de tipos cerrados en el perfil activo no
+    # se exponen a nadie (health/finance siempre; document/school solo en piloto).
+    _denied_types = denied_board_types_for_profile()
+    if _denied_types:
+        items = [p for p in items if p.get("post_type") not in _denied_types]
     if role not in ("owner", "admin"):
         my_pid = _current_person_id(db, user["user_id"], household_id)
         out = []

@@ -202,14 +202,38 @@ def validate_provider_output(result: ProviderResult, request: GatewayRequest) ->
 # Selección de provider + Gateway
 # =============================================================================
 
+def real_provider_permitted() -> bool:
+    """
+    OPS-1 (MIN-3.4) — ¿el PERFIL de runtime admite el proveedor real en el chat
+    normal? family-pilot NO (jaula mock; además ni siquiera arranca con los flags
+    de IA encendidos). family-live / staging / production / local-dev sí PUEDEN,
+    y aun así son los gates duros de OpenAIProvider.is_available() (provider_mode,
+    real_provider_enabled, external_calls_allowed, OPENAI_API_KEY) los que deciden
+    si realmente hay proveedor real disponible.
+    """
+    from ..config import is_family_pilot
+    if is_family_pilot():
+        return False
+    return True
+
+
 def select_provider() -> Provider:
     """
-    MIN-3.3b — El CHAT NORMAL usa SIEMPRE MockProvider. El proveedor real
-    existe pero SOLO es alcanzable vía el shadow harness (shadow_compare), que
-    exige los 6 gates simultáneos y datos sintéticos. Usarlo desde el flujo
-    normal (datos de una familia real) requerirá un gate NUEVO (MIN-3.4+)
-    autorizado explícitamente; no existe camino de código para eso hoy.
+    OPS-1 (MIN-3.4) — El CHAT NORMAL alcanza el proveedor REAL cuando el perfil
+    operativo lo habilita Y los gates duros están completos; si no, cae de forma
+    segura a MockProvider (Domi por reglas, sin red).
+
+    Importante: aunque devuelva el proveedor real, el gateway conserva SIEMPRE
+    timeout + validación estricta de schema/registry + fallback a mock ante
+    cualquier fallo, y el modelo SOLO PROPONE. Ninguna acción se ejecuta sin la
+    confirmación humana posterior. El puente cambia QUIÉN redacta la propuesta,
+    no las barreras que la contienen.
     """
+    if real_provider_permitted():
+        from .providers.openai_provider import OpenAIProvider
+        real = OpenAIProvider()
+        if real.is_available():
+            return real
     return MockProvider()
 
 

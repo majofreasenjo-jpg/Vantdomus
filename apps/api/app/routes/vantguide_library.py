@@ -559,11 +559,12 @@ def upsert_support_profile(
     db=Depends(get_db),
 ):
     """Crea o actualiza el perfil de apoyo de una persona."""
-    # CP1d-1b.1-R2 (hallazgo 3A): perfil sensible (health_notes, caregiver_notes,
-    # neurodiversidad, ansiedad, accesibilidad) DENIED para todos en family-pilot.
-    from ..config import is_family_pilot
-    if is_family_pilot():
-        raise HTTPException(status_code=403, detail="Perfil de apoyo no disponible durante el piloto familiar")
+    # CP1d-1b.1-R2 (hallazgo 3A) / OPS-1: perfil sensible (health_notes,
+    # caregiver_notes, neurodiversidad, ansiedad, accesibilidad) es salud-adyacente
+    # → DENIED para todos en AMBOS perfiles familiares (no fue pedido para OPS-1).
+    from ..config import is_family_profile
+    if is_family_profile():
+        raise HTTPException(status_code=403, detail="Perfil de apoyo no disponible en el perfil familiar")
     require_household_role(db, user["user_id"], body.household_id, "member")
     # CP1d-1b.1-R2 (hallazgo 3B): la persona DEBE pertenecer al hogar recibido.
     person = db.execute(
@@ -608,10 +609,11 @@ def get_support_profile(
     Devuelve el perfil de apoyo. Campos sensibles (`health_notes`,
     `caregiver_notes`) solo se exponen a roles owner/admin o al `self`.
     """
-    # CP1d-1b.1-R2 (hallazgo 3A): DENIED para todos en family-pilot.
-    from ..config import is_family_pilot
-    if is_family_pilot():
-        raise HTTPException(status_code=403, detail="Perfil de apoyo no disponible durante el piloto familiar")
+    # CP1d-1b.1-R2 (hallazgo 3A) / OPS-1: DENIED en AMBOS perfiles familiares
+    # (salud-adyacente).
+    from ..config import is_family_profile
+    if is_family_profile():
+        raise HTTPException(status_code=403, detail="Perfil de apoyo no disponible en el perfil familiar")
     user_role = require_household_role(db, user["user_id"], household_id, "viewer")
     # CP1d-1b.1-R2 (hallazgo 3B): acotar por hogar; la persona debe pertenecer
     # a household_id (evita fuga entre hogares por person_id suelto).

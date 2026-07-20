@@ -657,17 +657,17 @@ def test_49_50_51_sensitive_modules_denied_in_family_pilot(pilot_client):
     # 49: health DENIED (incluso para owner) — 403 ESTRICTO en rutas reales.
     r = client.get("/health/adherence/get", params={"household_id": hid, "person_id": pid, "med_name": "x"}, headers=_auth(owner))
     assert r.status_code == 403, r.text
-    assert "piloto familiar" in r.json()["detail"]
+    assert "perfil familiar" in r.json()["detail"]
     r = client.get(f"/persons/{pid}/health-timeline", headers=_auth(owner))
     assert r.status_code == 403, r.text
     # 50: finance DENIED — ruta real GET /finance/expenses.
     r = client.get("/finance/expenses", params={"household_id": hid}, headers=_auth(owner))
     assert r.status_code == 403, r.text
-    assert "piloto familiar" in r.json()["detail"]
+    assert "perfil familiar" in r.json()["detail"]
     # 51: documents DENIED — ruta real GET /smart_inbox/candidates.
     r = client.get("/smart_inbox/candidates", params={"household_id": hid}, headers=_auth(owner))
     assert r.status_code == 403, r.text
-    assert "piloto familiar" in r.json()["detail"]
+    assert "perfil familiar" in r.json()["detail"]
 
 
 def test_52_local_behavior_preserved(local_client):
