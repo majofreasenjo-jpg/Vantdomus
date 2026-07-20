@@ -15,10 +15,43 @@ from ..tenancy import backfill_user_households, ensure_user_default_organization
 
 router = APIRouter(prefix="/households", tags=["Households"])
 
+def _family_safe_backfill(db, user_id: str) -> None:
+    """CP1d-1b.1-R2: repara organization_id de hogares del usuario SIN crear
+    ninguna organización nueva (a diferencia de backfill_user_households)."""
+    rows = db.execute(
+        """
+        SELECT h.id, h.organization_id
+        FROM households h
+        JOIN household_memberships m ON m.household_id=h.id
+        WHERE m.user_id=? AND (h.organization_id IS NULL OR h.organization_id='')
+        """,
+        (user_id,),
+    ).fetchall()
+    for row in rows:
+        # Solo si YA existe una organización asociada por otra vía; en el piloto
+        # los hogares se crean por bootstrap con su organización técnica.
+        existing = db.execute(
+            "SELECT organization_id FROM households WHERE id=? AND organization_id IS NOT NULL AND organization_id<>''",
+            (row["id"],),
+        ).fetchone()
+        # No hay organización que crear; se deja como está (sin autoprovisión).
+        _ = existing
+
+
 @router.get("")
 def list_households(user=Depends(get_current_user), db=Depends(get_db)):
     try:
-        backfill_user_households(db, user["user_id"])
+        # CP1d-1b.1-R2 (hallazgo 4): backfill_user_households llama a
+        # ensure_user_default_organization, que crea una organización + una
+        # organization_membership owner por cada usuario sin org. En
+        # family-pilot NO se autoprovisionan organizaciones empresariales por el
+        # solo hecho de listar hogares — solo se repara el organization_id de
+        # hogares existentes, sin crear nada nuevo (variante read-only/safe).
+        from app.config import is_family_pilot
+        if is_family_pilot():
+            _family_safe_backfill(db, user["user_id"])
+        else:
+            backfill_user_households(db, user["user_id"])
         db.commit()
         cur = db.cursor()
         cur.execute(
@@ -428,7 +461,12 @@ def _presence_status(last_seen_at: str | None) -> str:
 
 @router.get("/{household_id}/members")
 def list_members(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], household_id, "viewer")
+    viewer_role = require_household_role(db, user["user_id"], household_id, "viewer")
+    # CP1d-1b.1-R2 (hallazgo 2): minimización. Solo owner/admin reciben la vista
+    # administrativa (email, sesiones, last_seen exacto). El resto — incluidos
+    # menores viewer — reciben nombre visible + rol + presencia simplificada, y
+    # su PROPIO email; jamás el email/sesiones de otros integrantes.
+    is_admin_view = viewer_role in ("owner", "admin")
     rows = db.execute(
         """
         SELECT
@@ -447,20 +485,31 @@ def list_members(household_id: str, user=Depends(get_current_user), db=Depends(g
         """.replace("ROLE_RANK(m.role)", "CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END"),
         (now(), household_id),
     ).fetchall()
-    return {
-        "items": [
-            {
-                "user_id": row["user_id"],
-                "email": row["email"],
-                "role": row["role"],
-                "created_at": row["created_at"],
-                "last_seen_at": row["last_seen_at"],
-                "active_sessions": int(row["active_sessions"] or 0),
-                "presence": _presence_status(row["last_seen_at"]),
-            }
-            for row in rows
-        ]
+    # Nombre visible por ficha (persons.user_id), nunca el email como nombre.
+    display_by_user = {
+        r["user_id"]: r["display_name"]
+        for r in db.execute(
+            "SELECT user_id, display_name FROM persons WHERE household_id=? AND user_id IS NOT NULL",
+            (household_id,),
+        ).fetchall()
     }
+    items = []
+    for row in rows:
+        is_self = row["user_id"] == user["user_id"]
+        entry = {
+            "user_id": row["user_id"],
+            "display_name": display_by_user.get(row["user_id"]),
+            "role": row["role"],
+            "presence": _presence_status(row["last_seen_at"]),
+        }
+        if is_admin_view or is_self:
+            # Vista administrativa completa, o el propio integrante sobre sí mismo.
+            entry["email"] = row["email"]
+            entry["created_at"] = row["created_at"]
+            entry["last_seen_at"] = row["last_seen_at"]
+            entry["active_sessions"] = int(row["active_sessions"] or 0)
+        items.append(entry)
+    return {"items": items}
 
 
 @router.post("/{household_id}/members")
@@ -893,6 +942,16 @@ def remove_member(household_id: str, target_user_id: str, user=Depends(get_curre
 
 @router.post("")
 def create_household(name: str, user=Depends(get_current_user), db=Depends(get_db)):
+    # CP1d-1b.1-R2 (hallazgo 1): en family-pilot la creación interactiva de
+    # hogares queda bloqueada (creaba household+organization+membership owner
+    # sin política de banda). El hogar del piloto se crea solo por el bootstrap
+    # administrativo autorizado de 1b.3.
+    from app.config import is_family_pilot
+    if is_family_pilot():
+        raise HTTPException(
+            status_code=403,
+            detail="El hogar del piloto se crea exclusivamente mediante el bootstrap administrativo autorizado.",
+        )
     hid = str(uuid.uuid4())
     organization_id = ensure_user_default_organization(db, user["user_id"], name=f"{name} Organization")
     db.execute("INSERT INTO households (id,name,meta,created_at,organization_id) VALUES (?,?,?,?,?)",

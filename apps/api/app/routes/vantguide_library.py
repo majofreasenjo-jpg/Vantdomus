@@ -559,7 +559,19 @@ def upsert_support_profile(
     db=Depends(get_db),
 ):
     """Crea o actualiza el perfil de apoyo de una persona."""
+    # CP1d-1b.1-R2 (hallazgo 3A): perfil sensible (health_notes, caregiver_notes,
+    # neurodiversidad, ansiedad, accesibilidad) DENIED para todos en family-pilot.
+    from ..config import is_family_pilot
+    if is_family_pilot():
+        raise HTTPException(status_code=403, detail="Perfil de apoyo no disponible durante el piloto familiar")
     require_household_role(db, user["user_id"], body.household_id, "member")
+    # CP1d-1b.1-R2 (hallazgo 3B): la persona DEBE pertenecer al hogar recibido.
+    person = db.execute(
+        "SELECT id FROM persons WHERE id=? AND household_id=?",
+        (person_id, body.household_id),
+    ).fetchone()
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found in this household")
     row = db.execute(
         "SELECT organization_id FROM households WHERE id=?",
         (body.household_id,),
@@ -596,10 +608,22 @@ def get_support_profile(
     Devuelve el perfil de apoyo. Campos sensibles (`health_notes`,
     `caregiver_notes`) solo se exponen a roles owner/admin o al `self`.
     """
+    # CP1d-1b.1-R2 (hallazgo 3A): DENIED para todos en family-pilot.
+    from ..config import is_family_pilot
+    if is_family_pilot():
+        raise HTTPException(status_code=403, detail="Perfil de apoyo no disponible durante el piloto familiar")
     user_role = require_household_role(db, user["user_id"], household_id, "viewer")
+    # CP1d-1b.1-R2 (hallazgo 3B): acotar por hogar; la persona debe pertenecer
+    # a household_id (evita fuga entre hogares por person_id suelto).
+    person = db.execute(
+        "SELECT id FROM persons WHERE id=? AND household_id=?",
+        (person_id, household_id),
+    ).fetchone()
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found in this household")
     row = db.execute(
-        "SELECT * FROM person_support_profile WHERE person_id=?",
-        (person_id,),
+        "SELECT * FROM person_support_profile WHERE person_id=? AND household_id=?",
+        (person_id, household_id),
     ).fetchone()
     if not row:
         return {"person_id": person_id, "exists": False}
@@ -609,16 +633,14 @@ def get_support_profile(
               "accessibility_needs", "preferred_devices"):
         out[f] = _loads(out.get(f))
 
-    # Censurar campos sensibles para roles que no son owner/admin/self
+    # Censurar campos sensibles para roles que no son owner/admin/self.
+    # CP1d-1b.1-R2 (hallazgo 3B): el vínculo titular es persons.user_id, NO
+    # 'linked_user_id' (columna inexistente que causaba 500 a no-admins).
     if user_role not in ("owner", "admin"):
-        # Check si el solicitante es la persona dueña del perfil (self)
-        is_self = False
-        person_row = db.execute(
-            "SELECT 1 FROM persons WHERE id=? AND linked_user_id=?",
-            (person_id, user["user_id"]),
-        ).fetchone() if hasattr(db, "execute") else None
-        if person_row:
-            is_self = True
+        is_self = db.execute(
+            "SELECT 1 FROM persons WHERE id=? AND household_id=? AND user_id=?",
+            (person_id, household_id, user["user_id"]),
+        ).fetchone() is not None
         if not is_self:
             out["health_notes"] = None
             out["caregiver_notes"] = None

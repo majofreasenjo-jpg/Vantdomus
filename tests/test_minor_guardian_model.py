@@ -1032,3 +1032,137 @@ def test_r1_enterprise_surface_reachable_in_local(local_client):
     r = client.get(f"/households/{hid}/export", headers=_auth(owner))
     assert r.status_code in (200, 403), r.text  # 403 sería por email no verificado, no por el middleware
     assert "piloto familiar" not in r.text
+
+
+# ===========================================================================
+# R2 — multihogar, GET/members, support_profile, auto-org, school
+# ===========================================================================
+
+def test_r2_create_household_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        con = sqlite3.connect(db_path)
+        before = con.execute("SELECT COUNT(*) FROM households").fetchone()[0]
+        orgs_before = con.execute("SELECT COUNT(*) FROM organizations").fetchone()[0]
+        con.close()
+        r = client.post("/households", params={"name": "Hogar Nuevo Prohibido"}, headers=_auth(owner))
+        assert r.status_code == 403, r.text
+        con = sqlite3.connect(db_path)
+        assert con.execute("SELECT COUNT(*) FROM households").fetchone()[0] == before
+        assert con.execute("SELECT COUNT(*) FROM organizations").fetchone()[0] == orgs_before
+        con.close()
+
+
+def test_r2_create_household_still_works_locally(local_client):
+    client, _ = local_client
+    owner = _register_and_login(client, "owner-local-hh@sintetico.test")
+    r = client.post("/households", params={"name": "Hogar Local OK"}, headers=_auth(owner))
+    assert r.status_code == 200, r.text
+
+
+def test_r2_members_minimization_hides_email_and_sessions(local_client):
+    client, db_path = local_client
+    owner, guardian, hid, tutor, minor = _standard_setup(client)
+    _full_minor_authorization(client, owner, guardian, hid, tutor, minor)
+    inv = _invite(client, owner, hid, "menor-min@sintetico.test", person_id=minor, role="viewer")
+    _register_with_invitation(client, inv["token"], "menor-min@sintetico.test")
+    child_token = _login(client, "menor-min@sintetico.test")
+    # viewer/menor: no ve email ni sesiones de OTROS; sí su propio email
+    items = client.get(f"/households/{hid}/members", headers=_auth(child_token)).json()["items"]
+    for it in items:
+        is_self = it.get("email") == "menor-min@sintetico.test"
+        if not is_self:
+            assert "email" not in it, f"email ajeno filtrado: {it}"
+            assert "active_sessions" not in it
+            assert "last_seen_at" not in it
+    # owner conserva vista administrativa completa
+    admin_items = client.get(f"/households/{hid}/members", headers=_auth(owner)).json()["items"]
+    assert any("email" in it and "active_sessions" in it for it in admin_items)
+
+
+def test_r2_support_profile_denied_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        pid = _person(client, owner, hid, "Ficha Apoyo")
+        r = client.get(f"/persons/{pid}/support_profile", params={"household_id": hid}, headers=_auth(owner))
+        assert r.status_code == 403, r.text
+        r = client.put(f"/persons/{pid}/support_profile",
+                       json={"household_id": hid, "health_notes": "x"}, headers=_auth(owner))
+        assert r.status_code == 403, r.text
+
+
+def test_r2_support_profile_cross_household_isolation(local_client):
+    client, _ = local_client
+    owner_a = _register_and_login(client, "owner-a-sp@sintetico.test")
+    hid_a = _household(client, owner_a, "Hogar A SP")
+    pid_a = _person(client, owner_a, hid_a, "Persona A")
+    client.put(f"/persons/{pid_a}/support_profile",
+               json={"household_id": hid_a, "health_notes": "secreto A"}, headers=_auth(owner_a))
+    owner_b = _register_and_login(client, "owner-b-sp@sintetico.test")
+    hid_b = _household(client, owner_b, "Hogar B SP")
+    # owner de B intenta leer/escribir el perfil de una persona del hogar A pasando SU hogar
+    r = client.get(f"/persons/{pid_a}/support_profile", params={"household_id": hid_b}, headers=_auth(owner_b))
+    assert r.status_code in (403, 404), r.text
+    r = client.put(f"/persons/{pid_a}/support_profile",
+                   json={"household_id": hid_b, "health_notes": "hack B"}, headers=_auth(owner_b))
+    assert r.status_code in (403, 404), r.text
+
+
+def test_r2_support_profile_self_resolves_by_user_id(local_client):
+    client, _ = local_client
+    owner, guardian, hid, tutor, _minor = _standard_setup(client)
+    # guardian (admin) tiene ficha 'tutor' vinculada; escribir su perfil como owner
+    client.put(f"/persons/{tutor}/support_profile",
+               json={"household_id": hid, "health_notes": "nota tutor", "caregiver_notes": "cuid"},
+               headers=_auth(owner))
+    # el titular (guardian) lee su propio perfil sin 500 y ve los campos sensibles
+    r = client.get(f"/persons/{tutor}/support_profile", params={"household_id": hid}, headers=_auth(guardian))
+    assert r.status_code == 200, r.text
+    assert r.json().get("health_notes") == "nota tutor"
+
+
+def test_r2_get_households_does_not_autoprovision_org_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        # invitar a un segundo adulto por la vía correcta y que liste hogares
+        owner = _login(client, "owner-pilot@sintetico.test")
+        tutor = _person(client, owner, hid, "Adulto Dos")
+        client.patch(f"/persons/{tutor}/classification", json={"age_band": "adult"}, headers=_auth(owner))
+        inv = _invite(client, owner, hid, "adulto2-org@sintetico.test", person_id=tutor, role="member")
+        _register_with_invitation(client, inv["token"], "adulto2-org@sintetico.test")
+        con = sqlite3.connect(db_path)
+        orgs_before = con.execute("SELECT COUNT(*) FROM organizations").fetchone()[0]
+        om_before = con.execute("SELECT COUNT(*) FROM organization_memberships").fetchone()[0] if \
+            con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='organization_memberships'").fetchone() else 0
+        con.close()
+        adulto2 = _login(client, "adulto2-org@sintetico.test")
+        r = client.get("/households", headers=_auth(adulto2))
+        assert r.status_code == 200, r.text
+        con = sqlite3.connect(db_path)
+        assert con.execute("SELECT COUNT(*) FROM organizations").fetchone()[0] == orgs_before
+        con.close()
+
+
+def test_r2_family_board_school_blocked_in_family_pilot(monkeypatch, tmp_path):
+    client, db_path = _make_pilot_client(monkeypatch, tmp_path)
+    with client:
+        _uid, hid = _seed_pilot_owner(db_path)
+        owner = _login(client, "owner-pilot@sintetico.test")
+        r = client.post(f"/family_board/{hid}", json={"post_type": "school", "title": "x", "body": "y"}, headers=_auth(owner))
+        assert r.status_code == 403, r.text
+        # inyectar uno school y confirmar que no se lista
+        con = sqlite3.connect(db_path)
+        con.execute(
+            "INSERT INTO family_board_posts (id, household_id, author_user_id, post_type, title, body, priority, pinned, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ("school-post", hid, _uid, "school", "Colegio", "privado", "normal", 0,
+             datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat()),
+        )
+        con.commit(); con.close()
+        listed = client.get(f"/family_board/{hid}", headers=_auth(owner)).json()["items"]
+        assert all(p["post_type"] != "school" for p in listed)

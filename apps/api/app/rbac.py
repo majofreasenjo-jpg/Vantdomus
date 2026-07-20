@@ -40,9 +40,10 @@ def module_min_role(db, household_id: str, module: str) -> str:
 # module_visibility. La capacidad técnica previa no equivale a autorización.
 FAMILY_PILOT_DENIED_MODULES = {"health", "finance", "documents"}
 
-# CP1d-1b.1-R1: post_type del muro que son sensibles y quedan bloqueados en
+# CP1d-1b.1-R1/R2: post_type del muro sensibles/no-autorizados, bloqueados en
 # family-pilot (creación, actualización-hacia, y no se listan/exponen).
-FAMILY_PILOT_DENIED_BOARD_TYPES = {"health", "finance", "document"}
+# 'school' se añade en R2: escuela/estudio real es NOT_IMPLEMENTED hasta su gate.
+FAMILY_PILOT_DENIED_BOARD_TYPES = {"health", "finance", "document", "school"}
 
 
 def family_pilot_deny(module_or_reason: str):

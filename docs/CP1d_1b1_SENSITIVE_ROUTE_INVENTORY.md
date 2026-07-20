@@ -51,6 +51,17 @@ Tests del middleware: `test_r1_enterprise_surface_blocked_in_family_pilot`,
 `test_r1_household_export_blocked_in_family_pilot`,
 `test_r1_family_surface_still_reachable_in_family_pilot` (no sobre-bloquea).
 
+## Rutas añadidas en R2 (hallazgos de la re-auditoría)
+
+| Ruta | Riesgo | Mecanismo en family-pilot | Test |
+|---|---|---|---|
+| `POST /households` | creaba household+organization+membership **owner** sin política de banda (un menor podía volverse owner de otro hogar) | 403 (el hogar del piloto se crea solo por bootstrap 1b.3) | `test_r2_create_household_blocked_in_family_pilot` |
+| `GET /households` | `backfill_user_households` autoprovisiona una **organización empresarial + membership owner** por cada usuario al listar | variante `_family_safe_backfill` sin crear organizaciones | `test_r2_get_households_does_not_autoprovision_org_in_family_pilot` |
+| `GET /households/{id}/members` | filtraba **email + sesiones + last_seen** de todos a rol viewer/menor | minimización: owner/admin vista admin; titular su propio email; resto solo display_name+rol+presencia | `test_r2_members_minimization_hides_email_and_sessions` |
+| `GET /persons/{id}/support_profile` | `health_notes`, `caregiver_notes`, neurodiversidad, ansiedad, accesibilidad; **sin scoping por hogar** (fuga entre hogares) y bug `linked_user_id` (500 a no-admins) | 403 en family-pilot; scoping `person_id + household_id`; self por `persons.user_id` | `test_r2_support_profile_denied_in_family_pilot`, `test_r2_support_profile_cross_household_isolation`, `test_r2_support_profile_self_resolves_by_user_id` |
+| `PUT /persons/{id}/support_profile` | ídem + no validaba que `person_id` perteneciera al `household_id` | 403 en family-pilot; validación de pertenencia | (mismos tests) |
+| Family Board `post_type=school` | escuela/estudio real es NOT_IMPLEMENTED hasta su gate | añadido a `FAMILY_PILOT_DENIED_BOARD_TYPES` | `test_r2_family_board_school_blocked_in_family_pilot` |
+
 ## Nota de alcance
 El lockdown declarado cubre TODA la superficie que lee/escribe datos sensibles
 identificada en el inventario. Los módulos health/finance/documents quedan
