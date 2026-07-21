@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
@@ -8,6 +8,7 @@ import { logoutAction, setViewLevelAction } from "./login/actions";
 import NavLink from "./components/NavLink";
 import Celebrate from "./components/Celebrate";
 import DomiIcon from "./components/domiIcons";
+import PwaRegister from "./components/PwaRegister";
 
 // Tipografía humanista redondeada y cálida, coherente con "hogar".
 // Se expone como CSS var --font-family-warm y se aplica en modo familia.
@@ -22,6 +23,14 @@ const nunito = Nunito({
 // <meta name="robots"> en TODAS las páginas). Tercera capa junto al header
 // X-Robots-Tag (next.config.js) y robots.txt (Disallow: /).
 export const metadata: Metadata = {
+  applicationName: "VantDomus Hogar",
+  title: { default: "VantDomus Hogar", template: "%s · VantDomus" },
+  // OPS-1 (PWA): instalable en iPhone/Android. El manifest lo genera app/manifest.ts.
+  appleWebApp: {
+    capable: true,
+    title: "VantDomus",
+    statusBarStyle: "black-translucent",
+  },
   robots: {
     index: false,
     follow: false,
@@ -32,6 +41,11 @@ export const metadata: Metadata = {
       noimageindex: true,
     },
   },
+};
+
+// OPS-1 (PWA): color de la barra/tema del sistema cuando la app está instalada.
+export const viewport: Viewport = {
+  themeColor: "#F59E3C",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -187,6 +201,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </div>
         <div className="container">{children}</div>
+        <PwaRegister />
         {isFamily ? <Celebrate /> : null}
         {/* Bottom nav móvil (companion-first). Solo visible en pantallas chicas. */}
         {isFamily && hasSession && hid ? (

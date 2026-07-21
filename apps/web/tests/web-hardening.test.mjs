@@ -95,3 +95,27 @@ test("11. runtimeEnv: family-live lleva cookies Secure y es perfil familiar", as
   assert.equal(mod.isFamilyProfileEnv("local"), false);
   assert.equal(mod.cookieSecure("local"), false);
 });
+
+// OPS-1 (PWA) — instalable en móvil + geolocalización habilitada para el clima.
+test("12. PWA: manifest standalone + iconos 192/512, sw.js y apple-web-app", () => {
+  const manifest = readFileSync(join(WEB_ROOT, "app", "manifest.ts"), "utf-8");
+  assert.match(manifest, /display:\s*"standalone"/);
+  assert.match(manifest, /icon-192/);
+  assert.match(manifest, /icon-512/);
+  assert.match(manifest, /maskable/);
+  const sw = readFileSync(join(WEB_ROOT, "public", "sw.js"), "utf-8");
+  assert.match(sw, /addEventListener\("fetch"/);
+  const layout = readFileSync(join(WEB_ROOT, "app", "layout.tsx"), "utf-8");
+  assert.match(layout, /appleWebApp/);
+  assert.match(layout, /themeColor/);
+  assert.match(layout, /PwaRegister/);
+  // El robots noindex NO se pierde al agregar la PWA.
+  assert.match(layout, /index:\s*false/);
+});
+
+test("13. Permissions-Policy permite geolocation=(self) para el clima real", () => {
+  const cfg = readFileSync(join(WEB_ROOT, "next.config.js"), "utf-8");
+  assert.match(cfg, /geolocation=\(self\)/);
+  // cámara/micrófono siguen deshabilitados.
+  assert.match(cfg, /camera=\(\)/);
+});

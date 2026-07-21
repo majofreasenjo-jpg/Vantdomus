@@ -20,7 +20,10 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // OPS-1: geolocation habilitada SOLO para el propio origen (clima real del
+  // hogar). camera/microphone siguen deshabilitadas (la foto de boletas usa el
+  // selector de archivos, no getUserMedia).
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   {
     key: 'Content-Security-Policy',
