@@ -49,6 +49,15 @@ def test_create_admin_owner(migrated_db):
         (u["id"], r["household_id"]),
     ).fetchone()
     assert m["role"] == "owner"
+    # Ficha del owner vinculada y adulta (sin ella la home cae a modo demo).
+    assert r["persona_status"] == "ficha creada"
+    p = con.execute(
+        "SELECT age_band, user_id FROM persons WHERE household_id=? AND user_id=?",
+        (r["household_id"], u["id"]),
+    ).fetchone()
+    assert p is not None
+    assert p["age_band"] == "adult"
+    assert p["user_id"] == u["id"]
 
 
 def test_idempotent_updates_password_no_duplicate_home(migrated_db):
@@ -67,6 +76,13 @@ def test_idempotent_updates_password_no_duplicate_home(migrated_db):
         (u["id"],),
     ).fetchone()
     assert n["c"] == 1
+    # Tampoco duplica la ficha del owner.
+    np = con.execute(
+        "SELECT COUNT(*) c FROM persons WHERE user_id=? AND household_id=?",
+        (u["id"], r1["household_id"]),
+    ).fetchone()
+    assert np["c"] == 1
+    assert r2["persona_status"] == "ya tenía ficha"
 
 
 def test_rejects_bad_input(migrated_db):

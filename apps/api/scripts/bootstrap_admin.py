@@ -85,6 +85,27 @@ def bootstrap_admin(email: str, password: str, home_name: str = "Mi Hogar") -> d
         )
         home_status = "hogar creado"
 
+    # Ficha (persona) del owner vinculada a su cuenta. Sin al menos una ficha, la
+    # home la interpreta como "sin datos reales" y muestra el modo demo. El owner
+    # es adulto (age_band='adult'), perfil de privacidad estándar.
+    display_name = (email.split("@", 1)[0].replace(".", " ").replace("_", " ").strip().title()
+                    or "Titular")
+    persona = db.execute(
+        "SELECT id FROM persons WHERE household_id=? AND user_id=?", (hid, uid)
+    ).fetchone()
+    if persona:
+        persona_status = "ya tenía ficha"
+    else:
+        pid = str(uuid.uuid4())
+        db.execute(
+            "INSERT INTO persons "
+            "(id, household_id, organization_id, display_name, relation, user_id, "
+            "age_band, minor_privacy_profile, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (pid, hid, org_id, display_name, "Titular", uid, "adult", "standard", ts),
+        )
+        persona_status = "ficha creada"
+
     db.commit()
     return {
         "user_action": user_action,
@@ -92,6 +113,8 @@ def bootstrap_admin(email: str, password: str, home_name: str = "Mi Hogar") -> d
         "user_id": uid,
         "household_id": hid,
         "home_status": home_status,
+        "persona_status": persona_status,
+        "display_name": display_name,
         "organization_id": org_id,
     }
 
