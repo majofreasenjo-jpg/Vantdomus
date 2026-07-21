@@ -223,6 +223,24 @@ export const domiConfirmProposal = (id: string, overrides: Record<string, unknow
 export const domiRejectProposal = (id: string) =>
   apiFetch(`/assistant/proposals/${encodeURIComponent(id)}/reject`, { method: "POST" });
 
+// OPS-2.A — Memoria por persona: la familia le enseña a Domi hechos de cada uno.
+export const listDomiMemories = (hid: string) =>
+  apiFetch(`/assistant/memory?household_id=${encodeURIComponent(hid)}`);
+
+export const createDomiMemory = (body: {
+  household_id: string;
+  memory_type: string;
+  content: string;
+  person_id?: string | null;
+  importance?: number;
+  visible_to_household?: boolean;
+}) => apiFetch("/assistant/memory", { method: "POST", body: JSON.stringify(body) });
+
+export const deleteDomiMemory = (id: string, hid: string) =>
+  apiFetch(`/assistant/memory/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, {
+    method: "DELETE",
+  });
+
 // Missing endpoints for Panel compatibility
 export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
 export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({

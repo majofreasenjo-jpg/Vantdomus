@@ -8,6 +8,7 @@
 
 import { getDashboard } from "../../../lib/api";
 import MemberIdentityEditor from "../../components/MemberIdentityEditor";
+import DomiMemory from "../../components/DomiMemory";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,6 +52,12 @@ export default async function PerfilesPage({ params }: { params: Promise<{ house
           ))}
         </div>
       )}
+
+      {/* OPS-2.A — Lo que Domi recuerda de cada integrante. */}
+      <DomiMemory
+        hid={hid}
+        persons={persons.map((p) => ({ id: String(p.id), name: p.display_name || "Integrante" }))}
+      />
     </div>
   );
 }
