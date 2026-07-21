@@ -25,6 +25,9 @@ interface DomiOrbProps {
   activeTheme?: "dawn" | "day" | "sunset" | "night";
   domiState?: DomiState;
   domiAppearance?: string;
+  /** OPS-1 "partir limpio": en hogar real, los nodos no muestran badges de
+   * ejemplo (Salud 1, Mensajes 3, Examen). */
+  isReal?: boolean;
 }
 
 export default function DomiOrb({
@@ -37,7 +40,8 @@ export default function DomiOrb({
   domiMood,
   activeTheme = "night",
   domiState = "listo",
-  domiAppearance = "original"
+  domiAppearance = "original",
+  isReal = false
 }: DomiOrbProps) {
   const [isHovered, setIsHovered] = useState(false);
   const isLight = activeTheme === "dawn" || activeTheme === "day";
@@ -240,10 +244,10 @@ export default function DomiOrb({
     {
       id: "salud",
       title: "Salud",
-      subtitle: medicineConfirmed ? "Todo bien" : "Pendiente",
+      subtitle: (medicineConfirmed || isReal) ? "Todo bien" : "Pendiente",
       icon: Heart,
       positionStyle: { left: "21%", top: "28%" },
-      badge: !medicineConfirmed ? "1" : null
+      badge: (!medicineConfirmed && !isReal) ? "1" : null
     },
     {
       id: "compras",
@@ -256,18 +260,18 @@ export default function DomiOrb({
     {
       id: "estudio",
       title: "Estudio",
-      subtitle: studyPrepared ? "Organizado" : "Pendiente hoy",
+      subtitle: isReal ? (studyPrepared ? "Organizado" : "Al día") : (studyPrepared ? "Organizado" : "Pendiente hoy"),
       icon: BookOpen,
       positionStyle: { left: "21%", top: "72%" },
-      badge: !studyPrepared ? "Examen" : null
+      badge: (!studyPrepared && !isReal) ? "Examen" : null
     },
     {
       id: "mensajes",
       title: "Mensajes",
-      subtitle: "3 sin leer",
+      subtitle: isReal ? "Al día" : "3 sin leer",
       icon: Mail,
       positionStyle: { left: "79%", top: "28%" },
-      badge: "3"
+      badge: isReal ? null : "3"
     },
     {
       id: "servicios",

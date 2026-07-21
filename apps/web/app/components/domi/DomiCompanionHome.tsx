@@ -180,8 +180,13 @@ export default function DomiCompanionHome({
   const [medicineConfirmed, setMedicineConfirmed] = useState(false);
   const [studyPrepared, setStudyPrepared] = useState(false);
   
-  // Default shopping list (Faltan 9 productos)
-  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : [
+  // OPS-1 "partir limpio": en un hogar REAL no se siembra NINGÚN dato de
+  // ejemplo. El contenido demo (Diego/Elena/lista de 9) solo aparece cuando NO
+  // hay sesión real (dataState demo/session/api), claramente marcado como tal.
+  const isReal = dataState === "real";
+
+  // Default shopping list (solo demo; en real arranca vacío)
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : (isReal ? [] : [
     { id: "1", name: "Leche semidescremada", checked: false, qty: "2 L", category: "Supermercado" },
     { id: "2", name: "Plátanos maduros", checked: false, qty: "1 Kg", category: "Frutería" },
     { id: "3", name: "Pan de molde integral", checked: false, qty: "1 ud", category: "Panadería" },
@@ -191,22 +196,22 @@ export default function DomiCompanionHome({
     { id: "7", name: "Tomates frescos", checked: false, qty: "4 uds", category: "Frutería" },
     { id: "8", name: "Yogurt griego natural", checked: false, qty: "4 uds", category: "Supermercado" },
     { id: "9", name: "Café molido gourmet", checked: false, qty: "250g", category: "Supermercado" }
-  ]);
+  ]));
 
-  // Study blocks for Diego
-  const [studyBlocks, setStudyBlocks] = useState<StudyBlock[]>([
+  // Study blocks (solo demo; en real arranca vacío)
+  const [studyBlocks, setStudyBlocks] = useState<StudyBlock[]>(() => isReal ? [] : [
     { id: "1", time: "16:00 - 16:45", subject: "Álgebra y Ecuaciones", duration: "45m" },
     { id: "2", time: "17:00 - 17:45", subject: "Práctica de Geometría", duration: "45m" },
     { id: "3", time: "18:00 - 18:30", subject: "Simulacro de Examen", duration: "30m" }
   ]);
 
-  // Family members list
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : [
+  // Family members list (en real, SOLO los integrantes reales del hogar)
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : (isReal ? [] : [
     { id: "mama", name: "Mamá (Gabriela)", role: "Madre", avatar: "G", status: "En el trabajo" },
     { id: "papa", name: "Papá (Carlos)", role: "Padre", avatar: "C", status: "Preparando la cena" },
     { id: "diego", name: "Diego", role: "Hijo - Estudiante", avatar: "D", status: "Estudiando matemáticas" },
     { id: "elena", name: "Elena", role: "Abuela", avatar: "E", status: "Descansando en su cuarto" }
-  ]);
+  ]));
 
   // Logs for medicine confirmation
   const [medicineLogs, setMedicineLogs] = useState<{ time: string; confirmedBy: string }[]>([]);
@@ -226,8 +231,8 @@ export default function DomiCompanionHome({
   // Domi visual expression/mood
   const [domiMood, setDomiMood] = useState<"happy" | "speaking" | "breathing" | "thinking">("happy");
 
-  // Notifications audit trail
-  const [notifications, setNotifications] = useState<HomeNotification[]>([
+  // Notifications audit trail (solo demo; en real arranca vacío)
+  const [notifications, setNotifications] = useState<HomeNotification[]>(() => isReal ? [] : [
     { id: "n1", title: "Medicina programada", message: "Toma de metformina de Elena programada para las 21:30.", timestamp: "21:00", type: "care" },
     { id: "n2", title: "Bienestar sugerido", message: "Modo relajación recomendado por Domi debido al descanso nocturno.", timestamp: "20:30", type: "system" },
     { id: "n3", title: "Seguridad activa", message: "Cierre de puertas perimetrales y alarma nocturna conectada.", timestamp: "22:00", type: "security" }
@@ -290,7 +295,7 @@ export default function DomiCompanionHome({
     size: string;
     date: string;
     uploader: string;
-  }[]>([
+  }[]>(() => isReal ? [] : [
     { id: "doc1", name: "Receta Metformina Elena.pdf", category: "salud", size: "342 KB", date: "Hoy, 10:15", uploader: "Domi" },
     { id: "doc2", name: "Boletín Académico Diego.pdf", category: "educacion", size: "1.2 MB", date: "Ayer, 16:30", uploader: "Papá (Carlos)" },
     { id: "doc3", name: "Manual Caldera Inteligente.pdf", category: "hogar", size: "4.5 MB", date: "15 Jun 2026", uploader: "Mamá (Gabriela)" },
@@ -331,7 +336,9 @@ export default function DomiCompanionHome({
       {
         id: "welcome-1",
         role: "model",
-        content: `${saludo} Soy Domi, tu compañero inteligente en VantDomus Hogar. Estoy orquestando los flujos de calma y bienestar en tu casa hoy. Veo que Elena tiene pendiente la confirmación de su medicamento nocturno y faltan algunos artículos en la lista. ¿En qué te ayudo?`,
+        content: isReal
+          ? `${saludo} Soy Domi, tu compañero en VantDomus Hogar. Estoy aquí para ayudarte a organizar el estudio, las compras, los documentos y mantener a tu familia conectada. ¿En qué te ayudo?`
+          : `${saludo} Soy Domi, tu compañero inteligente en VantDomus Hogar. Estoy orquestando los flujos de calma y bienestar en tu casa hoy. Veo que Elena tiene pendiente la confirmación de su medicamento nocturno y faltan algunos artículos en la lista. ¿En qué te ayudo?`,
         timestamp: new Date()
       }
     ];
@@ -1407,7 +1414,8 @@ export default function DomiCompanionHome({
                     </div>
 
                     {/* Left Action Cards (Cuidado and Estudio) on Desktop */}
-                    <StatusCards 
+                    <StatusCards
+                      isReal={isReal}
                       medicineConfirmed={medicineConfirmed}
                       studyPrepared={studyPrepared}
                       shoppingItems={shoppingItems}
@@ -1443,7 +1451,8 @@ export default function DomiCompanionHome({
                   {/* Columna Central: 44% / 46% (Domi Companion - Hermosa esfera centralizada) */}
                   <div className="flex flex-col items-center justify-center relative overflow-visible h-full -translate-y-4 lg:-translate-y-8 xl:-translate-y-12">
                     <div className="domi-scale w-full flex justify-center items-center overflow-visible z-10 scale-[0.95] lg:scale-[1.0] xl:scale-[1.08] origin-center transition-all duration-300">
-                      <DomiOrb 
+                      <DomiOrb
+                        isReal={isReal}
                         medicineConfirmed={medicineConfirmed}
                         studyPrepared={studyPrepared}
                         shoppingCount={shoppingItems.filter(i => !i.checked).length}
@@ -1478,22 +1487,32 @@ export default function DomiCompanionHome({
                         <div className="space-y-1.5">
                           <span className={`block text-[13px] font-semibold transition-colors duration-500 ${
                             isLight ? "text-slate-700" : "text-slate-300"
-                          }`}>3 cosas importantes:</span>
+                          }`}>{isReal ? "Hoy en tu hogar:" : "3 cosas importantes:"}</span>
                           <ul className={`text-[13px] space-y-1 font-medium leading-relaxed transition-colors duration-500 ${
                             isLight ? "text-slate-600" : "text-slate-300/95"
                           }`}>
-                            <li className="flex items-center gap-1.5">
-                              <span className="h-1 w-1 rounded-full bg-amber-500 shrink-0" />
-                              <span>Medicamento de Elena {medicineConfirmed ? "(Listo)" : "(Pendiente)"}</span>
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <span className="h-1 w-1 rounded-full bg-amber-500 shrink-0" />
-                              <span>Prueba de Diego {studyPrepared ? "(Listo)" : "(Pendiente)"}</span>
-                            </li>
-                            <li className="flex items-center gap-1.5">
-                              <span className="h-1 w-1 rounded-full bg-amber-500 shrink-0" />
-                              <span>Compras por organizar ({shoppingItems.filter(i => !i.checked).length})</span>
-                            </li>
+                            {/* OPS-1 partir limpio: en hogar real solo señales reales; nada de Elena/Diego. */}
+                            {!isReal && (
+                              <li className="flex items-center gap-1.5">
+                                <span className="h-1 w-1 rounded-full bg-amber-500 shrink-0" />
+                                <span>Medicamento de Elena {medicineConfirmed ? "(Listo)" : "(Pendiente)"}</span>
+                              </li>
+                            )}
+                            {!isReal && (
+                              <li className="flex items-center gap-1.5">
+                                <span className="h-1 w-1 rounded-full bg-amber-500 shrink-0" />
+                                <span>Prueba de Diego {studyPrepared ? "(Listo)" : "(Pendiente)"}</span>
+                              </li>
+                            )}
+                            {shoppingItems.filter(i => !i.checked).length > 0 && (
+                              <li className="flex items-center gap-1.5">
+                                <span className="h-1 w-1 rounded-full bg-amber-500 shrink-0" />
+                                <span>Compras por organizar ({shoppingItems.filter(i => !i.checked).length})</span>
+                              </li>
+                            )}
+                            {isReal && shoppingItems.filter(i => !i.checked).length === 0 && studyBlocks.length === 0 && (
+                              <li className="opacity-70">Todo tranquilo por ahora. Cuéntale a Domi qué necesitas. 🌿</li>
+                            )}
                           </ul>
                         </div>
                       </div>
@@ -1515,7 +1534,8 @@ export default function DomiCompanionHome({
                     </div>
 
                     {/* Right Action Cards (Compras and Calma) on Desktop */}
-                    <StatusCards 
+                    <StatusCards
+                      isReal={isReal}
                       medicineConfirmed={medicineConfirmed}
                       studyPrepared={studyPrepared}
                       shoppingItems={shoppingItems}
@@ -1551,7 +1571,8 @@ export default function DomiCompanionHome({
 
                 {/* B. CARDS PRINCIPALES (Solo visible en móviles/tablets para no duplicar en escritorio) */}
                 <div id="tab-inicio-action-cards" className="w-full z-10 shrink-0 lg:hidden">
-                  <StatusCards 
+                  <StatusCards
+                    isReal={isReal}
                     medicineConfirmed={medicineConfirmed}
                     studyPrepared={studyPrepared}
                     shoppingItems={shoppingItems}

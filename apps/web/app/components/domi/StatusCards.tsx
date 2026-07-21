@@ -28,6 +28,9 @@ interface StatusCardsProps {
   activeTheme?: "dawn" | "day" | "sunset" | "night";
   side?: "left" | "right" | "all";
   className?: string;
+  /** OPS-1 "partir limpio": en hogar real no hay contenido de ejemplo
+   * (Elena/Diego); las tarjetas muestran estados neutros/vacíos. */
+  isReal?: boolean;
 }
 
 export default function StatusCards({
@@ -46,39 +49,46 @@ export default function StatusCards({
   onToggleMusic,
   activeTheme = "night",
   side = "all",
-  className = ""
+  className = "",
+  isReal = false
 }: StatusCardsProps) {
 
   const activeShoppingCount = shoppingItems.filter(item => !item.checked).length;
   const isLight = activeTheme === "dawn" || activeTheme === "day";
+  // En hogar real y sin datos, cuidado/estudio se muestran en calma (sin el
+  // glow rojo/azul de "pendiente", que sería una alarma falsa).
+  const careCalm = medicineConfirmed || isReal;
+  const studyCalm = studyPrepared || isReal;
 
   // 1. CUIDADO CARD
   const cuidadoCard = (
     <div className={`status-card-item rounded-3xl p-4 xl:p-5 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full border ${
       isLight 
         ? "bg-white/85 border-slate-200/60 shadow-sm shadow-slate-100/20 backdrop-blur-md text-slate-800" 
-        : `glass-panel ${medicineConfirmed ? "border-rose-500/10" : "glow-red border-rose-500/20"}`
+        : `glass-panel ${careCalm ? "border-rose-500/10" : "glow-red border-rose-500/20"}`
     }`}>
       <div className="absolute -right-8 -top-8 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
-      
+
       {/* Card Header */}
       <div className="flex items-center gap-3 mb-2 xl:mb-3">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 ${
-          medicineConfirmed 
-            ? (isLight ? "border-slate-200 text-slate-400 bg-slate-50" : "border-slate-800 text-slate-400 bg-slate-900/50") 
+          careCalm
+            ? (isLight ? "border-slate-200 text-slate-400 bg-slate-50" : "border-slate-800 text-slate-400 bg-slate-900/50")
             : (isLight ? "border-rose-300 text-rose-600 bg-rose-50" : "border-rose-500/30 text-rose-400 bg-rose-500/10")
         }`}>
-          <Heart className={`w-4.5 h-4.5 ${!medicineConfirmed && "animate-pulse"}`} />
+          <Heart className={`w-4.5 h-4.5 ${!careCalm && "animate-pulse"}`} />
         </div>
         <div>
           <span className="block text-[11px] font-bold text-rose-500 uppercase tracking-wider font-mono">CUIDADO</span>
-          <h4 className={`text-sm xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>Cuidado de Elena</h4>
+          <h4 className={`text-sm xl:text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{isReal ? "Cuidado del hogar" : "Cuidado de Elena"}</h4>
         </div>
       </div>
 
       {/* Card Body */}
       <p className={`text-[13px] xl:text-sm leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-        {medicineConfirmed ? (
+        {isReal && !medicineConfirmed ? (
+          "Sin recordatorios de cuidado pendientes."
+        ) : medicineConfirmed ? (
           <span className="flex items-start gap-1.5 text-emerald-600 font-medium">
             <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>Medicamento confirmado hoy por la familia.</span>
@@ -117,15 +127,15 @@ export default function StatusCards({
     <div className={`status-card-item rounded-3xl p-4 xl:p-5 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-full border ${
       isLight 
         ? "bg-white/85 border-slate-200/60 shadow-sm shadow-slate-100/20 backdrop-blur-md text-slate-800" 
-        : `glass-panel ${studyPrepared ? "border-blue-500/10" : "glow-blue border-blue-500/20"}`
+        : `glass-panel ${studyCalm ? "border-blue-500/10" : "glow-blue border-blue-500/20"}`
     }`}>
       <div className="absolute -right-8 -top-8 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none" />
-      
+
       {/* Card Header */}
       <div className="flex items-center gap-3 mb-2 xl:mb-3">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 ${
-          studyPrepared 
-            ? (isLight ? "border-slate-200 text-slate-400 bg-slate-50" : "border-slate-800 text-slate-400 bg-slate-900/50") 
+          studyCalm
+            ? (isLight ? "border-slate-200 text-slate-400 bg-slate-50" : "border-slate-800 text-slate-400 bg-slate-900/50")
             : (isLight ? "border-blue-300 text-blue-600 bg-blue-50" : "border-blue-500/30 text-blue-400 bg-blue-500/10")
         }`}>
           <BookOpen className="w-4.5 h-4.5" />
@@ -138,10 +148,12 @@ export default function StatusCards({
 
       {/* Card Body */}
       <p className={`text-[13px] xl:text-sm leading-relaxed mb-3 xl:mb-4 min-h-[36px] line-clamp-3 md:line-clamp-none ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-        {studyPrepared ? (
+        {isReal && !studyPrepared ? (
+          "Sube un aviso escolar y Domi arma el plan de estudio."
+        ) : studyPrepared ? (
           <span className="flex items-start gap-1.5 text-emerald-600 font-medium">
             <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>Domi organizó 3 bloques de repaso para Diego. Listo.</span>
+            <span>{isReal ? "Plan de estudio preparado." : "Domi organizó 3 bloques de repaso para Diego. Listo."}</span>
           </span>
         ) : (
           "Examen el lunes. Domi puede crear bloques de repaso y un paquete."
