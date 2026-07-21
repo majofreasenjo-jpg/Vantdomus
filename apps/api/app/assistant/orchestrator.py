@@ -51,7 +51,16 @@ def build_minimal_context(db, household_id: str, user_message: str) -> dict:
     except Exception:
         summary_text = ""
 
-    return {"persons": persons, "summary_text": summary_text}
+    # OPS-2.A — Memoria por persona: hechos que la familia le enseñó a Domi
+    # (preferencias, rutinas, cómo estudia cada hijo…). Solo memorias visibles
+    # para el hogar y de tipos NO sensibles (salud queda fuera).
+    try:
+        from .memory import recall_for_context
+        memories = recall_for_context(db, household_id)
+    except Exception:
+        memories = []
+
+    return {"persons": persons, "summary_text": summary_text, "memories": memories}
 
 
 def _module_visible(db, household_id: str, module: str, role: str) -> bool:

@@ -6,8 +6,10 @@ from pydantic import BaseModel
 from app.assistant.schemas import ChatRequest
 from app.assistant import orchestrator
 from app.assistant import proposals as proposal_store
+from app.assistant import memory as memory_store
 from app.deps import get_current_user, get_db, require_household_role
 from app.planner import apply_recommendation, generate_recommendations
+from app.tenancy import get_household_organization_id
 
 router = APIRouter(prefix="/assistant", tags=["Assistant"])
 
@@ -160,3 +162,68 @@ def reject_proposal(proposal_id: str, user=Depends(get_current_user), db=Depends
         raise HTTPException(status_code=409, detail=f"La propuesta ya está {prop['status']}")
     result = proposal_store.reject_proposal(db, prop, user["user_id"])
     return {"ok": True, "proposal": result}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2.A — Memoria por persona: la familia le enseña a Domi hechos de cada
+# integrante y Domi los usa para personalizar. Solo tipos NO sensibles (salud
+# queda fuera); consentimiento por-item.
+# ---------------------------------------------------------------------------
+class MemoryCreateBody(BaseModel):
+    household_id: str
+    memory_type: str
+    content: str
+    person_id: str | None = None          # None = memoria de toda la familia
+    importance: float | None = 0.5
+    visible_to_household: bool = True
+
+
+@router.get("/memory")
+def list_memory(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    return {"items": memory_store.list_memories(db, household_id),
+            "allowed_types": sorted(memory_store.SAFE_MEMORY_TYPES)}
+
+
+@router.post("/memory")
+def create_memory(body: MemoryCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.memory_type not in memory_store.SAFE_MEMORY_TYPES:
+        raise HTTPException(status_code=400, detail="Tipo de memoria no permitido")
+    if not (body.content or "").strip():
+        raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
+    # La persona (si se indica) DEBE pertenecer al hogar (evita fuga entre hogares).
+    if body.person_id:
+        row = db.execute(
+            "SELECT id FROM persons WHERE id=? AND household_id=?",
+            (body.person_id, body.household_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    organization_id = get_household_organization_id(db, body.household_id)
+    try:
+        mid = memory_store.add_memory(
+            db,
+            household_id=body.household_id,
+            organization_id=organization_id,
+            person_id=body.person_id,
+            memory_type=body.memory_type,
+            content=body.content,
+            importance=body.importance if body.importance is not None else 0.5,
+            created_by_user_id=user["user_id"],
+            visible_to_household=body.visible_to_household,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return {"ok": True, "id": mid}
+
+
+@router.delete("/memory/{memory_id}")
+def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "member")
+    ok = memory_store.delete_memory(db, household_id, memory_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Memoria no encontrada")
+    db.commit()
+    return {"ok": True}
