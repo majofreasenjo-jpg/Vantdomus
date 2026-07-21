@@ -223,10 +223,44 @@ export default function DomiCompanionHome({
 
   // Suggested atmosphere/ambient state
   const [ambientMode, setAmbientMode] = useState("Noche tranquila");
-  const [temperature, setTemperature] = useState("21°C");
-  const [time, setTime] = useState("22:30");
+  // OPS-1: la temperatura arranca VACÍA (nunca un valor falso). Se llena SOLO
+  // con el clima real (efecto de abajo) si el usuario permite la ubicación.
+  const [temperature, setTemperature] = useState("");
+  const [weatherCondition, setWeatherCondition] = useState("");
+  const [time, setTime] = useState("");
   const [showAmbientMenu, setShowAmbientMenu] = useState(false);
   const [showDocPanel, setShowDocPanel] = useState(false); // CP1c-MIN-2: Domi Documental
+
+  // OPS-1 — Reloj real + CLIMA REAL (Open-Meteo vía el proxy propio /api/weather,
+  // compatible con la CSP connect-src 'self'). Si el usuario no da permiso de
+  // ubicación, simplemente no se muestra temperatura (nunca un valor falso).
+  useEffect(() => {
+    const setClock = () => setTime(new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }));
+    setClock();
+    const clockId = setInterval(setClock, 60000);
+    let cancelled = false;
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          // Redondeo a 2 decimales (~1 km) por privacidad antes de enviar.
+          const lat = pos.coords.latitude.toFixed(2);
+          const lon = pos.coords.longitude.toFixed(2);
+          try {
+            const r = await fetch(`/api/weather?lat=${lat}&lon=${lon}`, { cache: "no-store" });
+            if (!r.ok) return;
+            const j = await r.json();
+            if (!cancelled && typeof j.tempC === "number") {
+              setTemperature(`${j.tempC}°C`);
+              setWeatherCondition(typeof j.condition === "string" ? j.condition : "");
+            }
+          } catch { /* sin clima: no se muestra temperatura falsa */ }
+        },
+        () => { /* permiso denegado / no disponible: se queda sin temperatura */ },
+        { timeout: 8000, maximumAge: 600000 }
+      );
+    }
+    return () => { cancelled = true; clearInterval(clockId); };
+  }, []);
 
   // Domi visual expression/mood
   const [domiMood, setDomiMood] = useState<"happy" | "speaking" | "breathing" | "thinking">("happy");
@@ -874,14 +908,9 @@ export default function DomiCompanionHome({
         setBreathingActive(true);
         break;
       case "CHANGE_AMBIENT":
+        // OPS-1: el ambiente es solo escena/estado; NO define la temperatura
+        // (eso lo maneja el clima real). No se toca setTemperature aquí.
         setAmbientMode(payload || "Noche tranquila");
-        if (payload === "Mañana activa") {
-          setTemperature("23°C");
-        } else if (payload === "Tarde productiva") {
-          setTemperature("22°C");
-        } else {
-          setTemperature("21°C");
-        }
         addNotification("Ambiente cambiado", `El hogar ha cambiado a "${payload || 'Noche tranquila'}"`, "system");
         break;
       default:
@@ -909,11 +938,11 @@ export default function DomiCompanionHome({
     });
   };
 
-  const handleAmbientChange = (mode: string, temp: string) => {
+  const handleAmbientChange = (mode: string) => {
+    // OPS-1: cambiar de ambiente NO cambia la temperatura (esa es el clima real).
     setAmbientMode(mode);
-    setTemperature(temp);
     setShowAmbientMenu(false);
-    addNotification("Sugerencia de Ambiente", `Has seleccionado el modo "${mode}" con temperatura de ${temp}.`, "system");
+    addNotification("Ambiente cambiado", `Has seleccionado el modo "${mode}".`, "system");
   };
 
   // Header y chat comparten greetingForHour (hora real, no tema visual).
@@ -1183,7 +1212,7 @@ export default function DomiCompanionHome({
             onClick={() => {
               setActiveTheme("dawn");
               setAmbientMode("Mañana activa");
-              setTemperature("23°C");
+              /* OPS-1: la temperatura la define el clima real, no la escena */
               addNotification("Ambiente cambiado", "Has seleccionado el modo 'Amanecer de Calma'", "system");
             }}
             className={`p-1.5 rounded-full transition-all cursor-pointer ${
@@ -1199,7 +1228,7 @@ export default function DomiCompanionHome({
             onClick={() => {
               setActiveTheme("day");
               setAmbientMode("Tarde productiva");
-              setTemperature("22°C");
+              /* OPS-1: la temperatura la define el clima real, no la escena */
               addNotification("Ambiente cambiado", "Has seleccionado el modo 'Día Activo'", "system");
             }}
             className={`p-1.5 rounded-full transition-all cursor-pointer ${
@@ -1215,7 +1244,7 @@ export default function DomiCompanionHome({
             onClick={() => {
               setActiveTheme("sunset");
               setAmbientMode("Noche tranquila");
-              setTemperature("21°C");
+              /* OPS-1: la temperatura la define el clima real, no la escena */
               addNotification("Ambiente cambiado", "Has seleccionado el modo 'Atardecer Atento'", "system");
             }}
             className={`p-1.5 rounded-full transition-all cursor-pointer ${
@@ -1231,7 +1260,7 @@ export default function DomiCompanionHome({
             onClick={() => {
               setActiveTheme("night");
               setAmbientMode("Noche tranquila");
-              setTemperature("20°C");
+              /* OPS-1: la temperatura la define el clima real, no la escena */
               addNotification("Ambiente cambiado", "Has seleccionado el modo 'Noche Serena'", "system");
             }}
             className={`p-1.5 rounded-full transition-all cursor-pointer ${
@@ -1323,17 +1352,13 @@ export default function DomiCompanionHome({
               className="absolute left-1/2 -translate-x-1/2 top-18 z-40 w-48 glass-panel rounded-2xl p-2 border-amber-500/10 shadow-2xl"
             >
               <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest px-3 py-1 font-mono">Cambiar Ambiente</h5>
-              {[
-                { mode: "Noche tranquila", temp: "21°C" },
-                { mode: "Mañana activa", temp: "23°C" },
-                { mode: "Tarde productiva", temp: "22°C" }
-              ].map((amb) => (
+              {["Noche tranquila", "Mañana activa", "Tarde productiva"].map((mode) => (
                 <button
-                  key={amb.mode}
-                  onClick={() => handleAmbientChange(amb.mode, amb.temp)}
+                  key={mode}
+                  onClick={() => handleAmbientChange(mode)}
                   className="w-full text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-amber-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
                 >
-                  {amb.mode} ({amb.temp})
+                  {mode}
                 </button>
               ))}
 
@@ -1621,7 +1646,7 @@ export default function DomiCompanionHome({
                       <h5 className={`text-sm font-bold truncate font-sans ${isLight ? "text-slate-800" : "text-slate-200"}`}>
                         {activeTheme === "dawn" ? "Despertar suave" : activeTheme === "day" ? "Día luminoso" : activeTheme === "sunset" ? "Atardecer cálido" : "Noche tranquila"}
                       </h5>
-                      <span className={`block text-[11px] font-mono mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{time} · {temperature}</span>
+                      <span className={`block text-[11px] font-mono mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{[time, temperature, weatherCondition].filter(Boolean).join(" · ")}</span>
                     </div>
                   </div>
 
@@ -2329,16 +2354,16 @@ export default function DomiCompanionHome({
                             setActiveTheme(t);
                             if (t === "dawn") {
                               setAmbientMode("Mañana activa");
-                              setTemperature("23°C");
+                              /* OPS-1: la temperatura la define el clima real, no la escena */
                             } else if (t === "day") {
                               setAmbientMode("Tarde productiva");
-                              setTemperature("22°C");
+                              /* OPS-1: la temperatura la define el clima real, no la escena */
                             } else if (t === "sunset") {
                               setAmbientMode("Atardecer cálido");
-                              setTemperature("21°C");
+                              /* OPS-1: la temperatura la define el clima real, no la escena */
                             } else {
                               setAmbientMode("Noche tranquila");
-                              setTemperature("20°C");
+                              /* OPS-1: la temperatura la define el clima real, no la escena */
                             }
                             addNotification("Ambiente cambiado", `Has cambiado al ambiente '${t}'`, "system");
                           }}
