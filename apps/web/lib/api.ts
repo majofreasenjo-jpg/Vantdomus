@@ -241,6 +241,10 @@ export const deleteDomiMemory = (id: string, hid: string) =>
     method: "DELETE",
   });
 
+// OPS-2 M6 — Resumen del día (a demanda) para el usuario actual.
+export const getDailySummary = (hid: string) =>
+  apiFetch(`/assistant/summary?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
+
 // OPS-2 M4 — Voz (STT): envía el audio grabado y devuelve el texto transcrito.
 export const transcribeAudio = (hid: string, blob: Blob, filename = "nota.webm") => {
   const fd = new FormData();

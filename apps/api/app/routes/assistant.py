@@ -258,6 +258,28 @@ async def transcribe_voice(
     return {"available": True, "text": text}
 
 
+@router.post("/summary")
+def personal_summary(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    """
+    M6 — Resumen del día (a demanda) para el usuario que lo pide. Respeta la
+    privacidad de memoria (M1): solo usa lo que ese usuario puede conocer.
+    """
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    name = ""
+    if pid:
+        row = db.execute("SELECT display_name FROM persons WHERE id=?", (pid,)).fetchone()
+        name = (row["display_name"] if row else "") or ""
+    from app.assistant import summaries
+    result = summaries.build_personal_summary(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+        person_name=name,
+    )
+    return {"ok": True, "summary": result["summary"], "mode": result["mode"],
+            "response_type": "informacion"}
+
+
 @router.delete("/memory/{memory_id}")
 def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     role = require_household_role(db, user["user_id"], household_id, "member")

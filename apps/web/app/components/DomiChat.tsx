@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio } from "../../lib/api";
+import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio, getDailySummary } from "../../lib/api";
 import DomiOrb from "./DomiOrb";
 import {
   speechSupported, speak, stopSpeaking, recordingSupported, startRecording,
@@ -63,6 +63,21 @@ export default function DomiChat({ hid }: { hid: string }) {
       setReadAloud(true);
     }
   }, []);
+
+  async function showSummary() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const resp = (await getDailySummary(hid)) as { summary?: string; mode?: string };
+      const text = resp?.summary || "No pude armar tu resumen ahora.";
+      setMessages((prev) => [...prev, { role: "assistant", content: text, responseType: "informacion" }]);
+      if (readAloud) speak(text);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", content: "No pude armar tu resumen ahora. Intenta de nuevo." }]);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function toggleMic() {
     if (voiceBusy) return;
@@ -216,6 +231,12 @@ export default function DomiChat({ hid }: { hid: string }) {
           ))}
         </div>
       ) : null}
+
+      {/* M6 — resumen del día a demanda. */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", padding: "4px 0" }}>
+        <button type="button" className="pill" style={{ cursor: "pointer" }}
+          disabled={busy} onClick={showSummary}>📋 Mi resumen del día</button>
+      </div>
 
       {voiceNote ? (
         <div className="small" style={{ color: "var(--muted)", padding: "2px 2px 4px" }}>{voiceNote}</div>
