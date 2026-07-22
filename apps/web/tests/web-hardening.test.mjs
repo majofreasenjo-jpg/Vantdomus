@@ -202,3 +202,16 @@ test("19. Música: cliente + FamilyMusic + página /musica + nav", () => {
   const layout = readFileSync(join(WEB_ROOT, "app", "layout.tsx"), "utf-8");
   assert.match(layout, /\/musica\//);
 });
+
+// OPS-2 M11 — Calendario: vista mensual + .ics + recordatorio vinculado.
+test("20. Calendario: cliente rango/.ics + FamilyCalendar + aviso-antes en QuickAdd", () => {
+  const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
+  assert.match(api, /dailyActivitiesRange/);
+  assert.match(api, /calendar\.ics/);
+  const cal = readFileSync(join(WEB_ROOT, "app", "components", "FamilyCalendar.tsx"), "utf-8");
+  assert.match(cal, /calendarIcsUrl/);
+  const quick = readFileSync(join(WEB_ROOT, "app", "components", "QuickAddActivity.tsx"), "utf-8");
+  assert.match(quick, /reminder_minutes_before/);
+  const page = readFileSync(join(WEB_ROOT, "app", "actividades", "[householdId]", "page.tsx"), "utf-8");
+  assert.match(page, /FamilyCalendar/);
+});

@@ -60,6 +60,9 @@ class ActivityCreate(BaseModel):
     visibility: str = "family"
     linked_unit_function_id: Optional[str] = None
     metadata: dict = Field(default_factory=dict)
+    # OPS-2 M11 — calendario↔recordatorios: minutos antes del evento para avisar
+    # (crea un family_reminder M7 vinculado; requiere starts_at).
+    reminder_minutes_before: Optional[int] = None
 
 
 class ActivityPatch(BaseModel):
@@ -82,33 +85,67 @@ def _validate(activity_type=None, visibility=None, status=None):
         raise HTTPException(400, f"Invalid status. Allowed: {sorted(ALLOWED_STATUSES)}")
 
 
-@router.get("/{household_id}")
-def list_activities(
-    household_id: str,
-    date: Optional[str] = None,   # YYYY-MM-DD
-    user=Depends(get_current_user),
-    db=Depends(get_db),
-):
-    role = require_household_role(db, user["user_id"], household_id, "viewer")
+def _visible_activities(db, household_id: str, role: str, user_id: str,
+                        date: Optional[str] = None,
+                        date_from: Optional[str] = None,
+                        date_to: Optional[str] = None) -> list[dict]:
+    """Actividades del hogar filtradas por fecha/rango y visibilidad del requester."""
     where = "household_id=?"
     params: list = [household_id]
     if date:
         where += " AND (starts_at LIKE ? OR (starts_at IS NULL AND DATE(created_at) = ?))"
         params.extend([f"{date}%", date])
+    # OPS-2 M11 — rango [date_from, date_to] (YYYY-MM-DD, inclusivo) para la
+    # vista de calendario mensual/semanal.
+    if date_from:
+        where += " AND starts_at >= ?"
+        params.append(date_from)
+    if date_to:
+        where += " AND starts_at < ?"
+        params.append(f"{date_to}~")  # '~' > cualquier sufijo horario del mismo día
     rows = db.execute(
         f"SELECT * FROM daily_activities WHERE {where} ORDER BY COALESCE(starts_at, created_at) ASC LIMIT 500",
         tuple(params),
     ).fetchall()
     items = [_row_to_dict(r) for r in rows]
     if role not in ("owner", "admin"):
-        my_pid = _current_person_id(db, user["user_id"], household_id)
-        out = []
-        for a in items:
-            if a["visibility"] == "private" and a["person_id"] != my_pid:
-                continue
-            out.append(a)
-        items = out
-    return {"items": items}
+        my_pid = _current_person_id(db, user_id, household_id)
+        items = [a for a in items
+                 if not (a["visibility"] == "private" and a["person_id"] != my_pid)]
+    return items
+
+
+@router.get("/{household_id}")
+def list_activities(
+    household_id: str,
+    date: Optional[str] = None,        # YYYY-MM-DD (un día)
+    date_from: Optional[str] = None,   # YYYY-MM-DD (rango, para calendario)
+    date_to: Optional[str] = None,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    return {"items": _visible_activities(db, household_id, role, user["user_id"],
+                                         date, date_from, date_to)}
+
+
+@router.get("/{household_id}/calendar.ics")
+def calendar_ics(
+    household_id: str,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    OPS-2 M11 — Descarga el calendario del hogar como .ics (importable en
+    Google/Apple/Outlook, sin OAuth). Solo incluye lo que ESTE usuario puede ver.
+    """
+    from fastapi.responses import Response
+    from ..assistant.calendar_export import build_ics
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    items = _visible_activities(db, household_id, role, user["user_id"])
+    ics = build_ics(items)
+    return Response(content=ics, media_type="text/calendar; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="vantdomus-hogar.ics"'})
 
 
 @router.post("/{household_id}")
@@ -143,8 +180,39 @@ def create_activity(
         ),
     )
     db.commit()
+
+    # OPS-2 M11 — calendario↔recordatorios: aviso N minutos antes del evento
+    # (family_reminder M7; entra a la campana y al push si está habilitado).
+    # Best-effort: si algo falla, el evento igual queda creado.
+    reminder_id = None
+    if body.reminder_minutes_before and body.starts_at:
+        try:
+            from datetime import timedelta
+            from ..assistant import reminders as rem
+            mins = max(0, min(7 * 24 * 60, int(body.reminder_minutes_before)))
+            s = str(body.starts_at).strip().replace("Z", "+00:00")
+            start_dt = datetime.fromisoformat(s)
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.replace(tzinfo=timezone.utc)
+            remind_at = (start_dt - timedelta(minutes=mins)).isoformat()
+            scope = "private_self" if body.visibility == "private" else "household_shared"
+            reminder_id = rem.create_reminder(
+                db, household_id=household_id, organization_id=org,
+                person_id=body.person_id, created_by_user_id=user["user_id"],
+                title=f"{body.title} (en {mins} min)" if mins else body.title,
+                body=body.location_label,
+                remind_at=remind_at, visibility_scope=scope,
+                dedupe_key=f"activity-{aid}",
+            )
+            db.commit()
+        except Exception:
+            reminder_id = None
+
     row = db.execute("SELECT * FROM daily_activities WHERE id=?", (aid,)).fetchone()
-    return _row_to_dict(row)
+    out = _row_to_dict(row)
+    if reminder_id:
+        out["reminder_id"] = reminder_id
+    return out
 
 
 @router.patch("/{household_id}/{activity_id}")

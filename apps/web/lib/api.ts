@@ -772,6 +772,12 @@ export const shoppingCart = (hid: string) =>
 // Actividades del Día
 export const dailyActivitiesList = (hid: string, date?: string) =>
   apiFetch(`/daily_activities/${encodeURIComponent(hid)}${date ? `?date=${encodeURIComponent(date)}` : ''}`);
+// OPS-2 M11 — rango de fechas para la vista de calendario (YYYY-MM-DD inclusivo).
+export const dailyActivitiesRange = (hid: string, from: string, to: string) =>
+  apiFetch(`/daily_activities/${encodeURIComponent(hid)}?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`);
+// M11 — URL de descarga .ics (en navegador pasa por el proxy con cookie de sesión).
+export const calendarIcsUrl = (hid: string) =>
+  `/api/proxy/daily_activities/${encodeURIComponent(hid)}/calendar.ics`;
 export const dailyActivityCreate = (hid: string, body: Record<string, any>) =>
   apiFetch(`/daily_activities/${encodeURIComponent(hid)}`, { method: "POST", body: JSON.stringify(body) });
 export const dailyActivityComplete = (hid: string, activityId: string) =>
