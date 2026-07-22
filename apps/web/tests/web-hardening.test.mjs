@@ -175,3 +175,16 @@ test("17. Biblioteca de memoria: cliente + MemoryLibrary + integración en /perf
   const page = readFileSync(join(WEB_ROOT, "app", "perfiles", "[householdId]", "page.tsx"), "utf-8");
   assert.match(page, /MemoryLibrary/);
 });
+
+// OPS-2 M9 — Documentos con trazabilidad + antivirus.
+test("18. Documentos: cliente + FamilyDocuments + integración en /documents", () => {
+  const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
+  assert.match(api, /uploadFamilyDocument/);
+  assert.match(api, /documentVersions/);
+  assert.match(api, /\/assistant\/documents/);
+  const comp = readFileSync(join(WEB_ROOT, "app", "components", "FamilyDocuments.tsx"), "utf-8");
+  assert.match(comp, /scan_status/);
+  assert.match(comp, /sha256/);
+  const page = readFileSync(join(WEB_ROOT, "app", "documents", "[householdId]", "page.tsx"), "utf-8");
+  assert.match(page, /FamilyDocuments/);
+});

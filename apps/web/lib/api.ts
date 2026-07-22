@@ -266,6 +266,35 @@ export const exportMemory = (hid: string) =>
 export const getDailySummary = (hid: string) =>
   apiFetch(`/assistant/summary?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
 
+// OPS-2 M9 — Documentos con trazabilidad + antivirus + vigencia.
+export const listFamilyDocuments = (hid: string) =>
+  apiFetch(`/assistant/documents?household_id=${encodeURIComponent(hid)}`);
+
+export const uploadFamilyDocument = (
+  hid: string, file: File,
+  opts: { person_id?: string; visibility_scope?: string; valid_until?: string; supersedes?: string } = {},
+) => {
+  const fd = new FormData();
+  fd.append("household_id", hid);
+  fd.append("file", file, file.name);
+  if (opts.person_id) fd.append("person_id", opts.person_id);
+  if (opts.visibility_scope) fd.append("visibility_scope", opts.visibility_scope);
+  if (opts.valid_until) fd.append("valid_until", opts.valid_until);
+  if (opts.supersedes) fd.append("supersedes", opts.supersedes);
+  return apiFetchMultipart("/assistant/documents", fd);
+};
+
+export const documentVersions = (id: string, hid: string) =>
+  apiFetch(`/assistant/documents/${encodeURIComponent(id)}/versions?household_id=${encodeURIComponent(hid)}`);
+
+export const setDocumentValidity = (id: string, hid: string, valid_until: string | null) =>
+  apiFetch(`/assistant/documents/${encodeURIComponent(id)}/validity`, {
+    method: "POST", body: JSON.stringify({ household_id: hid, valid_until }),
+  });
+
+export const deleteFamilyDocument = (id: string, hid: string) =>
+  apiFetch(`/assistant/documents/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, { method: "DELETE" });
+
 // OPS-2 M4 — Voz (STT): envía el audio grabado y devuelve el texto transcrito.
 export const transcribeAudio = (hid: string, blob: Blob, filename = "nota.webm") => {
   const fd = new FormData();

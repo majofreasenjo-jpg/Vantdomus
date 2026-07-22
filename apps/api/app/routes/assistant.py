@@ -572,3 +572,98 @@ def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_us
         raise HTTPException(status_code=404, detail="Memoria no encontrada o sin permiso")
     db.commit()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M9 — Documentos con trazabilidad + antivirus + anti-inyección.
+# Separa evidencia (documento) de memoria. Un documento no 'clean' no se sirve.
+# ---------------------------------------------------------------------------
+class DocValidityBody(BaseModel):
+    household_id: str
+    valid_until: str | None = None
+
+
+@router.post("/documents")
+async def upload_document(
+    household_id: str = Form(...),
+    file: UploadFile = File(...),
+    person_id: str | None = Form(default=None),
+    visibility_scope: str = Form(default="household_shared"),
+    valid_until: str | None = Form(default=None),
+    supersedes: str | None = Form(default=None),
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    from app.assistant import documents as docs
+    require_household_role(db, user["user_id"], household_id, "member")
+    if visibility_scope not in docs.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    if person_id:
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (person_id, household_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Documento demasiado grande (máx 20 MB)")
+    organization_id = get_household_organization_id(db, household_id)
+    try:
+        result = docs.register_document(
+            db, household_id=household_id, organization_id=organization_id,
+            person_id=person_id, uploaded_by_user_id=user["user_id"],
+            filename=file.filename or "documento", mime=file.content_type,
+            data=data, visibility_scope=visibility_scope,
+            valid_until=(valid_until or None), supersedes=(supersedes or None),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, **result}
+
+
+@router.get("/documents")
+def list_documents_ep(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return {"items": docs.list_documents(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    ), "antivirus_enabled": docs.antivirus_enabled()}
+
+
+@router.get("/documents/{document_id}/versions")
+def document_versions_ep(document_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    # Autorización: debe poder ver el documento cabeza de cadena.
+    visible = {d["id"] for d in docs.list_documents(
+        db, household_id, requester_user_id=user["user_id"],
+        requester_person_id=pid, requester_role=role, include_deleted=True)}
+    if document_id not in visible:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
+    return {"items": docs.version_chain(db, household_id, document_id)}
+
+
+@router.post("/documents/{document_id}/validity")
+def set_document_validity(document_id: str, body: DocValidityBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    pid = _current_person_id(db, user["user_id"], body.household_id)
+    ok = docs.set_validity(db, body.household_id, document_id, body.valid_until,
+                           requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
+    return {"ok": True}
+
+
+@router.delete("/documents/{document_id}")
+def delete_document_ep(document_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = docs.delete_document(db, household_id, document_id,
+                              requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
+    return {"ok": True}
