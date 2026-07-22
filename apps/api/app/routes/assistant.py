@@ -436,6 +436,130 @@ def reminders_tick(db=Depends(get_db), x_tick_secret: str | None = Header(defaul
             "push_enabled": web_push.push_enabled()}
 
 
+# ---------------------------------------------------------------------------
+# OPS-2 M8 — Biblioteca de Domi (6 capas) + inferencias confirmables + export.
+# Una inferencia NO se vuelve hecho en silencio: se propone 'pending' y solo tras
+# confirmación humana entra al contexto de IA.
+# ---------------------------------------------------------------------------
+class InferenceCreateBody(BaseModel):
+    household_id: str
+    memory_type: str
+    content: str
+    person_id: str | None = None
+    confidence: float | None = 0.5
+    visibility_scope: str = "household_shared"
+
+
+class MemoryCorrectBody(BaseModel):
+    household_id: str
+    content: str
+
+
+@router.get("/memory/library")
+def memory_library(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    data = memory_store.library_view(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    return {"ok": True, **data, "layer_labels": memory_store.LAYER_LABELS}
+
+
+@router.get("/memory/inferences")
+def memory_inferences(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return {"items": memory_store.list_inferences(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )}
+
+
+@router.get("/memory/export")
+def memory_export(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return memory_store.export_for_user(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+
+
+@router.post("/memory/inference")
+def create_inference(body: InferenceCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.memory_type not in memory_store.SAFE_MEMORY_TYPES:
+        raise HTTPException(status_code=400, detail="Tipo de memoria no permitido")
+    if body.visibility_scope not in memory_store.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    if body.person_id:
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (body.person_id, body.household_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    if not (body.content or "").strip():
+        raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
+    organization_id = get_household_organization_id(db, body.household_id)
+    try:
+        mid = memory_store.add_inference(
+            db, household_id=body.household_id, organization_id=organization_id,
+            person_id=body.person_id, memory_type=body.memory_type, content=body.content,
+            created_by_user_id=user["user_id"],
+            confidence=body.confidence if body.confidence is not None else 0.5,
+            visibility_scope=body.visibility_scope,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return {"ok": True, "id": mid, "inference_status": "pending"}
+
+
+@router.post("/memory/inferences/{memory_id}/confirm")
+def confirm_inference_ep(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = memory_store.confirm_inference(
+        db, household_id, memory_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Inferencia no encontrada, ya resuelta o sin permiso")
+    db.commit()
+    return {"ok": True, "response_type": "accion_ejecutada"}
+
+
+@router.post("/memory/inferences/{memory_id}/dismiss")
+def dismiss_inference_ep(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = memory_store.dismiss_inference(
+        db, household_id, memory_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Inferencia no encontrada, ya resuelta o sin permiso")
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/memory/{memory_id}/correct")
+def correct_memory_ep(memory_id: str, body: MemoryCorrectBody, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    pid = _current_person_id(db, user["user_id"], body.household_id)
+    try:
+        ok = memory_store.correct_memory(
+            db, body.household_id, memory_id, body.content,
+            requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not ok:
+        raise HTTPException(status_code=404, detail="Memoria no encontrada o sin permiso")
+    db.commit()
+    return {"ok": True}
+
+
 @router.delete("/memory/{memory_id}")
 def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     role = require_household_role(db, user["user_id"], household_id, "member")

@@ -43,6 +43,37 @@ ALLOWED_SCOPES = {
 }
 _HOUSEHOLD_WIDE_SCOPES = {"household_shared", "document_derived"}
 
+# OPS-2 M8 — Biblioteca de Domi: 6 capas. Cada memoria cae en UNA según su
+# origen (source), scope y tipo. Prioridad: temporal → inferencia → documental →
+# operativa → familiar → personal.
+LAYER_LABELS = {
+    "personal": "Memoria personal",
+    "familiar": "Memoria familiar",
+    "documental": "Conocimiento documental",
+    "operativa": "Historia operativa",
+    "inferencia": "Inferencias de Domi",
+    "temporal": "Contexto temporal",
+}
+LAYER_ORDER = ["personal", "familiar", "documental", "operativa", "inferencia", "temporal"]
+_ALLOWED_SENSITIVITY = {"low", "normal", "high"}
+
+
+def layer_of(*, memory_type: str | None, visibility_scope: str | None,
+             source: str | None, expires_at: str | None = None) -> str:
+    """Clasifica una memoria en una de las 6 capas del canon (clave)."""
+    scope = visibility_scope or "household_shared"
+    if scope == "temporary_session" or (source == "system" and expires_at):
+        return "temporal"
+    if source == "inference":
+        return "inferencia"
+    if source == "document" or scope == "document_derived":
+        return "documental"
+    if scope == "owner_operational" or memory_type == "operational_context":
+        return "operativa"
+    if scope == "household_shared":
+        return "familiar"
+    return "personal"
+
 _MAX_CONTEXT_ITEMS = 14
 _MAX_CONTENT_CHARS = 180
 
@@ -115,6 +146,7 @@ def recall_for_context(
             WHERE m.household_id = ?
               AND (m.expires_at IS NULL OR m.expires_at > ?)
               AND m.deleted_at IS NULL
+              AND (m.inference_status IS NULL OR m.inference_status = 'confirmed')
             ORDER BY m.importance DESC, m.updated_at DESC
             LIMIT 300
             """,
@@ -182,8 +214,20 @@ def add_memory(
     created_by_user_id: str,
     visibility_scope: str = "household_shared",
     visible_to_household: bool | None = None,   # compat OPS-2.A
+    # OPS-2 M8 — metadatos de biblioteca:
+    source: str = "family",
+    sensitivity: str = "normal",
+    confidence: float | None = None,
+    inference_status: str | None = None,        # None=hecho; 'pending'|'confirmed'
+    supersedes: str | None = None,              # id de la memoria que reemplaza
 ) -> str:
-    """Inserta una memoria (solo tipos y scopes seguros). Devuelve el id."""
+    """Inserta una memoria (solo tipos y scopes seguros). Devuelve el id.
+
+    Si `supersedes` apunta a una memoria del hogar, esa vieja se marca eliminada
+    (deja de entrar al contexto) — la nueva la reemplaza con trazabilidad.
+    Las inferencias (source='inference', inference_status='pending') NO entran al
+    contexto de IA hasta que se confirman.
+    """
     if memory_type not in SAFE_MEMORY_TYPES:
         raise ValueError(f"memory_type no permitido: {memory_type}")
     # Compat: si llega el flag viejo, traducir a scope.
@@ -191,6 +235,8 @@ def add_memory(
         visibility_scope = "household_shared" if visible_to_household else "private_self"
     if visibility_scope not in ALLOWED_SCOPES:
         raise ValueError(f"visibility_scope no permitido: {visibility_scope}")
+    if sensitivity not in _ALLOWED_SENSITIVITY:
+        sensitivity = "normal"
     content = (content or "").strip()
     if not content:
         raise ValueError("content vacío")
@@ -198,18 +244,102 @@ def add_memory(
         imp = max(0.0, min(1.0, float(importance)))
     except (TypeError, ValueError):
         imp = 0.5
+    conf = None
+    if confidence is not None:
+        try:
+            conf = max(0.0, min(1.0, float(confidence)))
+        except (TypeError, ValueError):
+            conf = None
+    verified = _now() if inference_status == "confirmed" else None
     mid = str(uuid.uuid4())
     ts = _now()
     db.execute(
         "INSERT INTO memory_items "
         "(id, person_id, household_id, organization_id, memory_type, content, "
-        "importance, consent_scope, visibility_scope, created_by_user_id, created_at, updated_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        "importance, consent_scope, visibility_scope, created_by_user_id, created_at, updated_at, "
+        "source, sensitivity, confidence, verified_at, supersedes, inference_status) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (mid, person_id, household_id, organization_id, memory_type, content[:2000],
          imp, _consent_for_scope(visibility_scope), visibility_scope,
-         created_by_user_id, ts, ts),
+         created_by_user_id, ts, ts,
+         source, sensitivity, conf, verified, supersedes, inference_status),
     )
+    # Reemplazo con trazabilidad: la vieja se retira del contexto.
+    if supersedes:
+        db.execute(
+            "UPDATE memory_items SET deleted_at=?, updated_at=? "
+            "WHERE id=? AND household_id=? AND deleted_at IS NULL",
+            (ts, ts, supersedes, household_id),
+        )
     return mid
+
+
+def add_inference(
+    db, *,
+    household_id: str,
+    organization_id: str | None,
+    person_id: str | None,
+    memory_type: str,
+    content: str,
+    created_by_user_id: str,
+    confidence: float = 0.5,
+    visibility_scope: str = "household_shared",
+) -> str:
+    """
+    Domi propone una HIPÓTESIS (capa 5). Se guarda 'pending' y NO entra al
+    contexto hasta que un humano la confirme. Devuelve el id.
+    """
+    return add_memory(
+        db, household_id=household_id, organization_id=organization_id,
+        person_id=person_id, memory_type=memory_type, content=content,
+        importance=0.4, created_by_user_id=created_by_user_id,
+        visibility_scope=visibility_scope,
+        source="inference", confidence=confidence, inference_status="pending",
+    )
+
+
+def confirm_inference(db, household_id: str, memory_id: str, *,
+                      requester_user_id=None, requester_person_id=None, requester_role=None) -> bool:
+    """Promueve una inferencia 'pending' → 'confirmed' (hecho, entra al contexto)."""
+    if not _can_manage(db, household_id, memory_id,
+                       req_uid=requester_user_id, req_pid=requester_person_id, req_role=requester_role):
+        return False
+    cur = db.execute(
+        "UPDATE memory_items SET inference_status='confirmed', verified_at=?, updated_at=? "
+        "WHERE id=? AND household_id=? AND inference_status='pending' AND deleted_at IS NULL",
+        (_now(), _now(), memory_id, household_id),
+    )
+    return (cur.rowcount or 0) > 0
+
+
+def dismiss_inference(db, household_id: str, memory_id: str, *,
+                      requester_user_id=None, requester_person_id=None, requester_role=None) -> bool:
+    """Descarta una inferencia 'pending' → 'dismissed' (queda por trazabilidad)."""
+    if not _can_manage(db, household_id, memory_id,
+                       req_uid=requester_user_id, req_pid=requester_person_id, req_role=requester_role):
+        return False
+    cur = db.execute(
+        "UPDATE memory_items SET inference_status='dismissed', updated_at=? "
+        "WHERE id=? AND household_id=? AND inference_status='pending'",
+        (_now(), memory_id, household_id),
+    )
+    return (cur.rowcount or 0) > 0
+
+
+def correct_memory(db, household_id: str, memory_id: str, new_content: str, *,
+                   requester_user_id=None, requester_person_id=None, requester_role=None) -> bool:
+    """Corrige el contenido de una memoria (si el requester puede gestionarla)."""
+    new_content = (new_content or "").strip()
+    if not new_content:
+        raise ValueError("El contenido corregido no puede estar vacío")
+    if not _can_manage(db, household_id, memory_id,
+                       req_uid=requester_user_id, req_pid=requester_person_id, req_role=requester_role):
+        return False
+    cur = db.execute(
+        "UPDATE memory_items SET content=?, updated_at=? WHERE id=? AND household_id=? AND deleted_at IS NULL",
+        (new_content[:2000], _now(), memory_id, household_id),
+    )
+    return (cur.rowcount or 0) > 0
 
 
 def list_memories(
@@ -290,3 +420,93 @@ def delete_memory(db, household_id: str, memory_id: str, *,
         (_now(), _now(), memory_id, household_id),
     )
     return (cur.rowcount or 0) > 0
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M8 — Biblioteca (6 capas), inferencias pendientes y exportación.
+# ---------------------------------------------------------------------------
+def _visible_full_rows(db, household_id: str, *, req_uid, req_pid, req_role,
+                       include_pending_inferences: bool):
+    """Filas visibles con metadatos completos (sin eliminadas ni descartadas)."""
+    rows = db.execute(
+        """
+        SELECT m.id, m.person_id, m.memory_type, m.content, m.importance,
+               m.visibility_scope, m.created_by_user_id, m.created_at, m.updated_at,
+               m.source, m.sensitivity, m.confidence, m.verified_at, m.supersedes,
+               m.inference_status, m.expires_at, p.display_name
+        FROM memory_items m
+        LEFT JOIN persons p ON p.id = m.person_id
+        WHERE m.household_id = ? AND m.deleted_at IS NULL
+          AND (m.inference_status IS NULL OR m.inference_status IN ('confirmed', 'pending'))
+        ORDER BY m.updated_at DESC
+        LIMIT 500
+        """,
+        (household_id,),
+    ).fetchall()
+    guarded = _active_guarded_person_ids(db, req_pid)
+    out = []
+    for r in rows:
+        if r["inference_status"] == "pending" and not include_pending_inferences:
+            continue
+        scope = r["visibility_scope"] or "household_shared"
+        if not _can_see(scope=scope, subject_pid=r["person_id"], created_by=r["created_by_user_id"],
+                        req_uid=req_uid, req_pid=req_pid, req_role=req_role, guarded=guarded):
+            continue
+        out.append(r)
+    return out
+
+
+def _row_to_item(r) -> dict:
+    layer = layer_of(memory_type=r["memory_type"], visibility_scope=r["visibility_scope"],
+                     source=r["source"], expires_at=r["expires_at"])
+    return {
+        "id": r["id"],
+        "about": _first_name(r["display_name"]) if r["person_id"] else "familia",
+        "person_id": r["person_id"],
+        "memory_type": r["memory_type"],
+        "content": r["content"],
+        "layer": layer,
+        "layer_label": LAYER_LABELS[layer],
+        "source": r["source"],
+        "sensitivity": r["sensitivity"],
+        "confidence": r["confidence"],
+        "visibility_scope": r["visibility_scope"],
+        "inference_status": r["inference_status"],
+        "verified_at": r["verified_at"],
+        "supersedes": r["supersedes"],
+        "created_at": r["created_at"],
+        "updated_at": r["updated_at"],
+    }
+
+
+def library_view(db, household_id: str, *,
+                 requester_user_id=None, requester_person_id=None, requester_role=None) -> dict:
+    """Biblioteca agrupada por las 6 capas (solo hechos + inferencias confirmadas)."""
+    rows = _visible_full_rows(db, household_id, req_uid=requester_user_id,
+                              req_pid=requester_person_id, req_role=requester_role,
+                              include_pending_inferences=False)
+    groups = {k: [] for k in LAYER_ORDER}
+    for r in rows:
+        item = _row_to_item(r)
+        groups[item["layer"]].append(item)
+    layers = [{"key": k, "label": LAYER_LABELS[k], "items": groups[k]} for k in LAYER_ORDER]
+    return {"layers": layers, "total": len(rows)}
+
+
+def list_inferences(db, household_id: str, *,
+                    requester_user_id=None, requester_person_id=None, requester_role=None) -> list[dict]:
+    """Inferencias 'pending' que el requester puede ver y confirmar/descartar."""
+    rows = _visible_full_rows(db, household_id, req_uid=requester_user_id,
+                              req_pid=requester_person_id, req_role=requester_role,
+                              include_pending_inferences=True)
+    return [_row_to_item(r) for r in rows if r["inference_status"] == "pending"]
+
+
+def export_for_user(db, household_id: str, *,
+                    requester_user_id=None, requester_person_id=None, requester_role=None) -> dict:
+    """Exporta las memorias que el requester puede conocer (derecho a portabilidad)."""
+    rows = _visible_full_rows(db, household_id, req_uid=requester_user_id,
+                              req_pid=requester_person_id, req_role=requester_role,
+                              include_pending_inferences=False)
+    return {"household_id": household_id, "exported_at": _now(),
+            "items": [_row_to_item(r) for r in rows]}

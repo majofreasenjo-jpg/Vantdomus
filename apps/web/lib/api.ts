@@ -241,6 +241,27 @@ export const deleteDomiMemory = (id: string, hid: string) =>
     method: "DELETE",
   });
 
+// OPS-2 M8 — Biblioteca de Domi (6 capas) + inferencias confirmables + export.
+export const getMemoryLibrary = (hid: string) =>
+  apiFetch(`/assistant/memory/library?household_id=${encodeURIComponent(hid)}`);
+
+export const listMemoryInferences = (hid: string) =>
+  apiFetch(`/assistant/memory/inferences?household_id=${encodeURIComponent(hid)}`);
+
+export const confirmMemoryInference = (id: string, hid: string) =>
+  apiFetch(`/assistant/memory/inferences/${encodeURIComponent(id)}/confirm?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
+
+export const dismissMemoryInference = (id: string, hid: string) =>
+  apiFetch(`/assistant/memory/inferences/${encodeURIComponent(id)}/dismiss?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
+
+export const correctDomiMemory = (id: string, hid: string, content: string) =>
+  apiFetch(`/assistant/memory/${encodeURIComponent(id)}/correct`, {
+    method: "POST", body: JSON.stringify({ household_id: hid, content }),
+  });
+
+export const exportMemory = (hid: string) =>
+  apiFetch(`/assistant/memory/export?household_id=${encodeURIComponent(hid)}`);
+
 // OPS-2 M6 — Resumen del día (a demanda) para el usuario actual.
 export const getDailySummary = (hid: string) =>
   apiFetch(`/assistant/summary?household_id=${encodeURIComponent(hid)}`, { method: "POST" });

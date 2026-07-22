@@ -162,3 +162,16 @@ test("16. Web Push: sw.js push/notificationclick + cliente + PushToggle", () => 
   assert.match(toggle, /applicationServerKey/);
   assert.match(toggle, /if \(!supported\(\) \|\| !enabled\) return null/); // fail-closed
 });
+
+// OPS-2 M8 — Biblioteca 6 capas + inferencias confirmables.
+test("17. Biblioteca de memoria: cliente + MemoryLibrary + integración en /perfiles", () => {
+  const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
+  assert.match(api, /getMemoryLibrary/);
+  assert.match(api, /confirmMemoryInference/);
+  assert.match(api, /exportMemory/);
+  const comp = readFileSync(join(WEB_ROOT, "app", "components", "MemoryLibrary.tsx"), "utf-8");
+  assert.match(comp, /Domi ha notado/);         // inferencia no es hecho hasta confirmar
+  assert.match(comp, /confirmMemoryInference/);
+  const page = readFileSync(join(WEB_ROOT, "app", "perfiles", "[householdId]", "page.tsx"), "utf-8");
+  assert.match(page, /MemoryLibrary/);
+});
