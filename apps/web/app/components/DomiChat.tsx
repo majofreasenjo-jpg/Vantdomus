@@ -22,7 +22,19 @@ type Proposal = {
   status: string;
   sensitive: boolean;
 };
-type Msg = { role: "user" | "assistant"; content: string; proposals?: Proposal[] };
+type Msg = { role: "user" | "assistant"; content: string; proposals?: Proposal[]; responseType?: string };
+
+// M3 — etiqueta amigable del tipo de respuesta de Domi (contrato: una charla no
+// ejecuta acciones; una propuesta espera tu confirmación).
+const RT_LABEL: Record<string, string> = {
+  conversacion: "Conversación",
+  informacion: "Información",
+  sugerencia: "Sugerencia",
+  propuesta: "Propuesta",
+  accion_pendiente_de_confirmacion: "Propuesta · espera tu OK",
+  accion_ejecutada: "Acción hecha",
+  resultado_integracion_externa: "Resultado externo",
+};
 
 const SUGGESTIONS = ["¿Qué falta comprar?", "Agrega leche y pan a la lista", "Prepara el estudio de Diego", "Resumen del día"];
 
@@ -47,7 +59,7 @@ export default function DomiChat({ hid }: { hid: string }) {
       const resp = await assistantChat(hid, next.map((m) => ({ role: m.role, content: m.content })));
       const reply = resp?.reply || "No pude responder ahora. Intenta de nuevo.";
       const proposals: Proposal[] = Array.isArray(resp?.proposals) ? resp.proposals : [];
-      setMessages((prev) => [...prev, { role: "assistant", content: reply, proposals }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: reply, proposals, responseType: resp?.response_type }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Tuve un problema para responder. Intenta de nuevo." }]);
     } finally {
@@ -99,6 +111,16 @@ export default function DomiChat({ hid }: { hid: string }) {
               borderBottomRightRadius: m.role === "user" ? 4 : 14,
               borderBottomLeftRadius: m.role === "user" ? 14 : 4,
             }}>{m.content}</div>
+
+            {/* M3 — tipo de respuesta (contrato de Domi): hace visible que una
+                charla no ejecuta nada. */}
+            {m.role === "assistant" && m.responseType && RT_LABEL[m.responseType] ? (
+              <span style={{
+                alignSelf: "flex-start", fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
+                padding: "1px 8px", borderRadius: 999, color: "var(--muted)",
+                background: "rgba(127,127,127,0.12)",
+              }}>{RT_LABEL[m.responseType]}</span>
+            ) : null}
 
             {/* CP1c-FUNC-MIN-3.1 — propuestas: Domi propone, tú decides. */}
             {(m.proposals || []).map((p) => (

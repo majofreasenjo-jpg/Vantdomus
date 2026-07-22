@@ -130,6 +130,7 @@ def confirm_proposal(proposal_id: str, body: DecisionBody = DecisionBody(), user
 
     if prop["status"] == "executed":
         return {"ok": True, "proposal": prop, "already_executed": True,
+                "response_type": "accion_ejecutada",
                 "detail": "Esta propuesta ya se ejecutó; no se duplicó nada."}
     if prop["status"] == "rejected":
         raise HTTPException(status_code=409, detail="La propuesta fue rechazada; pídele a Domi una nueva.")
@@ -146,7 +147,7 @@ def confirm_proposal(proposal_id: str, body: DecisionBody = DecisionBody(), user
     except Exception as exc:
         # La tool falló: el store ya la dejó 'failed' + audit. Sin éxito falso.
         raise HTTPException(status_code=500, detail="La acción no pudo completarse. Puedes reintentar la confirmación.") from exc
-    return {"ok": True, "proposal": result}
+    return {"ok": True, "proposal": result, "response_type": "accion_ejecutada"}
 
 
 @router.post("/proposals/{proposal_id}/reject")

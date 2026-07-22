@@ -158,11 +158,20 @@ def handle_chat(db, *, household_id: str, user_id: str, role: str, messages: lis
     if skipped_notes:
         reply = (reply + "\n" + " ".join(skipped_notes)).strip()
 
+    # M3 — Contrato de respuesta: tipar explícitamente. El chat NUNCA ejecuta;
+    # si hay propuestas, quedan PENDIENTES de confirmación humana.
+    from .response_contract import classify_chat_response, is_actionable
+    response_type = classify_chat_response(
+        blocked=result.blocked, proposals_count=len(stored),
+    )
+
     return {
         "reply": reply,
         "provider": result.provider,
         "proposals": stored,
         "blocked": result.blocked,
+        "response_type": response_type,
+        "is_actionable": is_actionable(response_type),
         # MIN-3.3a: telemetría del gateway (sin contenido de prompts)
         "gateway": {
             "latency_ms": result.latency_ms,
