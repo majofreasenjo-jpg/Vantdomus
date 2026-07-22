@@ -280,6 +280,81 @@ def personal_summary(household_id: str, user=Depends(get_current_user), db=Depen
             "response_type": "informacion"}
 
 
+# ---------------------------------------------------------------------------
+# OPS-2 M7.A — Recordatorios programables + bandeja de notificaciones in-app.
+# Entrega PULL idempotente (sin cron): al consultar, los vencidos pasan a
+# 'delivered'. Privacidad estilo M1. Push real (Web Push) = M7.B (infra).
+# ---------------------------------------------------------------------------
+class ReminderCreateBody(BaseModel):
+    household_id: str
+    title: str
+    remind_at: str                        # ISO-8601 (UTC o con offset)
+    body: str | None = None
+    person_id: str | None = None          # None = para todo el hogar
+    visibility_scope: str = "household_shared"
+    dedupe_key: str | None = None
+
+
+@router.get("/reminders")
+def list_reminders(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import reminders as rem
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    data = rem.list_for_user(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    return {"ok": True, **data}
+
+
+@router.post("/reminders")
+def create_reminder(body: ReminderCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import reminders as rem
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.visibility_scope not in rem.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    # La persona destinataria (si se indica) DEBE pertenecer al hogar.
+    if body.person_id:
+        row = db.execute(
+            "SELECT id FROM persons WHERE id=? AND household_id=?",
+            (body.person_id, body.household_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    organization_id = get_household_organization_id(db, body.household_id)
+    try:
+        rid = rem.create_reminder(
+            db,
+            household_id=body.household_id,
+            organization_id=organization_id,
+            person_id=body.person_id,
+            created_by_user_id=user["user_id"],
+            title=body.title,
+            body=body.body,
+            remind_at=body.remind_at,
+            visibility_scope=body.visibility_scope,
+            dedupe_key=body.dedupe_key,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return {"ok": True, "id": rid, "response_type": "accion_ejecutada"}
+
+
+@router.post("/reminders/{reminder_id}/dismiss")
+def dismiss_reminder(reminder_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import reminders as rem
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = rem.dismiss(
+        db, household_id, reminder_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Recordatorio no encontrado o sin permiso")
+    return {"ok": True}
+
+
 @router.delete("/memory/{memory_id}")
 def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
     role = require_household_role(db, user["user_id"], household_id, "member")

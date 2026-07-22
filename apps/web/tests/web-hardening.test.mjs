@@ -133,3 +133,17 @@ test("14. Modos: setDomiModeAction + DOMI_MODES(senior) + CSS Senior + ModeSwitc
   assert.match(layout, /data-mode/);
   assert.match(layout, /ModeSwitcher/);
 });
+
+// OPS-2 M7.A — Recordatorios programables + campana in-app (entrega pull).
+test("15. Recordatorios: cliente API + componente + integración en /recordatorios", () => {
+  const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
+  assert.match(api, /listReminders/);
+  assert.match(api, /createReminder/);
+  assert.match(api, /dismissReminder/);
+  assert.match(api, /\/assistant\/reminders/);
+  const comp = readFileSync(join(WEB_ROOT, "app", "components", "Recordatorios.tsx"), "utf-8");
+  assert.match(comp, /createReminder/);
+  assert.match(comp, /dismissReminder/);
+  const page = readFileSync(join(WEB_ROOT, "app", "recordatorios", "[householdId]", "page.tsx"), "utf-8");
+  assert.match(page, /Recordatorios/);
+});

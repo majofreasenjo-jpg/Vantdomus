@@ -9,6 +9,7 @@ import {
   getDashboard, familyBoardList, shoppingList, dailyActivitiesList, listUnitFunctions,
 } from "../../../lib/api";
 import DomiOrb from "../../components/DomiOrb";
+import Recordatorios from "../../components/Recordatorios";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -81,8 +82,11 @@ export default async function RecordatoriosPage({ params }: { params: Promise<{ 
         <a className="btn" href={`/hogar/${hid}`}>← Panel del hogar</a>
       </div>
 
+      {/* M7.A — recordatorios programables reales + campana de notificaciones. */}
+      <Recordatorios hid={hid} />
+
       <div className="small" style={{ color: "var(--muted)", marginBottom: 14 }}>
-        Lo que no hay que olvidar hoy, junto en un solo lugar. {items.length} recordatorio(s).
+        Y esto es lo que ya está en marcha hoy, junto en un solo lugar. {items.length} elemento(s).
       </div>
 
       {items.length === 0 ? (
@@ -106,8 +110,9 @@ export default async function RecordatoriosPage({ params }: { params: Promise<{ 
       )}
 
       <div className="footerNote">
-        Los recordatorios automáticos (push/SMS/email) llegarán en una próxima fase. Por ahora, esta
-        bandeja reúne lo de hoy a partir de tus datos.
+        Los recordatorios que creas aquí te avisan dentro de la app cuando llega su hora. El aviso
+        al teléfono (push) llegará en una próxima fase. La bandeja de abajo reúne lo de hoy a partir
+        de tus datos.
       </div>
     </div>
   );

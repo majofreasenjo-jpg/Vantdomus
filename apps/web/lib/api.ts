@@ -253,6 +253,25 @@ export const transcribeAudio = (hid: string, blob: Blob, filename = "nota.webm")
   return apiFetchMultipart("/assistant/transcribe", fd);
 };
 
+// OPS-2 M7.A — Recordatorios programables + bandeja de notificaciones in-app.
+export const listReminders = (hid: string) =>
+  apiFetch(`/assistant/reminders?household_id=${encodeURIComponent(hid)}`);
+
+export const createReminder = (body: {
+  household_id: string;
+  title: string;
+  remind_at: string;
+  body?: string | null;
+  person_id?: string | null;
+  visibility_scope?: string;
+  dedupe_key?: string | null;
+}) => apiFetch("/assistant/reminders", { method: "POST", body: JSON.stringify(body) });
+
+export const dismissReminder = (id: string, hid: string) =>
+  apiFetch(`/assistant/reminders/${encodeURIComponent(id)}/dismiss?household_id=${encodeURIComponent(hid)}`, {
+    method: "POST",
+  });
+
 // Missing endpoints for Panel compatibility
 export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
 export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({
