@@ -10,6 +10,7 @@
  */
 import { useEffect, useState } from "react";
 import { listReminders, createReminder, dismissReminder } from "../../lib/api";
+import PushToggle from "./PushToggle";
 
 type Reminder = {
   id: string;
@@ -101,6 +102,9 @@ export default function Recordatorios({ hid }: { hid: string }) {
 
   return (
     <div className="grid" style={{ gap: 14, marginBottom: 18 }}>
+      {/* M7.B — activar push en este dispositivo (solo si el backend lo habilita). */}
+      <PushToggle hid={hid} />
+
       {/* Campana: notificaciones entregadas (vencidas) pendientes de acuse. */}
       {due.length > 0 ? (
         <div className="card" style={{ padding: 14, borderLeft: "4px solid var(--danger, #d9534f)" }}>

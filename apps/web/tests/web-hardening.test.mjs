@@ -147,3 +147,18 @@ test("15. Recordatorios: cliente API + componente + integración en /recordatori
   const page = readFileSync(join(WEB_ROOT, "app", "recordatorios", "[householdId]", "page.tsx"), "utf-8");
   assert.match(page, /Recordatorios/);
 });
+
+// OPS-2 M7.B — Web Push: service worker con handlers + cliente + toggle fail-closed.
+test("16. Web Push: sw.js push/notificationclick + cliente + PushToggle", () => {
+  const sw = readFileSync(join(WEB_ROOT, "public", "sw.js"), "utf-8");
+  assert.match(sw, /addEventListener\("push"/);
+  assert.match(sw, /addEventListener\("notificationclick"/);
+  assert.match(sw, /showNotification/);
+  const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
+  assert.match(api, /getPushConfig/);
+  assert.match(api, /subscribePush/);
+  assert.match(api, /unsubscribePush/);
+  const toggle = readFileSync(join(WEB_ROOT, "app", "components", "PushToggle.tsx"), "utf-8");
+  assert.match(toggle, /applicationServerKey/);
+  assert.match(toggle, /if \(!supported\(\) \|\| !enabled\) return null/); // fail-closed
+});

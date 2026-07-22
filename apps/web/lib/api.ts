@@ -272,6 +272,17 @@ export const dismissReminder = (id: string, hid: string) =>
     method: "POST",
   });
 
+// OPS-2 M7.B — Web Push (avisos al teléfono). Todo opcional/fail-closed.
+export const getPushConfig = (hid: string) =>
+  apiFetch(`/assistant/push/config?household_id=${encodeURIComponent(hid)}`);
+
+export const subscribePush = (body: {
+  household_id: string; endpoint: string; p256dh: string; auth: string;
+}) => apiFetch("/assistant/push/subscribe", { method: "POST", body: JSON.stringify(body) });
+
+export const unsubscribePush = (body: { household_id: string; endpoint: string }) =>
+  apiFetch("/assistant/push/unsubscribe", { method: "POST", body: JSON.stringify(body) });
+
 // Missing endpoints for Panel compatibility
 export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
 export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({

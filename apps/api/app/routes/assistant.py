@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header
 from pydantic import BaseModel
 
 from app.assistant.schemas import ChatRequest
@@ -353,6 +353,87 @@ def dismiss_reminder(reminder_id: str, household_id: str, user=Depends(get_curre
     if not ok:
         raise HTTPException(status_code=404, detail="Recordatorio no encontrado o sin permiso")
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M7.B — Web Push (VAPID): avisos al teléfono aunque la app esté cerrada.
+# OPCIONAL y fail-closed: sin llaves VAPID / sin librería → deshabilitado y todo
+# sigue funcionando in-app (M7.A). El envío real lo dispara el Cron → /tick.
+# ---------------------------------------------------------------------------
+class PushSubscribeBody(BaseModel):
+    household_id: str
+    endpoint: str
+    p256dh: str
+    auth: str
+
+
+class PushUnsubscribeBody(BaseModel):
+    household_id: str
+    endpoint: str
+
+
+@router.get("/push/config")
+def push_config(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import web_push
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    return {"enabled": web_push.push_enabled(), "public_key": web_push.vapid_public_key()}
+
+
+@router.post("/push/subscribe")
+def push_subscribe(body: PushSubscribeBody, user=Depends(get_current_user), db=Depends(get_db),
+                   user_agent: str | None = Header(default=None)):
+    from app.assistant import web_push
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    if not web_push.push_enabled():
+        raise HTTPException(status_code=503, detail="Los avisos push no están habilitados en este momento")
+    pid = _current_person_id(db, user["user_id"], body.household_id)
+    try:
+        sid = web_push.save_subscription(
+            db, household_id=body.household_id, person_id=pid, user_id=user["user_id"],
+            endpoint=body.endpoint, p256dh=body.p256dh, auth=body.auth, ua=user_agent,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "id": sid}
+
+
+@router.post("/push/unsubscribe")
+def push_unsubscribe(body: PushUnsubscribeBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import web_push
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    web_push.delete_subscription(db, endpoint=body.endpoint, household_id=body.household_id)
+    return {"ok": True}
+
+
+@router.post("/reminders/tick")
+def reminders_tick(db=Depends(get_db), x_tick_secret: str | None = Header(default=None)):
+    """
+    Barrido de entrega para el Cron Job. NO usa sesión de usuario: se autentica
+    con un secreto compartido (env REMINDER_TICK_SECRET) en el header X-Tick-Secret.
+    Marca 'delivered' los recordatorios vencidos de todos los hogares y, si el push
+    está habilitado, envía el aviso al teléfono del destinatario. Idempotente.
+    """
+    expected = os.getenv("REMINDER_TICK_SECRET", "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Tick no configurado (falta REMINDER_TICK_SECRET)")
+    if (x_tick_secret or "").strip() != expected:
+        raise HTTPException(status_code=401, detail="Secreto de tick inválido")
+    from app.assistant import reminders as rem
+    from app.assistant import web_push
+    delivered_total, pushed_total = 0, 0
+    for hid in rem.households_with_pending(db):
+        newly = rem.deliver_due_detailed(db, hid)
+        delivered_total += len(newly)
+        if not web_push.push_enabled():
+            continue
+        for r in newly:
+            res = web_push.notify_person(
+                db, household_id=hid, person_id=r["person_id"],
+                title="Recordatorio", body=r["title"], url=f"/recordatorios/{hid}",
+            )
+            pushed_total += res.get("sent", 0)
+    return {"ok": True, "delivered": delivered_total, "pushed": pushed_total,
+            "push_enabled": web_push.push_enabled()}
 
 
 @router.delete("/memory/{memory_id}")

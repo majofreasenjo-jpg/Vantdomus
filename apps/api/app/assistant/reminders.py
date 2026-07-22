@@ -121,32 +121,53 @@ def create_reminder(
     return rid
 
 
-def deliver_due(db, household_id: str, now_iso: str | None = None) -> int:
+def deliver_due_detailed(db, household_id: str, now_iso: str | None = None) -> list[dict]:
     """
     Entrega PULL idempotente: marca 'delivered' los recordatorios 'pending' ya
     vencidos. Solo toca filas 'pending', así que llamarlo dos veces no duplica.
-    Devuelve cuántos se entregaron en esta pasada.
+    Devuelve la lista de los recién entregados en ESTA pasada (para el push):
+    [{id, person_id, title, body, visibility_scope}].
     """
     now_dt = _parse(now_iso) or _now_dt()
     rows = db.execute(
-        "SELECT id, remind_at FROM family_reminders "
-        "WHERE household_id=? AND status='pending'",
+        "SELECT id, person_id, title, body, visibility_scope, remind_at "
+        "FROM family_reminders WHERE household_id=? AND status='pending'",
         (household_id,),
     ).fetchall()
-    due_ids = [r["id"] for r in rows if (_parse(r["remind_at"]) or now_dt) <= now_dt]
-    if not due_ids:
-        return 0
+    due = [r for r in rows if (_parse(r["remind_at"]) or now_dt) <= now_dt]
+    if not due:
+        return []
     stamp = now_dt.isoformat()
-    delivered = 0
-    for rid in due_ids:
+    delivered: list[dict] = []
+    for r in due:
         cur = db.execute(
             "UPDATE family_reminders SET status='delivered', delivered_at=? "
             "WHERE id=? AND status='pending'",
-            (stamp, rid),
+            (stamp, r["id"]),
         )
-        delivered += (cur.rowcount or 0)
+        if (cur.rowcount or 0) > 0:
+            delivered.append({
+                "id": r["id"], "person_id": r["person_id"], "title": r["title"],
+                "body": r["body"], "visibility_scope": r["visibility_scope"],
+            })
     db.commit()
     return delivered
+
+
+def deliver_due(db, household_id: str, now_iso: str | None = None) -> int:
+    """Como deliver_due_detailed pero devuelve solo el conteo (entrega in-app)."""
+    return len(deliver_due_detailed(db, household_id, now_iso))
+
+
+def households_with_pending(db) -> list[str]:
+    """Hogares con recordatorios 'pending' (para el barrido del tick/cron)."""
+    try:
+        rows = db.execute(
+            "SELECT DISTINCT household_id FROM family_reminders WHERE status='pending'"
+        ).fetchall()
+        return [r["household_id"] for r in rows]
+    except Exception:
+        return []
 
 
 def _rows_for_household(db, household_id: str):
