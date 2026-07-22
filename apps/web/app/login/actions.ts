@@ -29,7 +29,10 @@ export async function setViewLevelAction(formData: FormData) {
 // OPS-2 M5 — Modos de Domi: un solo Domi con configuraciones de interacción
 // (visual + comportamiento + ACCESIBILIDAD). Senior tiene gate propio (letra
 // grande, contraste, botones grandes, menos densidad, lectura en voz alta).
-export const DOMI_MODES = ["clasico", "calma", "senior", "estudio", "protector", "noche"] as const;
+// NOTA: en un archivo "use server" solo se pueden exportar funciones async;
+// la lista canónica de modos vive en lib/domiModeTokens (DOMI_MODES). Aquí la
+// mantenemos como constante interna (no exportada) para validar el formData.
+const DOMI_MODES = ["clasico", "calma", "senior", "estudio", "protector", "noche"] as const;
 
 export async function setDomiModeAction(formData: FormData) {
   const raw = String(formData.get("mode") || "clasico");
