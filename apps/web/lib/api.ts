@@ -295,6 +295,17 @@ export const setDocumentValidity = (id: string, hid: string, valid_until: string
 export const deleteFamilyDocument = (id: string, hid: string) =>
   apiFetch(`/assistant/documents/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, { method: "DELETE" });
 
+// OPS-2 M10 — MUSIC-0: biblioteca musical por enlaces (sin OAuth ni tokens).
+export const listFamilyMusic = (hid: string, mood?: string) =>
+  apiFetch(`/assistant/music?household_id=${encodeURIComponent(hid)}${mood ? `&mood=${encodeURIComponent(mood)}` : ""}`);
+
+export const addFamilyMusic = (body: {
+  household_id: string; title: string; url: string; mood?: string; person_id?: string | null;
+}) => apiFetch("/assistant/music", { method: "POST", body: JSON.stringify(body) });
+
+export const deleteFamilyMusic = (id: string, hid: string) =>
+  apiFetch(`/assistant/music/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, { method: "DELETE" });
+
 // OPS-2 M4 — Voz (STT): envía el audio grabado y devuelve el texto transcrito.
 export const transcribeAudio = (hid: string, blob: Blob, filename = "nota.webm") => {
   const fd = new FormData();

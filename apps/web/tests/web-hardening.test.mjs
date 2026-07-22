@@ -188,3 +188,17 @@ test("18. Documentos: cliente + FamilyDocuments + integración en /documents", (
   const page = readFileSync(join(WEB_ROOT, "app", "documents", "[householdId]", "page.tsx"), "utf-8");
   assert.match(page, /FamilyDocuments/);
 });
+
+// OPS-2 M10 — MUSIC-0: enlaces musicales sin OAuth; abrir = acción explícita.
+test("19. Música: cliente + FamilyMusic + página /musica + nav", () => {
+  const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
+  assert.match(api, /addFamilyMusic/);
+  assert.match(api, /\/assistant\/music/);
+  const comp = readFileSync(join(WEB_ROOT, "app", "components", "FamilyMusic.tsx"), "utf-8");
+  assert.match(comp, /rel="noopener noreferrer"/);   // abrir seguro en pestaña nueva
+  assert.match(comp, /no\s+guarda contraseñas/i);     // copy honesto sin OAuth
+  const page = readFileSync(join(WEB_ROOT, "app", "musica", "[householdId]", "page.tsx"), "utf-8");
+  assert.match(page, /FamilyMusic/);
+  const layout = readFileSync(join(WEB_ROOT, "app", "layout.tsx"), "utf-8");
+  assert.match(layout, /\/musica\//);
+});

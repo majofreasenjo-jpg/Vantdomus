@@ -159,6 +159,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <div className="morePanel">
                       {hid ? <a href={`/avisos/${hid}`}>Mural</a> : null}
                       {hid ? <a href={`/compras/${hid}`}>Compras</a> : null}
+                      {hid ? <a href={`/musica/${hid}`}>Música</a> : null}
                       {canSee("health") && hid ? <a href={`/health/${hid}`}>Salud</a> : null}
                       {canSee("finance") && hid ? <a href={`/finance/${hid}`}>Presupuesto</a> : null}
                       <a href="/biblioteca">Biblioteca</a>

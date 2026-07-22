@@ -667,3 +667,53 @@ def delete_document_ep(document_id: str, household_id: str, user=Depends(get_cur
     if not ok:
         raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M10 — MUSIC-0: biblioteca musical familiar por enlaces (sin OAuth, sin
+# tokens; allowlist de dominios musicales; abrir = acción explícita del usuario).
+# ---------------------------------------------------------------------------
+class MusicLinkBody(BaseModel):
+    household_id: str
+    title: str
+    url: str
+    mood: str = "general"
+    person_id: str | None = None
+
+
+@router.get("/music")
+def list_music(household_id: str, mood: str | None = None, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import music
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    return {"items": music.list_links(db, household_id, mood),
+            "moods": sorted(music.ALLOWED_MOODS)}
+
+
+@router.post("/music")
+def add_music(body: MusicLinkBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import music
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.person_id:
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (body.person_id, body.household_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    try:
+        result = music.add_link(
+            db, household_id=body.household_id, person_id=body.person_id,
+            added_by_user_id=user["user_id"], title=body.title, url=body.url, mood=body.mood,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, **result}
+
+
+@router.delete("/music/{link_id}")
+def delete_music(link_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import music
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    ok = music.delete_link(db, household_id, link_id,
+                           requester_user_id=user["user_id"], requester_role=role)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Enlace no encontrado o sin permiso")
+    return {"ok": True}
