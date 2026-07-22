@@ -18,6 +18,21 @@ type Memory = {
   person_id: string | null;
   memory_type: string;
   content: string;
+  visibility_scope?: string;
+};
+
+// Ámbitos ofrecidos en la UI (el backend soporta más; owner_operational solo admin).
+const SCOPE_OPTIONS: { value: string; label: string }[] = [
+  { value: "household_shared", label: "Compartida con la familia" },
+  { value: "private_self", label: "Privada (solo tú y Domi)" },
+];
+const SCOPE_LABEL: Record<string, string> = {
+  household_shared: "Familia",
+  private_self: "Privada",
+  guardian_supervised: "Supervisada",
+  owner_operational: "Hogar (admin)",
+  temporary_session: "Temporal",
+  document_derived: "De documentos",
 };
 
 // Etiquetas amigables para los tipos permitidos por el backend.
@@ -39,6 +54,7 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
   const [loading, setLoading] = useState(true);
   const [personId, setPersonId] = useState<string>(""); // "" = toda la familia
   const [memType, setMemType] = useState<string>("preference");
+  const [scope, setScope] = useState<string>("household_shared");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +86,7 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
         memory_type: memType,
         content: text,
         person_id: personId || null,
+        visibility_scope: scope,
       });
       setContent("");
       await refresh();
@@ -121,6 +138,15 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
             ))}
           </select>
         </label>
+        <label className="small" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          ¿Quién puede saberlo?
+          <select value={scope} onChange={(e) => setScope(e.target.value)}
+            style={{ padding: "8px 10px", borderRadius: 10, minWidth: 190 }}>
+            {SCOPE_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </label>
         <label className="small" style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 220 }}>
           ¿Qué debe recordar Domi?
           <input value={content} onChange={(e) => setContent(e.target.value)}
@@ -154,6 +180,15 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
                 <div className="small" style={{ fontWeight: 700 }}>
                   {m.about === "familia" ? "👪 Familia" : `👤 ${m.about}`}
                   <span style={{ fontWeight: 400, color: "var(--muted)" }}> · {label(m.memory_type)}</span>
+                  {m.visibility_scope && m.visibility_scope !== "household_shared" ? (
+                    <span style={{
+                      marginLeft: 6, fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 999,
+                      background: "rgba(127,127,127,0.18)",
+                    }}>
+                      {m.visibility_scope === "private_self" ? "🔒 " : ""}
+                      {SCOPE_LABEL[m.visibility_scope] || m.visibility_scope}
+                    </span>
+                  ) : null}
                 </div>
                 <div style={{ fontSize: 14 }}>{m.content}</div>
               </div>

@@ -29,11 +29,16 @@ def _first_name(name: str) -> str:
     return (name or "").strip().split()[0] if name else ""
 
 
-def build_minimal_context(db, household_id: str, user_message: str) -> dict:
+def build_minimal_context(
+    db, household_id: str, user_message: str, *,
+    requester_user_id: str | None = None,
+    requester_person_id: str | None = None,
+    requester_role: str | None = None,
+) -> dict:
     """
     Contexto MÍNIMO para el proveedor. Minimización de PII: solo nombres de pila
     e IDs internos (no relaciones, no RUT, no montos exactos). Nada de P&L/CEO ni
-    datos fuera del hogar.
+    datos fuera del hogar. Las memorias se filtran por QUIÉN pregunta (M1).
     """
     persons = []
     try:
@@ -56,7 +61,12 @@ def build_minimal_context(db, household_id: str, user_message: str) -> dict:
     # para el hogar y de tipos NO sensibles (salud queda fuera).
     try:
         from .memory import recall_for_context
-        memories = recall_for_context(db, household_id)
+        memories = recall_for_context(
+            db, household_id,
+            requester_user_id=requester_user_id,
+            requester_person_id=requester_person_id,
+            requester_role=requester_role,
+        )
     except Exception:
         memories = []
 
@@ -105,7 +115,21 @@ def handle_chat(db, *, household_id: str, user_id: str, role: str, messages: lis
     # 1 contexto solicitado → 2 scope household/person → 3 minimización →
     # 4 redacción (solo nombres de pila + resumen) → 5 payload segmentado →
     # 6 respuesta estructurada → 7 validación estricta → 8 proposal store.
-    context = build_minimal_context(db, household_id, last_user)   # pasos 1-4
+    # M1 — identidad del que pregunta, para filtrar memorias por privacidad.
+    try:
+        prow = db.execute(
+            "SELECT id FROM persons WHERE household_id=? AND user_id=? LIMIT 1",
+            (household_id, user_id),
+        ).fetchone()
+        requester_person_id = prow["id"] if prow else None
+    except Exception:
+        requester_person_id = None
+    context = build_minimal_context(                               # pasos 1-4
+        db, household_id, last_user,
+        requester_user_id=user_id,
+        requester_person_id=requester_person_id,
+        requester_role=role,
+    )
     result = gateway.propose(                                       # pasos 5-7
         GatewayRequest(
             household_id=household_id,

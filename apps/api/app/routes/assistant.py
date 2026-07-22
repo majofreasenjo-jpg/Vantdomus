@@ -175,21 +175,33 @@ class MemoryCreateBody(BaseModel):
     content: str
     person_id: str | None = None          # None = memoria de toda la familia
     importance: float | None = 0.5
-    visible_to_household: bool = True
+    visibility_scope: str = "household_shared"
 
 
 @router.get("/memory")
 def list_memory(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], household_id, "viewer")
-    return {"items": memory_store.list_memories(db, household_id),
-            "allowed_types": sorted(memory_store.SAFE_MEMORY_TYPES)}
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return {
+        "items": memory_store.list_memories(
+            db, household_id,
+            requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+        ),
+        "allowed_types": sorted(memory_store.SAFE_MEMORY_TYPES),
+        "allowed_scopes": sorted(memory_store.ALLOWED_SCOPES),
+    }
 
 
 @router.post("/memory")
 def create_memory(body: MemoryCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], body.household_id, "member")
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
     if body.memory_type not in memory_store.SAFE_MEMORY_TYPES:
         raise HTTPException(status_code=400, detail="Tipo de memoria no permitido")
+    if body.visibility_scope not in memory_store.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    # owner_operational solo lo puede crear un administrador del hogar.
+    if body.visibility_scope == "owner_operational" and role not in ("owner", "admin"):
+        raise HTTPException(status_code=403, detail="Solo un administrador puede crear memoria operativa del hogar")
     if not (body.content or "").strip():
         raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
     # La persona (si se indica) DEBE pertenecer al hogar (evita fuga entre hogares).
@@ -211,7 +223,7 @@ def create_memory(body: MemoryCreateBody, user=Depends(get_current_user), db=Dep
             content=body.content,
             importance=body.importance if body.importance is not None else 0.5,
             created_by_user_id=user["user_id"],
-            visible_to_household=body.visible_to_household,
+            visibility_scope=body.visibility_scope,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -221,9 +233,13 @@ def create_memory(body: MemoryCreateBody, user=Depends(get_current_user), db=Dep
 
 @router.delete("/memory/{memory_id}")
 def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], household_id, "member")
-    ok = memory_store.delete_memory(db, household_id, memory_id)
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = memory_store.delete_memory(
+        db, household_id, memory_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
     if not ok:
-        raise HTTPException(status_code=404, detail="Memoria no encontrada")
+        raise HTTPException(status_code=404, detail="Memoria no encontrada o sin permiso")
     db.commit()
     return {"ok": True}

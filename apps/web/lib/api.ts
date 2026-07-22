@@ -233,7 +233,7 @@ export const createDomiMemory = (body: {
   content: string;
   person_id?: string | null;
   importance?: number;
-  visible_to_household?: boolean;
+  visibility_scope?: string;
 }) => apiFetch("/assistant/memory", { method: "POST", body: JSON.stringify(body) });
 
 export const deleteDomiMemory = (id: string, hid: string) =>
