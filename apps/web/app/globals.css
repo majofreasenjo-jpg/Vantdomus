@@ -1113,3 +1113,50 @@ body:has(.vdHome) .vdThemePicker{ top:14px; }
 body:has(#vantdomus-app) .nav{ display:none !important; }
 body:has(#vantdomus-app) .bottomNav{ display:none !important; }
 body:has(#vantdomus-app) .container{ max-width:none !important; padding:0 !important; }
+
+/* ============================================================
+   OPS-2 M5 — Modos de Domi (un solo Domi, configuraciones de
+   interacción). Se activan por data-mode en <html>/<body>.
+   ============================================================ */
+
+/* SENIOR — accesibilidad real: letra grande (escala rem), toques
+   grandes, menos densidad, texto secundario con más contraste. */
+html[data-mode="senior"] { font-size: 112.5%; }        /* ~18px base → escala rem */
+html[data-mode="senior"] body { line-height: 1.6; }
+body[data-mode="senior"] .btn,
+body[data-mode="senior"] button:not([aria-hidden="true"]),
+body[data-mode="senior"] .input,
+body[data-mode="senior"] input,
+body[data-mode="senior"] select,
+body[data-mode="senior"] textarea {
+  font-size: 1.02rem;
+  min-height: 48px;                                      /* objetivo táctil grande */
+  padding: 12px 16px;
+}
+body[data-mode="senior"] .small { font-size: 0.95rem; }
+body[data-mode="senior"] { --muted: #333; }             /* más contraste del texto tenue */
+@media (prefers-color-scheme: dark) {
+  body[data-mode="senior"] { --muted: #d6d6d6; }
+}
+
+/* CALMA — menos estimulación: casi sin animaciones. */
+body[data-mode="calma"] *,
+body[data-mode="calma"] *::before,
+body[data-mode="calma"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 120ms !important;
+}
+
+/* NOCHE — baja luminosidad general. */
+body[data-mode="noche"] { filter: brightness(0.86) saturate(0.92); }
+
+/* Respeta la preferencia del sistema de reducir movimiento en cualquier modo. */
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme="family"] *,
+  body[data-theme="family"] *::before,
+  body[data-theme="family"] *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 120ms !important;
+  }
+}

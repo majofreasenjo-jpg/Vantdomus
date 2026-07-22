@@ -57,6 +57,12 @@ export default function DomiChat({ hid }: { hid: string }) {
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
   useEffect(() => () => stopSpeaking(), []); // al desmontar, corta la voz
+  // M5 — en modo Senior, Domi lee sus respuestas en voz alta por defecto.
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.documentElement.getAttribute("data-mode") === "senior" && speechSupported()) {
+      setReadAloud(true);
+    }
+  }, []);
 
   async function toggleMic() {
     if (voiceBusy) return;

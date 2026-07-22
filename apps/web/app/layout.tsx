@@ -4,11 +4,12 @@ import { Nunito } from "next/font/google";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
 import { cookies } from "next/headers";
-import { logoutAction, setViewLevelAction } from "./login/actions";
+import { logoutAction, setViewLevelAction, setDomiModeAction, DOMI_MODES } from "./login/actions";
 import NavLink from "./components/NavLink";
 import Celebrate from "./components/Celebrate";
 import DomiIcon from "./components/domiIcons";
 import PwaRegister from "./components/PwaRegister";
+import ModeSwitcher from "./components/ModeSwitcher";
 
 // Tipografía humanista redondeada y cálida, coherente con "hogar".
 // Se expone como CSS var --font-family-warm y se aplica en modo familia.
@@ -58,6 +59,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieHid = store.get("hid")?.value || "";
   const envHid = process.env.NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID || "";
   const viewLevel = store.get("view_level")?.value === "full" ? "full" : "simple";
+  // M5 — modo de Domi (accesibilidad/comportamiento). Default clásico.
+  const rawMode = store.get("domi_mode")?.value || "clasico";
+  const domiMode = (DOMI_MODES as readonly string[]).includes(rawMode) ? rawMode : "clasico";
+  const MODE_LABEL: Record<string, string> = {
+    clasico: "Clásico", calma: "Calma", senior: "Senior",
+    estudio: "Estudio", protector: "Protector", noche: "Noche",
+  };
 
   // 1. Prefer the active client selected by the app.
   if (cookieHid) {
@@ -119,11 +127,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : `${tax.product_line || "Planificador de Unidades"} - ${tax.domain_label || "Cliente adaptable"}`;
 
   return (
-    <html lang="es" className={nunito.variable} suppressHydrationWarning>
+    <html lang="es" className={nunito.variable} data-mode={isFamily ? domiMode : undefined} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         data-theme={isFamily ? "family" : undefined}
         data-level={isFamily ? viewLevel : undefined}
+        data-mode={isFamily ? domiMode : undefined}
         style={{ '--bg': tax.theme?.bg || '#0b0f17', '--primary': tax.theme?.primary || '#5b7cfa' } as React.CSSProperties}
       >
         <div className="nav">
@@ -174,6 +183,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </div>
               )
             ) : null}
+            {isFamily && hasSession ? <ModeSwitcher current={domiMode} /> : null}
             {isFamily ? (
               <form action={setViewLevelAction}>
                 <input type="hidden" name="level" value={viewLevel === "simple" ? "full" : "simple"} />

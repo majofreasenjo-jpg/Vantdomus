@@ -113,9 +113,23 @@ test("12. PWA: manifest standalone + iconos 192/512, sw.js y apple-web-app", () 
   assert.match(layout, /index:\s*false/);
 });
 
-test("13. Permissions-Policy permite geolocation=(self) para el clima real", () => {
+test("13. Permissions-Policy: geolocation y microphone=(self); cámara off", () => {
   const cfg = readFileSync(join(WEB_ROOT, "next.config.js"), "utf-8");
   assert.match(cfg, /geolocation=\(self\)/);
-  // cámara/micrófono siguen deshabilitados.
-  assert.match(cfg, /camera=\(\)/);
+  assert.match(cfg, /microphone=\(self\)/); // M4 voz
+  assert.match(cfg, /camera=\(\)/);         // cámara sigue off
+});
+
+// OPS-2 M5 — Modos de Domi con gate Senior real.
+test("14. Modos: setDomiModeAction + DOMI_MODES(senior) + CSS Senior + ModeSwitcher", () => {
+  const actions = readFileSync(join(WEB_ROOT, "app", "login", "actions.ts"), "utf-8");
+  assert.match(actions, /setDomiModeAction/);
+  assert.match(actions, /DOMI_MODES/);
+  assert.match(actions, /"senior"/);
+  const css = readFileSync(join(WEB_ROOT, "app", "globals.css"), "utf-8");
+  assert.match(css, /\[data-mode="senior"\]/);   // gate de accesibilidad real
+  assert.match(css, /min-height:\s*48px/);        // objetivo táctil grande
+  const layout = readFileSync(join(WEB_ROOT, "app", "layout.tsx"), "utf-8");
+  assert.match(layout, /data-mode/);
+  assert.match(layout, /ModeSwitcher/);
 });

@@ -26,6 +26,24 @@ export async function setViewLevelAction(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+// OPS-2 M5 — Modos de Domi: un solo Domi con configuraciones de interacción
+// (visual + comportamiento + ACCESIBILIDAD). Senior tiene gate propio (letra
+// grande, contraste, botones grandes, menos densidad, lectura en voz alta).
+export const DOMI_MODES = ["clasico", "calma", "senior", "estudio", "protector", "noche"] as const;
+
+export async function setDomiModeAction(formData: FormData) {
+  const raw = String(formData.get("mode") || "clasico");
+  const mode = (DOMI_MODES as readonly string[]).includes(raw) ? raw : "clasico";
+  const store = await cookies();
+  store.set("domi_mode", mode, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/", "layout");
+}
+
 /**
  * Safely resolve the post-login redirect target.
  *
