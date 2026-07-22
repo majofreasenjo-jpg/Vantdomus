@@ -241,6 +241,14 @@ export const deleteDomiMemory = (id: string, hid: string) =>
     method: "DELETE",
   });
 
+// OPS-2 M4 — Voz (STT): envía el audio grabado y devuelve el texto transcrito.
+export const transcribeAudio = (hid: string, blob: Blob, filename = "nota.webm") => {
+  const fd = new FormData();
+  fd.append("household_id", hid);
+  fd.append("file", blob, filename);
+  return apiFetchMultipart("/assistant/transcribe", fd);
+};
+
 // Missing endpoints for Panel compatibility
 export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
 export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({

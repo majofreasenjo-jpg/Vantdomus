@@ -61,7 +61,8 @@ import { logoutAction } from "../../login/actions";
 import DomiDocPanel from "./DomiDocPanel";
 // CP1c-FUNC-MIN-3.1a — orquestador propose-first real (backend). El simulador
 // local (domiIntents) queda SOLO como fallback demo, marcado como tal.
-import { assistantChat, domiConfirmProposal, domiRejectProposal } from "../../../lib/api";
+import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio } from "../../../lib/api";
+import { startRecording, mimeToFilename, recordingSupported, type Recorder } from "../../../lib/voice";
 
 
 // Flag to control visibility of the dev switcher panel.
@@ -382,6 +383,7 @@ export default function DomiCompanionHome({
 
   // Audio synthesizer ref
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const voiceRecorderRef = useRef<Recorder | null>(null); // M4 — grabación real de voz
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -651,24 +653,49 @@ export default function DomiCompanionHome({
     }
   };
 
-  const triggerListeningSimulation = () => {
+  const triggerListeningSimulation = async () => {
+    // M4 — Voz REAL (reemplaza la simulación). Graba → transcribe (Whisper en el
+    // backend, sin guardar audio) → envía el texto a Domi. La identidad es la
+    // sesión, no la voz.
     if (isListening) {
+      // Segundo toque: detener y transcribir.
       setIsListening(false);
-      setDomiMood("happy");
-      setDomiState("listo");
-    } else {
+      setDomiMood("thinking");
+      setDomiState("pensando");
+      const rec = voiceRecorderRef.current;
+      voiceRecorderRef.current = null;
+      if (!rec) { setDomiState("listo"); setDomiMood("happy"); return; }
+      try {
+        const { blob, mime } = await rec.stop();
+        const resp = (await transcribeAudio(hid, blob, mimeToFilename(mime))) as { available?: boolean; text?: string };
+        if (resp?.available === false) {
+          addNotification("Voz no disponible", "La voz necesita la IA encendida. Escríbele a Domi por ahora.", "system");
+          setDomiState("listo"); setDomiMood("happy");
+        } else if (resp?.text) {
+          sendMessageToDomi(resp.text);   // pasa por el orquestador real (propone → tú confirmas)
+        } else {
+          addNotification("No te entendí", "No pude transcribir eso. Intenta de nuevo o escríbelo.", "system");
+          setDomiState("listo"); setDomiMood("happy");
+        }
+      } catch {
+        addNotification("Micrófono", "No pude usar el micrófono. Escríbele a Domi.", "system");
+        setDomiState("listo"); setDomiMood("happy");
+      }
+      return;
+    }
+    if (!recordingSupported()) {
+      addNotification("Voz no disponible", "Tu navegador no permite grabar. Escríbele a Domi.", "system");
+      return;
+    }
+    try {
+      const r = await startRecording();
+      voiceRecorderRef.current = r;
       setIsListening(true);
       setDomiMood("speaking");
       setDomiState("escuchando");
-      addNotification("Micrófono Activado", "Domi está escuchando comandos de voz...", "system");
-      
-      // Simulate speaking or capturing command after 3.5 seconds
-      setTimeout(() => {
-        setIsListening(false);
-        setDomiMood("thinking");
-        setDomiState("pensando");
-        sendMessageToDomi("¿Elena tomó su medicina?");
-      }, 3500);
+      addNotification("Escuchando", "Habla y toca de nuevo el micrófono para enviar.", "system");
+    } catch {
+      addNotification("Micrófono", "No diste permiso de micrófono (o no está disponible). Escríbele a Domi.", "system");
     }
   };
 

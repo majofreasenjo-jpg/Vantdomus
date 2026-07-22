@@ -9,8 +9,12 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { assistantChat, domiConfirmProposal, domiRejectProposal } from "../../lib/api";
+import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio } from "../../lib/api";
 import DomiOrb from "./DomiOrb";
+import {
+  speechSupported, speak, stopSpeaking, recordingSupported, startRecording,
+  mimeToFilename, type Recorder,
+} from "../../lib/voice";
 
 // CP1c-FUNC-MIN-3.1 — una propuesta pendiente del orquestador (aún NO ejecutada).
 type Proposal = {
@@ -44,9 +48,51 @@ export default function DomiChat({ hid }: { hid: string }) {
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  // M4 — voz
+  const [recorder, setRecorder] = useState<Recorder | null>(null);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [readAloud, setReadAloud] = useState(false);
+  const [voiceNote, setVoiceNote] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
+  useEffect(() => () => stopSpeaking(), []); // al desmontar, corta la voz
+
+  async function toggleMic() {
+    if (voiceBusy) return;
+    if (recorder) {
+      // Detener y transcribir.
+      setVoiceBusy(true);
+      setVoiceNote("Transcribiendo…");
+      try {
+        const { blob, mime } = await recorder.stop();
+        setRecorder(null);
+        const resp = (await transcribeAudio(hid, blob, mimeToFilename(mime))) as { available?: boolean; text?: string };
+        if (resp?.available === false) {
+          setVoiceNote("La voz para hablarle a Domi necesita la IA encendida. Escríbele por ahora.");
+        } else if (resp?.text) {
+          setInput((prev) => (prev ? prev + " " : "") + resp.text);  // para revisar/corregir antes de enviar
+          setVoiceNote("Revisa el texto y envíalo.");
+        } else {
+          setVoiceNote("No te entendí bien. Intenta de nuevo o escríbelo.");
+        }
+      } catch {
+        setRecorder(null);
+        setVoiceNote("No pude usar el micrófono. Escríbele a Domi.");
+      } finally {
+        setVoiceBusy(false);
+      }
+      return;
+    }
+    // Empezar a grabar.
+    try {
+      setVoiceNote("Escuchando… toca de nuevo para enviar.");
+      const r = await startRecording();
+      setRecorder(r);
+    } catch {
+      setVoiceNote("No diste permiso de micrófono (o no está disponible). Escríbele a Domi.");
+    }
+  }
 
   async function send(text: string) {
     const q = text.trim();
@@ -60,6 +106,7 @@ export default function DomiChat({ hid }: { hid: string }) {
       const reply = resp?.reply || "No pude responder ahora. Intenta de nuevo.";
       const proposals: Proposal[] = Array.isArray(resp?.proposals) ? resp.proposals : [];
       setMessages((prev) => [...prev, { role: "assistant", content: reply, proposals, responseType: resp?.response_type }]);
+      if (readAloud) speak(reply);  // M4 — Domi lo lee en voz alta
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Tuve un problema para responder. Intenta de nuevo." }]);
     } finally {
@@ -164,10 +211,27 @@ export default function DomiChat({ hid }: { hid: string }) {
         </div>
       ) : null}
 
+      {voiceNote ? (
+        <div className="small" style={{ color: "var(--muted)", padding: "2px 2px 4px" }}>{voiceNote}</div>
+      ) : null}
+
       <form
         onSubmit={(e) => { e.preventDefault(); send(input); }}
-        style={{ display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid var(--line)" }}
+        style={{ display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid var(--line)", alignItems: "center" }}
       >
+        {/* M4 — hablarle a Domi (grabar → transcribir → revisar → enviar). */}
+        {recordingSupported() ? (
+          <button type="button" onClick={toggleMic} disabled={voiceBusy}
+            title={recorder ? "Detener y transcribir" : "Hablar"}
+            aria-label={recorder ? "Detener grabación" : "Hablar con Domi"}
+            className="btn" style={{
+              cursor: "pointer", padding: "8px 11px",
+              background: recorder ? "var(--bad, #e5484d)" : undefined,
+              color: recorder ? "#fff" : undefined,
+            }}>
+            {voiceBusy ? "…" : recorder ? "■" : "🎤"}
+          </button>
+        ) : null}
         <input
           className="input"
           value={input}
@@ -176,6 +240,15 @@ export default function DomiChat({ hid }: { hid: string }) {
           style={{ flex: 1 }}
           aria-label="Mensaje para Domi"
         />
+        {/* M4 — que Domi lea sus respuestas en voz alta. */}
+        {speechSupported() ? (
+          <button type="button" title="Leer respuestas en voz alta"
+            aria-pressed={readAloud}
+            onClick={() => { if (readAloud) stopSpeaking(); setReadAloud((v) => !v); }}
+            className="btn" style={{ cursor: "pointer", padding: "8px 11px", opacity: readAloud ? 1 : 0.6 }}>
+            {readAloud ? "🔊" : "🔈"}
+          </button>
+        ) : null}
         <button className="btn btnPrimary" type="submit" disabled={busy || !input.trim()}>Enviar</button>
       </form>
     </div>

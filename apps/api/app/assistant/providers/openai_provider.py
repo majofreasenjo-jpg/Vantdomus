@@ -169,6 +169,50 @@ class OpenAIProvider(Provider):
         content = (raw.get("choices") or [{}])[0].get("message", {}).get("content", "")
         return (content or "").strip()
 
+    def _transport_multipart(self, path: str, fields: dict, *, file_field: str,
+                             filename: str, file_bytes: bytes, file_mime: str,
+                             timeout: float) -> dict:
+        """POST multipart/form-data (para /audio/transcriptions). Separado para
+        poder simularlo en tests SIN red."""
+        import uuid as _uuid
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        base = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+        boundary = "----vantdomus" + _uuid.uuid4().hex
+        parts: list[bytes] = []
+        for k, v in fields.items():
+            parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n".encode("utf-8"))
+        head = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{file_field}\"; "
+                f"filename=\"{filename}\"\r\nContent-Type: {file_mime}\r\n\r\n").encode("utf-8")
+        body = b"".join(parts) + head + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+        req = urllib.request.Request(
+            base + path, data=body, method="POST",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    def transcribe_audio(self, *, audio_bytes: bytes, filename: str, mime: str) -> str:
+        """
+        M4 — STT: transcribe audio a texto (Whisper). Exige los mismos gates
+        duros. NO guarda el audio; solo devuelve el texto (que el usuario revisa
+        y corrige antes de enviarlo a Domi). Sin biometría: la identidad es la
+        sesión, no la voz.
+        """
+        if not self.is_available():
+            raise RuntimeError("OpenAIProvider no disponible: faltan gates server-side.")
+        model = os.getenv("OPENAI_STT_MODEL", "whisper-1")
+        raw = self._transport_multipart(
+            "/audio/transcriptions",
+            {"model": model, "language": "es", "response_format": "json"},
+            file_field="file", filename=filename, file_bytes=audio_bytes, file_mime=mime,
+            timeout=float(os.getenv("ASSISTANT_STT_TIMEOUT", "30")),
+        )
+        text = (raw.get("text") or "").strip()
+        return text
+
     def _parse_strict(self, content: str) -> ProviderResult:
         """JSON estricto: sin Markdown, sin texto alrededor, sin campos extra."""
         text = (content or "").strip()

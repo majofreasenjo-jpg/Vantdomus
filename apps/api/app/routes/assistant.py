@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
 from app.assistant.schemas import ChatRequest
@@ -230,6 +230,32 @@ def create_memory(body: MemoryCreateBody, user=Depends(get_current_user), db=Dep
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     db.commit()
     return {"ok": True, "id": mid}
+
+
+@router.post("/transcribe")
+async def transcribe_voice(
+    household_id: str = Form(...),
+    file: UploadFile = File(...),
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    M4 — Voz (STT): recibe audio y devuelve el TEXTO transcrito para que el
+    usuario lo revise/corrija antes de enviarlo a Domi. El audio NO se guarda.
+    Si la IA real no está disponible, responde available=false (el frontend cae
+    a texto). Sin biometría: la identidad es la sesión, no la voz.
+    """
+    require_household_role(db, user["user_id"], household_id, "member")
+    from app.assistant import voice
+    if not voice.stt_available():
+        return {"available": False, "text": ""}
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio demasiado grande (máx 20 MB)")
+    text = voice.transcribe(data, file.filename or "audio.webm", file.content_type)
+    if text is None:
+        return {"available": True, "text": "", "detail": "No se pudo transcribir. Escríbelo, por favor."}
+    return {"available": True, "text": text}
 
 
 @router.delete("/memory/{memory_id}")
