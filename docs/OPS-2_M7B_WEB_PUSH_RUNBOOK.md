@@ -31,18 +31,23 @@ push queda deshabilitado (in-app intacto).
 
 ## Paso 2 — Generar las llaves VAPID (una sola vez)
 
-Con `pywebpush` instalado, en un terminal (o en el **Shell** de Render):
+En el **Shell** de Render (o cualquier terminal con el repo), corre el generador
+incluido (solo usa `cryptography`, ya instalado — no necesita esperar a pywebpush):
 
 ```bash
-python -c "from py_vapid import Vapid01; v=Vapid01(); v.generate_keys(); import base64; \
-print('PUBLIC=', base64.urlsafe_b64encode(v.public_key.public_bytes(\
-__import__('cryptography').hazmat.primitives.serialization.Encoding.X962, \
-__import__('cryptography').hazmat.primitives.serialization.PublicFormat.UncompressedPoint)).decode().rstrip('=')); \
-print('PRIVATE=', base64.urlsafe_b64encode(v.private_key.private_numbers().private_value.to_bytes(32,'big')).decode().rstrip('='))"
+python scripts/gen_vapid_keys.py
 ```
 
-> Si prefieres, instala `web-push` (Node) y corre `npx web-push generate-vapid-keys`.
-> Cualquiera de las dos da un par **PUBLIC / PRIVATE** en base64url. Guarda ambas.
+Imprime dos líneas listas para pegar:
+
+```
+VAPID_PUBLIC_KEY=BPgr...ZzY
+VAPID_PRIVATE_KEY=SuYp...yc0
+```
+
+> **Genera las llaves UNA sola vez.** Regenerarlas invalida las suscripciones ya
+> creadas en los dispositivos (habría que volver a "Activar avisos"). Guarda la
+> privada como secreto; nunca en el repo.
 
 ## Paso 3 — Poner las variables de entorno (Render → Environment)
 

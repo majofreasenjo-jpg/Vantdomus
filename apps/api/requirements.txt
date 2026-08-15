@@ -27,3 +27,7 @@ bcrypt==4.0.0
 python-multipart==0.0.9
 psycopg2-binary==2.9.10
 PyMuPDF==1.25.5
+# OPS-2 M7.B — Web Push (VAPID). Se usa con import perezoso (fail-closed): si no
+# estuviera instalado, el push queda deshabilitado y los recordatorios siguen
+# avisando in-app. Trae py-vapid + http-ece.
+pywebpush==1.14.1
