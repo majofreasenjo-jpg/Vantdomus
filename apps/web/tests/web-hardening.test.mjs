@@ -163,6 +163,17 @@ test("16. Web Push: sw.js push/notificationclick + cliente + PushToggle", () => 
   assert.match(toggle, /if \(!supported\(\) \|\| !enabled\) return null/); // fail-closed
 });
 
+// OPS-2 M7.B hardening — navegación same-origin + dedupe por tag en el SW.
+test("21. Push hardening: sw.js restringe navegación al propio origen y deduplica", () => {
+  const sw = readFileSync(join(WEB_ROOT, "public", "sw.js"), "utf-8");
+  assert.match(sw, /function sameOriginPath/);
+  assert.match(sw, /resolved\.origin !== self\.location\.origin/);  // destino externo -> "/"
+  assert.match(sw, /data: \{ url \}/);                              // se guarda ya saneada
+  assert.match(sw, /tag: data\.tag/);                               // dedupe de reenvíos
+  // El clic navega a la ruta saneada, no al valor crudo del payload.
+  assert.match(sw, /sameOriginPath\(event\.notification\.data/);
+});
+
 // OPS-2 M8 — Biblioteca 6 capas + inferencias confirmables.
 test("17. Biblioteca de memoria: cliente + MemoryLibrary + integración en /perfiles", () => {
   const api = readFileSync(join(WEB_ROOT, "lib", "api.ts"), "utf-8");
