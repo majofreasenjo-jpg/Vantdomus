@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 
@@ -168,17 +169,46 @@ def _send_raw(*, endpoint: str, p256dh: str, auth: str, payload: str) -> int:
         return int(code)
 
 
+def safe_relative_url(url: str | None) -> str:
+    """
+    M7.B hardening — La URL que viaja en el push SOLO puede ser una ruta interna
+    (same-origin). Rechaza absolutas (`https://…`), protocol-relative (`//host`),
+    esquemas raros (`javascript:`) y variantes con backslash. Ante cualquier duda
+    devuelve "/" (fail-safe): así un payload manipulado no puede llevar a nadie
+    fuera de la app desde la notificación.
+    """
+    raw = (url or "").strip()
+    if not raw.startswith("/"):
+        return "/"
+    if raw.startswith("//") or raw.startswith("/\\"):
+        return "/"
+    if any(ch in raw for ch in ("\r", "\n", "\t")) or "\\" in raw:
+        return "/"
+    # `/algo:` podría interpretarse como esquema en algunos navegadores.
+    if re.match(r"^/[a-z][a-z0-9+.\-]*:", raw, re.IGNORECASE):
+        return "/"
+    return raw[:300]
+
+
 def notify_person(
     db, *, household_id: str, person_id: str | None,
-    title: str, body: str = "", url: str = "/",
+    title: str, body: str = "", url: str = "/", tag: str | None = None,
 ) -> dict:
     """
     Envía un push a los dispositivos del destinatario. Best-effort: nunca lanza.
     Limpia suscripciones muertas (404/410). Devuelve {sent, dead, skipped}.
+
+    `title`/`body` deben ser GENÉRICOS: la notificación se ve en la pantalla
+    bloqueada, así que el contenido sensible se queda dentro de la app (tras la
+    sesión). `tag` permite que un reenvío reemplace la notificación anterior en
+    vez de apilar duplicados.
     """
     if not push_enabled():
         return {"sent": 0, "dead": 0, "skipped": True}
-    payload = json.dumps({"title": title[:120], "body": (body or "")[:400], "url": url})[:_MAX_PAYLOAD]
+    data = {"title": title[:120], "body": (body or "")[:400], "url": safe_relative_url(url)}
+    if tag:
+        data["tag"] = str(tag)[:120]
+    payload = json.dumps(data)[:_MAX_PAYLOAD]
     subs = _subscriptions_for(db, household_id, person_id)
     sent, dead = 0, 0
     for s in subs:

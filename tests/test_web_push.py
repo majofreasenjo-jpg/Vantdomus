@@ -122,6 +122,80 @@ def test_private_reminder_only_targets_subject(env, monkeypatch):
     assert hits == ["https://push.example/bruno"]
 
 
+def test_safe_relative_url_rejects_external(env):
+    """M7.B hardening: la URL del push solo puede ser una ruta interna."""
+    from app.assistant import web_push as wp
+    assert wp.safe_relative_url("/recordatorios/abc") == "/recordatorios/abc"
+    assert wp.safe_relative_url("/x?y=1#z") == "/x?y=1#z"
+    # Todo lo demás cae a "/" (fail-safe).
+    for bad in ("https://evil.com/x", "//evil.com/x", "/\\evil.com", "javascript:alert(1)",
+                "/java\tscript:x", "/a\nb", "sin-barra", "", None, "/c:\\win"):
+        assert wp.safe_relative_url(bad) == "/", bad
+
+
+def test_notification_payload_is_generic_and_tagged(env, monkeypatch):
+    """
+    M7.B hardening: el push NO lleva el texto del recordatorio (pantalla
+    bloqueada) y viaja con `tag` para deduplicar reenvíos del cron.
+    """
+    from app.assistant import web_push as wp
+    db, hid = env.con, env.hid
+    wp.save_subscription(db, household_id=hid, person_id=env.pA, user_id="userA",
+                         endpoint="https://push.example/ana", p256dh="K", auth="A")
+    monkeypatch.setattr(wp, "push_enabled", lambda: True)
+    captured = {}
+
+    def fake_send(*, endpoint, p256dh, auth, payload):
+        captured["payload"] = payload
+        return 201
+
+    monkeypatch.setattr(wp, "_send_raw", fake_send)
+    wp.notify_person(db, household_id=hid, person_id=env.pA,
+                     title="VantDomus", body="Tienes un recordatorio",
+                     url="/recordatorios/" + hid, tag="reminder-xyz")
+    import json as _json
+    data = _json.loads(captured["payload"])
+    assert data["title"] == "VantDomus"
+    assert data["body"] == "Tienes un recordatorio"
+    assert data["tag"] == "reminder-xyz"
+    assert data["url"] == "/recordatorios/" + hid
+
+
+def test_tick_sends_generic_payload_not_reminder_text(env, monkeypatch):
+    """
+    El barrido del cron nunca debe filtrar el título del recordatorio a la
+    pantalla bloqueada: manda contenido genérico + tag con el id.
+    """
+    import importlib
+    from datetime import datetime, timedelta, timezone
+    import app.routes.assistant as ar
+    importlib.reload(ar)
+    from app.assistant import reminders as rem
+    from app.assistant import web_push as wp
+    db, hid = env.con, env.hid
+    now = datetime(2026, 8, 16, 12, 0, 0, tzinfo=timezone.utc)
+    rid = rem.create_reminder(db, household_id=hid, organization_id=None, person_id=env.pA,
+                              created_by_user_id="userA", title="Cita psicólogo Ana", body=None,
+                              remind_at=_iso(now - timedelta(minutes=1)))
+    db.commit()
+    monkeypatch.setenv("REMINDER_TICK_SECRET", "s3cr3t")
+    monkeypatch.setattr(wp, "push_enabled", lambda: True)
+    sent = {}
+
+    def fake_notify(db_, *, household_id, person_id, title, body, url, tag=None):
+        sent.update({"title": title, "body": body, "url": url, "tag": tag})
+        return {"sent": 1, "dead": 0, "skipped": False}
+
+    monkeypatch.setattr(wp, "notify_person", fake_notify)
+    out = ar.reminders_tick(db=db, x_tick_secret="s3cr3t")
+    assert out["ok"] is True and out["delivered"] == 1
+    # El texto sensible NO viaja en la notificación.
+    assert "psicólogo" not in (sent["title"] + sent["body"])
+    assert sent["body"] == "Tienes un recordatorio"
+    assert sent["tag"] == f"reminder-{rid}"
+    assert sent["url"].startswith("/recordatorios/")
+
+
 def test_tick_endpoint_auth(env, monkeypatch):
     import importlib
     import app.routes.assistant as ar
