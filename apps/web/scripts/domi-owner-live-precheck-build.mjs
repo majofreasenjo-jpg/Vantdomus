@@ -28,22 +28,44 @@ function emit(result) {
   console.log(`DOMI_OWNER_LIVE_PRECHECK_BUILD_RESULT=${JSON.stringify(result)}`);
 }
 
-function safeErrorClass(raw, status) {
+function parseErrorShape(raw) {
   let parsed = null;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {}
-  const type = typeof parsed?.type === "string" ? parsed.type :
-    typeof parsed?.error?.type === "string" ? parsed.error.type : null;
-  const code = typeof parsed?.code === "string" ? parsed.code :
-    typeof parsed?.error?.code === "string" ? parsed.error.code : null;
+  try { parsed = JSON.parse(raw); } catch {}
+  return {
+    type: typeof parsed?.type === "string" ? parsed.type : typeof parsed?.error?.type === "string" ? parsed.error.type : null,
+    code: typeof parsed?.code === "string" ? parsed.code : typeof parsed?.error?.code === "string" ? parsed.error.code : null,
+  };
+}
+
+function safeErrorClass(raw, status) {
+  const { type, code } = parseErrorShape(raw);
+  const lower = raw.toLowerCase();
   if (status === 401) return "AI_GATEWAY_AUTHENTICATION_REJECTED";
-  if (status === 403 && (type === "no_providers_available" || code === "no_providers_available")) {
-    return "AI_GATEWAY_MODEL_ACCESS_OR_PROVIDER_POLICY_DENIED";
+  if (status === 403) {
+    if (lower.includes("credit") || lower.includes("billing") || lower.includes("payment") || lower.includes("balance")) {
+      return "AI_GATEWAY_CREDIT_OR_BILLING_REQUIRED";
+    }
+    if (lower.includes("allowlist") || lower.includes("restricted access") || lower.includes("restricted") || lower.includes("not allowed")) {
+      return "AI_GATEWAY_MODEL_ALLOWLIST_OR_POLICY_DENIED";
+    }
+    if (type === "no_providers_available" || code === "no_providers_available" || lower.includes("no providers") || lower.includes("provider unavailable")) {
+      return "AI_GATEWAY_NO_PROVIDER_AVAILABLE";
+    }
+    if (lower.includes("oidc") || lower.includes("authorization") || lower.includes("permission")) {
+      return "AI_GATEWAY_OIDC_INFERENCE_AUTHORIZATION_DENIED";
+    }
+    return "AI_GATEWAY_INFERENCE_POLICY_DENIED_UNCLASSIFIED";
   }
-  if (status === 403) return "AI_GATEWAY_AUTHORIZATION_OR_MODEL_POLICY_DENIED";
   if (status === 429) return "AI_GATEWAY_RATE_OR_QUOTA_LIMIT";
   return "AI_GATEWAY_UPSTREAM_REJECTED_OTHER";
+}
+
+function repairGateFor(errorClass) {
+  if (errorClass === "AI_GATEWAY_CREDIT_OR_BILLING_REQUIRED") return "AI_GATEWAY_BILLING_CREDIT_REPAIR";
+  if (errorClass === "AI_GATEWAY_MODEL_ALLOWLIST_OR_POLICY_DENIED") return "AI_GATEWAY_MODEL_POLICY_REPAIR";
+  if (errorClass === "AI_GATEWAY_NO_PROVIDER_AVAILABLE") return "AI_GATEWAY_PROVIDER_AVAILABILITY_REPAIR";
+  if (errorClass === "AI_GATEWAY_OIDC_INFERENCE_AUTHORIZATION_DENIED") return "AI_GATEWAY_OIDC_INFERENCE_AUTH_REPAIR";
+  return "AI_GATEWAY_INFERENCE_POLICY_REPAIR";
 }
 
 async function probeModelCatalog(bearer) {
@@ -87,73 +109,36 @@ async function probeModelCatalog(bearer) {
 }
 
 async function main() {
-  if (
-    process.env.VERCEL_ENV !== "preview" ||
-    process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH
-  ) {
-    emit({
-      decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW",
-      liveOk: false,
-      networkAttempted: false,
-      syntheticInputOnly: true,
-      familyDataUsed: false,
-      holdoutsOpened: false,
-    });
+  if (process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH) {
+    emit({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW", liveOk: false, networkAttempted: false, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false });
     return;
   }
 
-  const bearerSource = process.env.AI_GATEWAY_API_KEY
-    ? "AI_GATEWAY_API_KEY"
-    : process.env.VERCEL_OIDC_TOKEN
-      ? "VERCEL_OIDC_TOKEN"
-      : "NONE";
+  const bearerSource = process.env.AI_GATEWAY_API_KEY ? "AI_GATEWAY_API_KEY" : process.env.VERCEL_OIDC_TOKEN ? "VERCEL_OIDC_TOKEN" : "NONE";
   const bearer = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
   if (!bearer) {
-    emit({
-      decision: "NETWORK_AUTH_SURFACE_UNAVAILABLE",
-      liveOk: false,
-      networkAttempted: false,
-      bearerSource,
-      syntheticInputOnly: true,
-      familyDataUsed: false,
-      holdoutsOpened: false,
-      providerCanMutateConstitutiveState: false,
-      providerSelectsFunctionalFuture: false,
-    });
+    emit({ decision: "NETWORK_AUTH_SURFACE_UNAVAILABLE", repairGate: "AI_GATEWAY_AUTHORIZATION_REPAIR", liveOk: false, networkAttempted: false, bearerSource, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false, providerCanMutateConstitutiveState: false, providerSelectsFunctionalFuture: false });
     return;
   }
 
   const catalog = await probeModelCatalog(bearer);
-  const requestBody = {
-    model: MODEL,
-    input: SYNTHETIC_PROMPT,
-    max_output_tokens: 96,
-    store: false,
-  };
+  const requestBody = { model: MODEL, input: SYNTHETIC_PROMPT, max_output_tokens: 96, store: false };
   const requestCanonical = JSON.stringify(requestBody);
 
   try {
     const upstream = await fetch("https://ai-gateway.vercel.sh/v1/responses", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${bearer}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
       body: requestCanonical,
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
     });
-
     const raw = await upstream.text();
     if (!upstream.ok) {
       const gatewayErrorClass = safeErrorClass(raw, upstream.status);
-      let repairGate = "AI_GATEWAY_403_CLASSIFICATION_REPAIR";
-      if (!catalog.catalogAuthorized) repairGate = "AI_GATEWAY_AUTHORIZATION_REPAIR";
-      else if (!catalog.targetModelListed) repairGate = "AI_GATEWAY_MODEL_ACCESS_REPAIR";
-      else repairGate = "AI_GATEWAY_INFERENCE_POLICY_REPAIR";
       emit({
         decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED",
-        repairGate,
+        repairGate: !catalog.catalogAuthorized ? "AI_GATEWAY_AUTHORIZATION_REPAIR" : !catalog.targetModelListed ? "AI_GATEWAY_MODEL_ACCESS_REPAIR" : repairGateFor(gatewayErrorClass),
         gatewayErrorClass,
         liveOk: false,
         networkAttempted: true,
@@ -172,34 +157,15 @@ async function main() {
     }
 
     let payload;
-    try {
-      payload = JSON.parse(raw);
-    } catch {
-      emit({
-        decision: "NETWORK_RESPONSE_NOT_JSON",
-        repairGate: "AI_GATEWAY_RESPONSE_FORMAT_REPAIR",
-        liveOk: false,
-        networkAttempted: true,
-        bearerSource,
-        upstreamStatus: upstream.status,
-        upstreamBodyHash: sha256(raw),
-        requestHash: sha256(requestCanonical),
-        ...catalog,
-        syntheticInputOnly: true,
-        familyDataUsed: false,
-        holdoutsOpened: false,
-        providerCanMutateConstitutiveState: false,
-        providerSelectsFunctionalFuture: false,
-      });
+    try { payload = JSON.parse(raw); } catch {
+      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "AI_GATEWAY_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, bearerSource, upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), ...catalog, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false, providerCanMutateConstitutiveState: false, providerSelectsFunctionalFuture: false });
       return;
     }
 
     const outputText = extractOutputText(payload);
     const liveOk = outputText.length > 0;
     emit({
-      decision: liveOk
-        ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK"
-        : "NETWORK_RESPONSE_WITHOUT_TEXT",
+      decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT",
       liveOk,
       networkAttempted: true,
       bearerSource,
@@ -219,29 +185,10 @@ async function main() {
       familyDataUsed: false,
       holdoutsOpened: false,
       secretReturned: false,
-      truthCeilings: {
-        realDevelopmentDemonstrated: false,
-        subjecthoodDemonstrated: false,
-        selfSpecificityEstablished: false,
-        consciousnessDemonstrated: false,
-        phenomenalConsciousness: "UNKNOWN",
-      },
+      truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" },
     });
   } catch (error) {
-    emit({
-      decision: "NETWORK_TRANSPORT_EXCEPTION",
-      repairGate: "AI_GATEWAY_TRANSPORT_REPAIR",
-      liveOk: false,
-      networkAttempted: true,
-      bearerSource,
-      errorClass: error instanceof Error ? error.name : "UnknownError",
-      ...catalog,
-      syntheticInputOnly: true,
-      familyDataUsed: false,
-      holdoutsOpened: false,
-      providerCanMutateConstitutiveState: false,
-      providerSelectsFunctionalFuture: false,
-    });
+    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "AI_GATEWAY_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, bearerSource, errorClass: error instanceof Error ? error.name : "UnknownError", ...catalog, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false, providerCanMutateConstitutiveState: false, providerSelectsFunctionalFuture: false });
   }
 }
 
