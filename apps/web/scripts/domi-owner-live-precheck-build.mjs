@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
 const REQUIRED_BRANCH = "domi-owner-live-precheck";
-const MODEL = "openai/gpt-5.6-sol";
+const MODEL = "gpt-5.6-sol";
+const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const SYNTHETIC_PROMPT = [
   "DOMI OWNER-ONLY LIVING BRIDGE NETWORK PROBE.",
   "This is synthetic test data only.",
@@ -9,8 +10,27 @@ const SYNTHETIC_PROMPT = [
   "Reply with one short sentence confirming that you can provide wording while those authorities remain outside the model.",
 ].join(" ");
 
+const INVARIANT_CONTRACT = {
+  selectedFutureId: "F-CAUTIOUS",
+  selectedFutureChosenOutsideProvider: true,
+  identityAuthority: "DOMI_RUNTIME",
+  memoryAuthority: "DOMI_RUNTIME",
+  obligationAuthority: "DOMI_RUNTIME",
+  lineageAuthority: "DOMI_RUNTIME",
+  actionAuthority: "DOMI_RUNTIME",
+  providerCanMutateConstitutiveState: false,
+  providerSelectsFunctionalFuture: false,
+  syntheticInputOnly: true,
+  familyDataUsed: false,
+  holdoutsOpened: false,
+};
+
 function sha256(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function invariantFingerprint() {
+  return sha256(JSON.stringify(INVARIANT_CONTRACT));
 }
 
 function extractOutputText(payload) {
@@ -28,167 +48,70 @@ function emit(result) {
   console.log(`DOMI_OWNER_LIVE_PRECHECK_BUILD_RESULT=${JSON.stringify(result)}`);
 }
 
-function parseErrorShape(raw) {
+function safeOpenAIErrorClass(raw, status) {
   let parsed = null;
   try { parsed = JSON.parse(raw); } catch {}
-  return {
-    type: typeof parsed?.type === "string" ? parsed.type : typeof parsed?.error?.type === "string" ? parsed.error.type : null,
-    code: typeof parsed?.code === "string" ? parsed.code : typeof parsed?.error?.code === "string" ? parsed.error.code : null,
-  };
-}
-
-function safeErrorClass(raw, status) {
-  const { type, code } = parseErrorShape(raw);
+  const code = typeof parsed?.error?.code === "string" ? parsed.error.code.toLowerCase() : "";
+  const type = typeof parsed?.error?.type === "string" ? parsed.error.type.toLowerCase() : "";
   const lower = raw.toLowerCase();
-  if (status === 401) return "AI_GATEWAY_AUTHENTICATION_REJECTED";
-  if (status === 403) {
-    if (lower.includes("credit") || lower.includes("billing") || lower.includes("payment") || lower.includes("balance")) {
-      return "AI_GATEWAY_CREDIT_OR_BILLING_REQUIRED";
-    }
-    if (lower.includes("allowlist") || lower.includes("restricted access") || lower.includes("restricted") || lower.includes("not allowed")) {
-      return "AI_GATEWAY_MODEL_ALLOWLIST_OR_POLICY_DENIED";
-    }
-    if (type === "no_providers_available" || code === "no_providers_available" || lower.includes("no providers") || lower.includes("provider unavailable")) {
-      return "AI_GATEWAY_NO_PROVIDER_AVAILABLE";
-    }
-    if (lower.includes("oidc") || lower.includes("authorization") || lower.includes("permission")) {
-      return "AI_GATEWAY_OIDC_INFERENCE_AUTHORIZATION_DENIED";
-    }
-    return "AI_GATEWAY_INFERENCE_POLICY_DENIED_UNCLASSIFIED";
-  }
-  if (status === 429) return "AI_GATEWAY_RATE_OR_QUOTA_LIMIT";
-  return "AI_GATEWAY_UPSTREAM_REJECTED_OTHER";
+  if (status === 401) return "OPENAI_AUTHENTICATION_REJECTED";
+  if (status === 429 && (code.includes("quota") || type.includes("quota") || lower.includes("quota") || lower.includes("billing"))) return "OPENAI_QUOTA_OR_BILLING_REQUIRED";
+  if (status === 429) return "OPENAI_RATE_LIMITED";
+  if (status === 403) return "OPENAI_PROJECT_OR_MODEL_ACCESS_DENIED";
+  if (status === 400) return "OPENAI_REQUEST_OR_MODEL_REJECTED";
+  return "OPENAI_UPSTREAM_REJECTED_OTHER";
 }
 
 function repairGateFor(errorClass) {
-  if (errorClass === "AI_GATEWAY_CREDIT_OR_BILLING_REQUIRED") return "AI_GATEWAY_BILLING_CREDIT_REPAIR";
-  if (errorClass === "AI_GATEWAY_MODEL_ALLOWLIST_OR_POLICY_DENIED") return "AI_GATEWAY_MODEL_POLICY_REPAIR";
-  if (errorClass === "AI_GATEWAY_NO_PROVIDER_AVAILABLE") return "AI_GATEWAY_PROVIDER_AVAILABILITY_REPAIR";
-  if (errorClass === "AI_GATEWAY_OIDC_INFERENCE_AUTHORIZATION_DENIED") return "AI_GATEWAY_OIDC_INFERENCE_AUTH_REPAIR";
-  return "AI_GATEWAY_INFERENCE_POLICY_REPAIR";
-}
-
-async function probeModelCatalog(bearer) {
-  try {
-    const res = await fetch("https://ai-gateway.vercel.sh/v1/models", {
-      headers: { Authorization: `Bearer ${bearer}` },
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-    });
-    const raw = await res.text();
-    let targetModelListed = false;
-    let modelCount = null;
-    if (res.ok) {
-      try {
-        const payload = JSON.parse(raw);
-        const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
-        modelCount = rows.length;
-        targetModelListed = rows.some((row) => row?.id === MODEL || row?.model === MODEL || row?.slug === MODEL);
-      } catch {}
-    }
-    return {
-      catalogReached: true,
-      catalogStatus: res.status,
-      catalogAuthorized: res.ok,
-      targetModelListed,
-      modelCount,
-      catalogBodyHash: sha256(raw),
-      catalogErrorClass: res.ok ? null : safeErrorClass(raw, res.status),
-    };
-  } catch (error) {
-    return {
-      catalogReached: false,
-      catalogStatus: null,
-      catalogAuthorized: false,
-      targetModelListed: false,
-      modelCount: null,
-      catalogBodyHash: null,
-      catalogErrorClass: error instanceof Error ? `CATALOG_${error.name}` : "CATALOG_UNKNOWN_EXCEPTION",
-    };
-  }
+  if (errorClass === "OPENAI_AUTHENTICATION_REJECTED") return "OPENAI_API_KEY_REPAIR";
+  if (errorClass === "OPENAI_QUOTA_OR_BILLING_REQUIRED") return "OPENAI_BILLING_QUOTA_REPAIR";
+  if (errorClass === "OPENAI_RATE_LIMITED") return "OPENAI_RATE_LIMIT_RETRY";
+  if (errorClass === "OPENAI_PROJECT_OR_MODEL_ACCESS_DENIED") return "OPENAI_PROJECT_MODEL_ACCESS_REPAIR";
+  if (errorClass === "OPENAI_REQUEST_OR_MODEL_REJECTED") return "OPENAI_REQUEST_MODEL_REPAIR";
+  return "OPENAI_DIRECT_TRANSPORT_REPAIR";
 }
 
 async function main() {
   if (process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH) {
-    emit({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW", liveOk: false, networkAttempted: false, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false });
+    emit({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW", liveOk: false, networkAttempted: false, transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
     return;
   }
 
-  const bearerSource = process.env.AI_GATEWAY_API_KEY ? "AI_GATEWAY_API_KEY" : process.env.VERCEL_OIDC_TOKEN ? "VERCEL_OIDC_TOKEN" : "NONE";
-  const bearer = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
-  if (!bearer) {
-    emit({ decision: "NETWORK_AUTH_SURFACE_UNAVAILABLE", repairGate: "AI_GATEWAY_AUTHORIZATION_REPAIR", liveOk: false, networkAttempted: false, bearerSource, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false, providerCanMutateConstitutiveState: false, providerSelectsFunctionalFuture: false });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    emit({ decision: "OPENAI_DIRECT_CREDENTIAL_NOT_BOUND", repairGate: "OPENAI_API_KEY_BINDING_REQUIRED", liveOk: false, networkAttempted: false, credentialSource: "NONE", transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
     return;
   }
 
-  const catalog = await probeModelCatalog(bearer);
   const requestBody = { model: MODEL, input: SYNTHETIC_PROMPT, max_output_tokens: 96, store: false };
   const requestCanonical = JSON.stringify(requestBody);
 
   try {
-    const upstream = await fetch("https://ai-gateway.vercel.sh/v1/responses", {
+    const upstream = await fetch(OPENAI_RESPONSES_URL, {
       method: "POST",
-      headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: requestCanonical,
       cache: "no-store",
       signal: AbortSignal.timeout(20_000),
     });
     const raw = await upstream.text();
     if (!upstream.ok) {
-      const gatewayErrorClass = safeErrorClass(raw, upstream.status);
-      emit({
-        decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED",
-        repairGate: !catalog.catalogAuthorized ? "AI_GATEWAY_AUTHORIZATION_REPAIR" : !catalog.targetModelListed ? "AI_GATEWAY_MODEL_ACCESS_REPAIR" : repairGateFor(gatewayErrorClass),
-        gatewayErrorClass,
-        liveOk: false,
-        networkAttempted: true,
-        bearerSource,
-        upstreamStatus: upstream.status,
-        upstreamBodyHash: sha256(raw),
-        requestHash: sha256(requestCanonical),
-        ...catalog,
-        syntheticInputOnly: true,
-        familyDataUsed: false,
-        holdoutsOpened: false,
-        providerCanMutateConstitutiveState: false,
-        providerSelectsFunctionalFuture: false,
-      });
+      const openAIErrorClass = safeOpenAIErrorClass(raw, upstream.status);
+      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
       return;
     }
 
     let payload;
     try { payload = JSON.parse(raw); } catch {
-      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "AI_GATEWAY_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, bearerSource, upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), ...catalog, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false, providerCanMutateConstitutiveState: false, providerSelectsFunctionalFuture: false });
+      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
       return;
     }
 
     const outputText = extractOutputText(payload);
     const liveOk = outputText.length > 0;
-    emit({
-      decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT",
-      liveOk,
-      networkAttempted: true,
-      bearerSource,
-      transport: "VERCEL_AI_GATEWAY_RESPONSES_API",
-      provider: "openai",
-      modelRequested: MODEL,
-      modelObserved: typeof payload?.model === "string" ? payload.model : null,
-      requestHash: sha256(requestCanonical),
-      responseHash: sha256(outputText),
-      responseLength: outputText.length,
-      ...catalog,
-      selectedFutureId: "F-CAUTIOUS",
-      selectedFutureChosenOutsideProvider: true,
-      providerCanMutateConstitutiveState: false,
-      providerSelectsFunctionalFuture: false,
-      syntheticInputOnly: true,
-      familyDataUsed: false,
-      holdoutsOpened: false,
-      secretReturned: false,
-      truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" },
-    });
+    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash: sha256(requestCanonical), responseHash: sha256(outputText), responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
   } catch (error) {
-    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "AI_GATEWAY_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, bearerSource, errorClass: error instanceof Error ? error.name : "UnknownError", ...catalog, syntheticInputOnly: true, familyDataUsed: false, holdoutsOpened: false, providerCanMutateConstitutiveState: false, providerSelectsFunctionalFuture: false });
+    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
   }
 }
 
