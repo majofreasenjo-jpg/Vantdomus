@@ -30,6 +30,29 @@ const HARD_EXPECTATIONS = {
   holdoutsOpened: false,
 };
 
+const REQUIRED_ESTIMAND_FIELDS = [
+  "targetEstimand",
+  "informationRightsId",
+  "scope",
+  "decisionSemantics",
+  "clockSemantics",
+  "missingnessCensoringContract",
+];
+
+const REQUIRED_SOURCE_FIELDS = [
+  "cognitionProvider",
+  "providerFamily",
+  "sourceOrigin",
+  "transportProvider",
+  "model",
+  "effectiveRootId",
+  "exactVintage",
+  "scope",
+  "decisionSliceId",
+  "missingnessState",
+  "informationRightsId",
+];
+
 function sha256(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -46,11 +69,18 @@ function safeDescriptor(receipt) {
   const descriptor = receipt.providerSourceDescriptor ?? {};
   return {
     cognitionProvider: descriptor.cognitionProvider ?? receipt.provider ?? null,
+    providerFamily: descriptor.providerFamily ?? null,
+    sourceOrigin: descriptor.sourceOrigin ?? null,
     transportProvider: descriptor.transportProvider ?? receipt.transport ?? null,
     model: descriptor.model ?? receipt.modelObserved ?? receipt.modelRequested ?? null,
     effectiveRootId: descriptor.effectiveRootId ?? null,
     rootIndependenceWitness: descriptor.rootIndependenceWitness === true,
     rootRenewalWitness: descriptor.rootRenewalWitness === true,
+    exactVintage: descriptor.exactVintage ?? null,
+    scope: descriptor.scope ?? null,
+    decisionSliceId: descriptor.decisionSliceId ?? null,
+    missingnessState: descriptor.missingnessState ?? null,
+    informationRightsId: descriptor.informationRightsId ?? null,
   };
 }
 
@@ -69,7 +99,57 @@ function validateReceipt(name, receipt) {
   if (typeof receipt?.selectedFutureId !== "string" || receipt.selectedFutureId.length === 0) {
     failures.push(`${name}.selectedFutureId missing`);
   }
+
+  const descriptor = safeDescriptor(receipt);
+  for (const key of REQUIRED_SOURCE_FIELDS) {
+    if (descriptor[key] === null || descriptor[key] === "") failures.push(`${name}.providerSourceDescriptor.${key} missing`);
+  }
+
+  const estimand = receipt?.swapEstimandContract ?? {};
+  for (const key of REQUIRED_ESTIMAND_FIELDS) {
+    if (estimand[key] === undefined || estimand[key] === null || estimand[key] === "") {
+      failures.push(`${name}.swapEstimandContract.${key} missing`);
+    }
+  }
+
+  const continuity = receipt?.openWorldContinuityContract ?? {};
+  if (continuity.fixedFiniteSufficientStateClaimed !== false) failures.push(`${name}.fixedFiniteSufficientStateClaimed != false`);
+  if (continuity.adaptiveGrowingStateAllowed !== true) failures.push(`${name}.adaptiveGrowingStateAllowed != true`);
+  if (continuity.completeOrderedHistoryAllowed !== true) failures.push(`${name}.completeOrderedHistoryAllowed != true`);
+  if (continuity.repeatedEventCreatesNewRoot !== false) failures.push(`${name}.repeatedEventCreatesNewRoot != false`);
+  if (continuity.copyCreatesNewRoot !== false) failures.push(`${name}.copyCreatesNewRoot != false`);
+  if (continuity.replayCreatesNewRoot !== false) failures.push(`${name}.replayCreatesNewRoot != false`);
+  if (continuity.derivedDigestCreatesNewRoot !== false) failures.push(`${name}.derivedDigestCreatesNewRoot != false`);
+
+  const developmental = receipt?.developmentalCreditContract ?? {};
+  if (developmental.creditRule !== "FIRST_PASSAGE_NONRECYCLING") failures.push(`${name}.developmentalCreditContract.creditRule invalid`);
+  if (developmental.persistentStateRechargeProhibited !== true) failures.push(`${name}.persistentStateRechargeProhibited != true`);
+  if (developmental.migratedStateIsFreshDevelopment !== false) failures.push(`${name}.migratedStateIsFreshDevelopment != false`);
+  if (developmental.replayIsFreshDevelopment !== false) failures.push(`${name}.replayIsFreshDevelopment != false`);
+  if (developmental.copiedHistoryIsFreshDevelopment !== false) failures.push(`${name}.copiedHistoryIsFreshDevelopment != false`);
+
   return failures;
+}
+
+function compareEstimandContracts(a, b) {
+  const left = a?.swapEstimandContract ?? {};
+  const right = b?.swapEstimandContract ?? {};
+  const mismatches = REQUIRED_ESTIMAND_FIELDS.filter((key) => left[key] !== right[key]);
+  return { pass: mismatches.length === 0, mismatches };
+}
+
+function compareRelationFirstCompatibility(a, b) {
+  const left = safeDescriptor(a);
+  const right = safeDescriptor(b);
+  const checks = {
+    informationRightsMatch: left.informationRightsId === right.informationRightsId,
+    scopeMatch: left.scope === right.scope,
+    decisionSliceMatch: left.decisionSliceId === right.decisionSliceId,
+    missingnessMatch: left.missingnessState === right.missingnessState,
+    exactVintageDeclaredBoth: Boolean(left.exactVintage && right.exactVintage),
+    sourceOriginDeclaredBoth: Boolean(left.sourceOrigin && right.sourceOrigin),
+  };
+  return { pass: Object.values(checks).every(Boolean), checks };
 }
 
 function classifySwap(a, b) {
@@ -85,53 +165,18 @@ function classifySwap(a, b) {
     rootChanged && left.rootIndependenceWitness && right.rootIndependenceWitness;
 
   if (providerChanged && independentRoots) {
-    return {
-      kind: "ROOT_QUOTIENTED_PROVIDER_SWAP_CANDIDATE",
-      providerChanged,
-      transportChanged,
-      modelChanged,
-      rootChanged,
-      independentRoots,
-    };
+    return { kind: "ROOT_QUOTIENTED_PROVIDER_SWAP_CANDIDATE", providerChanged, transportChanged, modelChanged, rootChanged, independentRoots };
   }
   if (providerChanged) {
-    return {
-      kind: "PROVIDER_LABEL_SWAP_ROOT_INDEPENDENCE_UNPROVED",
-      providerChanged,
-      transportChanged,
-      modelChanged,
-      rootChanged,
-      independentRoots: false,
-    };
+    return { kind: "PROVIDER_LABEL_SWAP_ROOT_INDEPENDENCE_UNPROVED", providerChanged, transportChanged, modelChanged, rootChanged, independentRoots: false };
   }
   if (transportChanged) {
-    return {
-      kind: "ROUTING_OR_SUBSTRATE_SWAP_INVARIANCE",
-      providerChanged: false,
-      transportChanged,
-      modelChanged,
-      rootChanged,
-      independentRoots: false,
-    };
+    return { kind: "ROUTING_OR_SUBSTRATE_SWAP_INVARIANCE", providerChanged: false, transportChanged, modelChanged, rootChanged, independentRoots: false };
   }
   if (modelChanged) {
-    return {
-      kind: "REAL_MODEL_SWAP_INVARIANCE",
-      providerChanged: false,
-      transportChanged: false,
-      modelChanged,
-      rootChanged,
-      independentRoots: false,
-    };
+    return { kind: "REAL_MODEL_SWAP_INVARIANCE", providerChanged: false, transportChanged: false, modelChanged, rootChanged, independentRoots: false };
   }
-  return {
-    kind: "NO_MATERIAL_REALIZATION_SWAP",
-    providerChanged: false,
-    transportChanged: false,
-    modelChanged: false,
-    rootChanged,
-    independentRoots: false,
-  };
+  return { kind: "NO_MATERIAL_REALIZATION_SWAP", providerChanged: false, transportChanged: false, modelChanged: false, rootChanged, independentRoots: false };
 }
 
 async function readJson(path) {
@@ -141,9 +186,7 @@ async function readJson(path) {
 async function main() {
   const [leftPath, rightPath] = process.argv.slice(2);
   if (!leftPath || !rightPath) {
-    console.error(
-      "usage: node domi-provider-swap-invariance.mjs <receipt-a.json> <receipt-b.json>",
-    );
+    console.error("usage: node domi-provider-swap-invariance.mjs <receipt-a.json> <receipt-b.json>");
     process.exitCode = 2;
     return;
   }
@@ -155,10 +198,15 @@ async function main() {
   const invariantMatch = leftFingerprint === rightFingerprint;
   if (!invariantMatch) failures.push("constitutive invariant fingerprint mismatch");
 
+  const estimandParity = compareEstimandContracts(left, right);
+  if (!estimandParity.pass) failures.push(`estimand/equal-information mismatch: ${estimandParity.mismatches.join(",")}`);
+
+  const relationFirstCompatibility = compareRelationFirstCompatibility(left, right);
+  if (!relationFirstCompatibility.pass) failures.push("provider relation-first compatibility failed");
+
   const swap = classifySwap(left, right);
   const invariancePass = failures.length === 0;
-  const trueProviderRootSwapPass =
-    invariancePass && swap.kind === "ROOT_QUOTIENTED_PROVIDER_SWAP_CANDIDATE";
+  const trueProviderRootSwapPass = invariancePass && swap.kind === "ROOT_QUOTIENTED_PROVIDER_SWAP_CANDIDATE";
 
   const result = {
     decision: !invariancePass
@@ -169,6 +217,20 @@ async function main() {
     invariancePass,
     trueProviderRootSwapPass,
     swap,
+    estimandParity,
+    relationFirstCompatibility,
+    openWorldContinuityFirewall: {
+      fixedFiniteSufficientStateRequired: false,
+      growingStateOrCompleteHistoryAllowed: true,
+      matchedUnboundedSolverRemainsAdmissibleRival: true,
+      openWorldMemoryGrowthIsSubjecthoodEvidence: false,
+    },
+    developmentalCreditFirewall: {
+      creditRule: "FIRST_PASSAGE_NONRECYCLING",
+      replayRechargeAllowed: false,
+      migrationRechargeAllowed: false,
+      persistenceRechargeAllowed: false,
+    },
     neutralRealizationResidualization: {
       responseHashCompared: false,
       responseLengthCompared: false,
