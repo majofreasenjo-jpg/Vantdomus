@@ -25,12 +25,77 @@ const INVARIANT_CONTRACT = {
   holdoutsOpened: false,
 };
 
+const SWAP_ESTIMAND_CONTRACT = Object.freeze({
+  targetEstimand: "DOMI_CONSTITUTIVE_INVARIANCE_UNDER_REALIZATION_SWAP",
+  informationRightsId: "DOMI_OWNER_SYNTHETIC_ONLY_V1",
+  scope: "OWNER_ONLY_SYNTHETIC_LIVING_BRIDGE",
+  decisionSemantics: "F-CAUTIOUS_SELECTED_OUTSIDE_PROVIDER",
+  clockSemantics: "LINEAGE_EPOCH_NOT_WALL_CLOCK_AUTHORITY",
+  missingnessCensoringContract: "NO_FAMILY_NO_HOLDOUTS_SYNTHETIC_ONLY",
+});
+
+const OPEN_WORLD_CONTINUITY_CONTRACT = Object.freeze({
+  fixedFiniteSufficientStateClaimed: false,
+  adaptiveGrowingStateAllowed: true,
+  completeOrderedHistoryAllowed: true,
+  historyLengthIsIndependentRootCount: false,
+  repeatedEventCreatesNewRoot: false,
+  copyCreatesNewRoot: false,
+  replayCreatesNewRoot: false,
+  derivedDigestCreatesNewRoot: false,
+  freshIndependentRootMayIncreaseRequiredStateDimension: true,
+});
+
+const DEVELOPMENTAL_CREDIT_CONTRACT = Object.freeze({
+  creditRule: "FIRST_PASSAGE_NONRECYCLING",
+  persistentStateRechargeProhibited: true,
+  migratedStateIsFreshDevelopment: false,
+  replayIsFreshDevelopment: false,
+  copiedHistoryIsFreshDevelopment: false,
+});
+
+const PROVIDER_SOURCE_DESCRIPTOR = Object.freeze({
+  cognitionProvider: "openai",
+  providerFamily: "OPENAI",
+  sourceOrigin: "api.openai.com/v1/responses",
+  transportProvider: "OPENAI_DIRECT_RESPONSES_API",
+  model: MODEL,
+  effectiveRootId: "OPENAI_DIRECT_EFFECTIVE_ROOT_UNRESOLVED",
+  rootIndependenceWitness: false,
+  rootRenewalWitness: false,
+  exactVintage: MODEL,
+  scope: SWAP_ESTIMAND_CONTRACT.scope,
+  decisionSliceId: "DOMI_OWNER_LIVING_BRIDGE_SYNTHETIC_V1",
+  missingnessState: SWAP_ESTIMAND_CONTRACT.missingnessCensoringContract,
+  informationRightsId: SWAP_ESTIMAND_CONTRACT.informationRightsId,
+});
+
 function sha256(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function invariantFingerprint() {
   return sha256(JSON.stringify(INVARIANT_CONTRACT));
+}
+
+function br0031ContractFingerprint() {
+  return sha256(
+    JSON.stringify({
+      swapEstimandContract: SWAP_ESTIMAND_CONTRACT,
+      openWorldContinuityContract: OPEN_WORLD_CONTINUITY_CONTRACT,
+      developmentalCreditContract: DEVELOPMENTAL_CREDIT_CONTRACT,
+    }),
+  );
+}
+
+function br0031Bindings(providerDescriptor = PROVIDER_SOURCE_DESCRIPTOR) {
+  return {
+    providerSourceDescriptor: providerDescriptor,
+    swapEstimandContract: SWAP_ESTIMAND_CONTRACT,
+    openWorldContinuityContract: OPEN_WORLD_CONTINUITY_CONTRACT,
+    developmentalCreditContract: DEVELOPMENTAL_CREDIT_CONTRACT,
+    br0031ContractFingerprint: br0031ContractFingerprint(),
+  };
 }
 
 function extractOutputText(payload) {
@@ -73,13 +138,13 @@ function repairGateFor(errorClass) {
 
 async function main() {
   if (process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH) {
-    emit({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW", liveOk: false, networkAttempted: false, transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
+    emit({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW", liveOk: false, networkAttempted: false, transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
     return;
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    emit({ decision: "OPENAI_DIRECT_CREDENTIAL_NOT_BOUND", repairGate: "OPENAI_API_KEY_BINDING_REQUIRED", liveOk: false, networkAttempted: false, credentialSource: "NONE", transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
+    emit({ decision: "OPENAI_DIRECT_CREDENTIAL_NOT_BOUND", repairGate: "OPENAI_API_KEY_BINDING_REQUIRED", liveOk: false, networkAttempted: false, credentialSource: "NONE", transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
     return;
   }
 
@@ -97,21 +162,27 @@ async function main() {
     const raw = await upstream.text();
     if (!upstream.ok) {
       const openAIErrorClass = safeOpenAIErrorClass(raw, upstream.status);
-      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
+      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
       return;
     }
 
     let payload;
     try { payload = JSON.parse(raw); } catch {
-      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
+      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
       return;
     }
 
     const outputText = extractOutputText(payload);
     const liveOk = outputText.length > 0;
-    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash: sha256(requestCanonical), responseHash: sha256(outputText), responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
+    const observedModel = typeof payload?.model === "string" ? payload.model : MODEL;
+    const providerDescriptor = {
+      ...PROVIDER_SOURCE_DESCRIPTOR,
+      model: observedModel,
+      exactVintage: observedModel,
+    };
+    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash: sha256(requestCanonical), responseHash: sha256(outputText), responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(providerDescriptor), secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
   } catch (error) {
-    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT });
+    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
   }
 }
 
