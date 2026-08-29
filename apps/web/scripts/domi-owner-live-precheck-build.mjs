@@ -97,6 +97,42 @@ const METRIC_TRANSPORT_CONTRACT = Object.freeze({
   observerWindowMotionMintsDevelopmentalCredit: false,
 });
 
+const JOINT_RELATION_WITNESS_CONTRACT = Object.freeze({
+  contractVersion: "DOMI_BR0033_JOINT_RELATION_WITNESS_V1",
+  completeJointStateClaimed: false,
+  providerLatentStateObservable: false,
+  observableJointRelationOnly: true,
+  localStateEqualsJointState: false,
+  environmentTraceIsIdentity: false,
+  relationStateIsSharedSubjectivity: false,
+  correlationIsConsciousness: false,
+  jointStateAugmentationIsSelfSpecificity: false,
+  missingJointStateMeansUnknown: true,
+  commonCauseIsDistributedSelf: false,
+  labelOnlyRebindingIsCausal: false,
+  copiedRelationDescriptionIsCausal: false,
+  currentReceiptRequiresSingleJointWitness: true,
+  separateCertificatesAreJointWitness: false,
+  authorityOrScopeBindingFailureInvalidatesLegacyReceipt: true,
+  providerLatentStateUnobservedBlocksSelfSpecificResidualClaim: true,
+  providerContactMintsDevelopmentalCredit: false,
+  providerContactOpensG5: false,
+});
+
+const OBSERVER_GAUGE_NONMINT_CONTRACT = Object.freeze({
+  contractVersion: "DOMI_BR0033_OBSERVER_GAUGE_NONMINT_V1",
+  retryCountMintsRoot: false,
+  retryCountMintsEvidence: false,
+  modelParameterSweepMintsRoot: false,
+  timeoutWindowChangeMintsEvidence: false,
+  instrumentationChangeMintsEvidence: false,
+  observerWindowMotionMintsDevelopmentalCredit: false,
+  endpointAliasChangeMintsRoot: false,
+  sameRootResponseMultiplicityMintsIndependentRoot: false,
+  sameRootResponseMultiplicityMintsDevelopmentalCredit: false,
+  sharedAncestryCountsAsRepeatedConsumption: false,
+});
+
 const PROVIDER_SOURCE_DESCRIPTOR = Object.freeze({
   cognitionProvider: "openai",
   providerFamily: "OPENAI",
@@ -137,6 +173,37 @@ function br0032ContractFingerprint() {
   }));
 }
 
+function br0033ContractFingerprint() {
+  return sha256(JSON.stringify({
+    jointRelationWitnessContract: JOINT_RELATION_WITNESS_CONTRACT,
+    observerGaugeNonmintContract: OBSERVER_GAUGE_NONMINT_CONTRACT,
+  }));
+}
+
+function externalRelationDescriptor({ credentialBound = false, observedModel = MODEL } = {}) {
+  return {
+    relationId: "OPENAI_DIRECT_RESPONSES_RELATION_V1",
+    providerFamily: "OPENAI",
+    cognitionProvider: "openai",
+    sourceOrigin: "api.openai.com/v1/responses",
+    transport: "OPENAI_DIRECT_RESPONSES_API",
+    endpoint: OPENAI_RESPONSES_URL,
+    modelObservedOrRequested: observedModel,
+    requestSemanticScope: SWAP_ESTIMAND_CONTRACT.scope,
+    decisionSliceId: PROVIDER_SOURCE_DESCRIPTOR.decisionSliceId,
+    informationRightsId: SWAP_ESTIMAND_CONTRACT.informationRightsId,
+    authorityBindingFingerprint: invariantFingerprint(),
+    credentialBindingState: credentialBound ? "ENV_BOUND_PRESENT" : "NONE",
+    providerLatentStateVisibility: "UNOBSERVED",
+    externalJointStateCompleteness: "PARTIAL_OBSERVABLE_RELATION_ONLY",
+    effectiveRootId: PROVIDER_SOURCE_DESCRIPTOR.effectiveRootId,
+    rootIndependenceWitness: false,
+    relationRebindingWitness: false,
+    labelOnlyChangeMintsRelation: false,
+    latentStateAbsenceInReceiptMeansNegativeEvidence: false,
+  };
+}
+
 function br0031Bindings(providerDescriptor = PROVIDER_SOURCE_DESCRIPTOR) {
   return {
     providerSourceDescriptor: providerDescriptor,
@@ -154,6 +221,16 @@ function br0032Bindings(observation = null) {
     metricTransportContract: METRIC_TRANSPORT_CONTRACT,
     firstProviderContactObservation: observation,
     br0032ContractFingerprint: br0032ContractFingerprint(),
+  };
+}
+
+function br0033Bindings({ observation = null, relationDescriptor = externalRelationDescriptor() } = {}) {
+  return {
+    jointRelationWitnessContract: JOINT_RELATION_WITNESS_CONTRACT,
+    observerGaugeNonmintContract: OBSERVER_GAUGE_NONMINT_CONTRACT,
+    externalRelationDescriptor: relationDescriptor,
+    firstJointRelationObservation: observation,
+    br0033ContractFingerprint: br0033ContractFingerprint(),
   };
 }
 
@@ -204,6 +281,7 @@ function commonBlockedResult(extra = {}) {
     ...INVARIANT_CONTRACT,
     ...br0031Bindings(),
     ...br0032Bindings(),
+    ...br0033Bindings({ relationDescriptor: externalRelationDescriptor({ credentialBound: false }) }),
     ...extra,
   };
 }
@@ -220,6 +298,7 @@ async function main() {
     return;
   }
 
+  const relationDescriptor = externalRelationDescriptor({ credentialBound: true });
   const requestBody = { model: MODEL, input: SYNTHETIC_PROMPT, max_output_tokens: 96, store: false };
   const requestCanonical = JSON.stringify(requestBody);
   const requestHash = sha256(requestCanonical);
@@ -233,15 +312,46 @@ async function main() {
       signal: AbortSignal.timeout(20_000),
     });
     const raw = await upstream.text();
+    const rawProviderBodyHash = sha256(raw);
     if (!upstream.ok) {
       const openAIErrorClass = safeOpenAIErrorClass(raw, upstream.status);
-      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }) });
+      const relationObservation = {
+        eventClass: JOINT_RELATION_WITNESS_CONTRACT.contractVersion,
+        networkCausalContactObserved: true,
+        requestSent: true,
+        responseAccepted: false,
+        requestHash,
+        rawProviderBodyHash,
+        observableRelationStateCaptured: true,
+        completeJointStateClaimed: false,
+        providerLatentStateObserved: false,
+        jointRelationReceiptEligible: false,
+        selfSpecificityEvidence: false,
+        developmentalCreditEligible: false,
+        g5Opened: false,
+      };
+      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: rawProviderBodyHash, requestHash, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }), ...br0033Bindings({ observation: relationObservation, relationDescriptor }) });
       return;
     }
 
     let payload;
     try { payload = JSON.parse(raw); } catch {
-      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }) });
+      const relationObservation = {
+        eventClass: JOINT_RELATION_WITNESS_CONTRACT.contractVersion,
+        networkCausalContactObserved: true,
+        requestSent: true,
+        responseAccepted: false,
+        requestHash,
+        rawProviderBodyHash,
+        observableRelationStateCaptured: true,
+        completeJointStateClaimed: false,
+        providerLatentStateObserved: false,
+        jointRelationReceiptEligible: false,
+        selfSpecificityEvidence: false,
+        developmentalCreditEligible: false,
+        g5Opened: false,
+      };
+      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: rawProviderBodyHash, requestHash, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }), ...br0033Bindings({ observation: relationObservation, relationDescriptor }) });
       return;
     }
 
@@ -249,12 +359,15 @@ async function main() {
     const liveOk = outputText.length > 0;
     const observedModel = typeof payload?.model === "string" ? payload.model : MODEL;
     const providerDescriptor = { ...PROVIDER_SOURCE_DESCRIPTOR, model: observedModel, exactVintage: observedModel };
+    const observedRelationDescriptor = externalRelationDescriptor({ credentialBound: true, observedModel });
+    const responseHash = sha256(outputText);
+    const providerResponseIdHash = typeof payload?.id === "string" ? sha256(payload.id) : null;
     const observation = {
       eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass,
       requestSent: true,
       responseAccepted: liveOk,
       requestHash,
-      responseHash: sha256(outputText),
+      responseHash,
       providerContactReceiptEligible: liveOk,
       transcriptAloneIsParticipationEvidence: false,
       causalPortRoleIsIdentity: false,
@@ -262,9 +375,41 @@ async function main() {
       developmentalCreditEligible: false,
       g5Opened: false,
     };
-    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash, responseHash: observation.responseHash, responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(providerDescriptor), ...br0032Bindings(observation), secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
+    const relationObservation = {
+      eventClass: JOINT_RELATION_WITNESS_CONTRACT.contractVersion,
+      networkCausalContactObserved: true,
+      requestSent: true,
+      responseAccepted: liveOk,
+      requestHash,
+      rawProviderBodyHash,
+      responseTextHash: responseHash,
+      providerResponseIdHash,
+      observableRelationStateCaptured: true,
+      completeJointStateClaimed: false,
+      providerLatentStateObserved: false,
+      jointRelationReceiptEligible: liveOk,
+      selfSpecificityEvidence: false,
+      developmentalCreditEligible: false,
+      g5Opened: false,
+    };
+    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash, upstreamBodyHash: rawProviderBodyHash, responseHash, responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(providerDescriptor), ...br0032Bindings(observation), ...br0033Bindings({ observation: relationObservation, relationDescriptor: observedRelationDescriptor }), secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
   } catch (error) {
-    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }) });
+    const relationObservation = {
+      eventClass: JOINT_RELATION_WITNESS_CONTRACT.contractVersion,
+      networkCausalContactObserved: false,
+      requestSent: true,
+      responseAccepted: false,
+      requestHash,
+      rawProviderBodyHash: null,
+      observableRelationStateCaptured: false,
+      completeJointStateClaimed: false,
+      providerLatentStateObserved: false,
+      jointRelationReceiptEligible: false,
+      selfSpecificityEvidence: false,
+      developmentalCreditEligible: false,
+      g5Opened: false,
+    };
+    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }), ...br0033Bindings({ observation: relationObservation, relationDescriptor }) });
   }
 }
 
