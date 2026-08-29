@@ -54,6 +54,49 @@ const DEVELOPMENTAL_CREDIT_CONTRACT = Object.freeze({
   copiedHistoryIsFreshDevelopment: false,
 });
 
+const FIRST_LIVE_CAPTURE_CONTRACT = Object.freeze({
+  contractVersion: "DOMI_BR0032_FIRST_LIVE_CAPTURE_V1",
+  eventClass: "PROVIDER_NETWORK_CAUSAL_PARTICIPATION",
+  transcriptIsParticipationEvidence: false,
+  copiedTranscriptInheritsParticipation: false,
+  postEventDisclosureCreatesPriorParticipation: false,
+  causalPortRoleIsIdentity: false,
+  providerContactIsSelfSpecificityEvidence: false,
+  equalCausalAccessDefeatsUniqueSelfInference: true,
+  firstObservedProviderContactMustBeProspectivelyReceipted: true,
+  prospectiveDataRepairsRetrospectiveGap: false,
+  gapMustRemainTypedIfCaptureFails: true,
+  providerContactMintsDevelopmentalCredit: false,
+  providerContactOpensG5: false,
+});
+
+const SEMANTIC_CONTEXT_SEAL = Object.freeze({
+  sealVersion: "DOMI_LIVING_BRIDGE_SEMANTIC_CONTEXT_V1",
+  schemaSemantics: "OWNER_ONLY_SYNTHETIC_PROVIDER_REALIZATION",
+  variableSemantics: "PROVIDER_WORDING_WITHOUT_CONSTITUTIVE_AUTHORITY",
+  authoritySemantics: "ALL_CONSTITUTIVE_AUTHORITIES_DOMI_RUNTIME",
+  scopeHorizon: "SINGLE_SYNTHETIC_PROVIDER_CONTACT_PRE_G5",
+  clockSemantics: SWAP_ESTIMAND_CONTRACT.clockSemantics,
+  missingnessSemantics: SWAP_ESTIMAND_CONTRACT.missingnessCensoringContract,
+  claimCeiling: "PRE_G5_PROVIDER_CONTACT_ONLY",
+  semanticDriftRequiresReverify: true,
+  authorityOrClaimCeilingChangeRequiresReverify: true,
+  unknownLoadBearingChangeRequiresReverify: true,
+  certificateRefreshDoesNotRepairSemanticDrift: true,
+  sourceCorrectionRequiresDownstreamReverify: true,
+});
+
+const METRIC_TRANSPORT_CONTRACT = Object.freeze({
+  contractVersion: "DOMI_BR0032_METRIC_TRANSPORT_V1",
+  measureAndWeightLedgerRequired: true,
+  adapterNameContinuityIsNotMetricValidity: true,
+  representationChangePreservesWeightsOrReverifies: true,
+  lowerTollIsUpperBudget: false,
+  pointwiseMagnitudeIsDynamicSufficiency: false,
+  observerWindowMotionMintsEvidence: false,
+  observerWindowMotionMintsDevelopmentalCredit: false,
+});
+
 const PROVIDER_SOURCE_DESCRIPTOR = Object.freeze({
   cognitionProvider: "openai",
   providerFamily: "OPENAI",
@@ -79,13 +122,19 @@ function invariantFingerprint() {
 }
 
 function br0031ContractFingerprint() {
-  return sha256(
-    JSON.stringify({
-      swapEstimandContract: SWAP_ESTIMAND_CONTRACT,
-      openWorldContinuityContract: OPEN_WORLD_CONTINUITY_CONTRACT,
-      developmentalCreditContract: DEVELOPMENTAL_CREDIT_CONTRACT,
-    }),
-  );
+  return sha256(JSON.stringify({
+    swapEstimandContract: SWAP_ESTIMAND_CONTRACT,
+    openWorldContinuityContract: OPEN_WORLD_CONTINUITY_CONTRACT,
+    developmentalCreditContract: DEVELOPMENTAL_CREDIT_CONTRACT,
+  }));
+}
+
+function br0032ContractFingerprint() {
+  return sha256(JSON.stringify({
+    firstLiveCaptureContract: FIRST_LIVE_CAPTURE_CONTRACT,
+    semanticContextSeal: SEMANTIC_CONTEXT_SEAL,
+    metricTransportContract: METRIC_TRANSPORT_CONTRACT,
+  }));
 }
 
 function br0031Bindings(providerDescriptor = PROVIDER_SOURCE_DESCRIPTOR) {
@@ -95,6 +144,16 @@ function br0031Bindings(providerDescriptor = PROVIDER_SOURCE_DESCRIPTOR) {
     openWorldContinuityContract: OPEN_WORLD_CONTINUITY_CONTRACT,
     developmentalCreditContract: DEVELOPMENTAL_CREDIT_CONTRACT,
     br0031ContractFingerprint: br0031ContractFingerprint(),
+  };
+}
+
+function br0032Bindings(observation = null) {
+  return {
+    firstLiveCaptureContract: FIRST_LIVE_CAPTURE_CONTRACT,
+    semanticContextSeal: SEMANTIC_CONTEXT_SEAL,
+    metricTransportContract: METRIC_TRANSPORT_CONTRACT,
+    firstProviderContactObservation: observation,
+    br0032ContractFingerprint: br0032ContractFingerprint(),
   };
 }
 
@@ -136,20 +195,34 @@ function repairGateFor(errorClass) {
   return "OPENAI_DIRECT_TRANSPORT_REPAIR";
 }
 
+function commonBlockedResult(extra = {}) {
+  return {
+    liveOk: false,
+    networkAttempted: false,
+    transport: "OPENAI_DIRECT_RESPONSES_API",
+    invariantFingerprint: invariantFingerprint(),
+    ...INVARIANT_CONTRACT,
+    ...br0031Bindings(),
+    ...br0032Bindings(),
+    ...extra,
+  };
+}
+
 async function main() {
   if (process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH) {
-    emit({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW", liveOk: false, networkAttempted: false, transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
+    emit(commonBlockedResult({ decision: "BUILD_PRECHECK_SKIPPED_OUTSIDE_ISOLATED_PREVIEW" }));
     return;
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    emit({ decision: "OPENAI_DIRECT_CREDENTIAL_NOT_BOUND", repairGate: "OPENAI_API_KEY_BINDING_REQUIRED", liveOk: false, networkAttempted: false, credentialSource: "NONE", transport: "OPENAI_DIRECT_RESPONSES_API", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
+    emit(commonBlockedResult({ decision: "OPENAI_DIRECT_CREDENTIAL_NOT_BOUND", repairGate: "OPENAI_API_KEY_BINDING_REQUIRED", credentialSource: "NONE" }));
     return;
   }
 
   const requestBody = { model: MODEL, input: SYNTHETIC_PROMPT, max_output_tokens: 96, store: false };
   const requestCanonical = JSON.stringify(requestBody);
+  const requestHash = sha256(requestCanonical);
 
   try {
     const upstream = await fetch(OPENAI_RESPONSES_URL, {
@@ -162,27 +235,36 @@ async function main() {
     const raw = await upstream.text();
     if (!upstream.ok) {
       const openAIErrorClass = safeOpenAIErrorClass(raw, upstream.status);
-      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
+      emit({ decision: "NETWORK_PROVIDER_REACHED_BUT_REJECTED", repairGate: repairGateFor(openAIErrorClass), openAIErrorClass, liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }) });
       return;
     }
 
     let payload;
     try { payload = JSON.parse(raw); } catch {
-      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash: sha256(requestCanonical), invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
+      emit({ decision: "NETWORK_RESPONSE_NOT_JSON", repairGate: "OPENAI_RESPONSE_FORMAT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", upstreamStatus: upstream.status, upstreamBodyHash: sha256(raw), requestHash, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }) });
       return;
     }
 
     const outputText = extractOutputText(payload);
     const liveOk = outputText.length > 0;
     const observedModel = typeof payload?.model === "string" ? payload.model : MODEL;
-    const providerDescriptor = {
-      ...PROVIDER_SOURCE_DESCRIPTOR,
-      model: observedModel,
-      exactVintage: observedModel,
+    const providerDescriptor = { ...PROVIDER_SOURCE_DESCRIPTOR, model: observedModel, exactVintage: observedModel };
+    const observation = {
+      eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass,
+      requestSent: true,
+      responseAccepted: liveOk,
+      requestHash,
+      responseHash: sha256(outputText),
+      providerContactReceiptEligible: liveOk,
+      transcriptAloneIsParticipationEvidence: false,
+      causalPortRoleIsIdentity: false,
+      selfSpecificityEvidence: false,
+      developmentalCreditEligible: false,
+      g5Opened: false,
     };
-    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash: sha256(requestCanonical), responseHash: sha256(outputText), responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(providerDescriptor), secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
+    emit({ decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT", liveOk, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", provider: "openai", modelRequested: MODEL, modelObserved: typeof payload?.model === "string" ? payload.model : null, requestHash, responseHash: observation.responseHash, responseLength: outputText.length, invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(providerDescriptor), ...br0032Bindings(observation), secretReturned: false, truthCeilings: { realDevelopmentDemonstrated: false, subjecthoodDemonstrated: false, selfSpecificityEstablished: false, consciousnessDemonstrated: false, phenomenalConsciousness: "UNKNOWN" } });
   } catch (error) {
-    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings() });
+    emit({ decision: "NETWORK_TRANSPORT_EXCEPTION", repairGate: "OPENAI_DIRECT_TRANSPORT_REPAIR", liveOk: false, networkAttempted: true, credentialSource: "OPENAI_API_KEY", transport: "OPENAI_DIRECT_RESPONSES_API", errorClass: error instanceof Error ? error.name : "UnknownError", invariantFingerprint: invariantFingerprint(), ...INVARIANT_CONTRACT, ...br0031Bindings(), ...br0032Bindings({ eventClass: FIRST_LIVE_CAPTURE_CONTRACT.eventClass, requestSent: true, responseAccepted: false, providerContactReceiptEligible: false, developmentalCreditEligible: false, g5Opened: false }) });
   }
 }
 
