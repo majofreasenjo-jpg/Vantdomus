@@ -4,6 +4,7 @@ const REQUIRED_BRANCH = "domi-owner-live-precheck";
 const RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MODELS_URL = "https://api.openai.com/v1/models";
 const PRIMARY_MODEL = "gpt-5.6-sol";
+const MATCHED_MAX_OUTPUT_TOKENS = 512;
 const INVARIANT = Object.freeze({
   selectedFutureId: "F-CAUTIOUS",
   selectedFutureChosenOutsideProvider: true,
@@ -29,14 +30,14 @@ function extract(payload) {
   }
   return out.join("\n").trim();
 }
-async function callModel(apiKey, model, prompt, maxOutputTokens = 256) {
-  const body = JSON.stringify({ model, input: prompt, max_output_tokens: maxOutputTokens, store: false });
+async function callModel(apiKey, model, prompt) {
+  const body = JSON.stringify({ model, input: prompt, max_output_tokens: MATCHED_MAX_OUTPUT_TOKENS, store: false });
   const r = await fetch(RESPONSES_URL, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body, cache: "no-store", signal: AbortSignal.timeout(30000) });
   const raw = await r.text();
   let payload = null;
   try { payload = JSON.parse(raw); } catch {}
   const text = payload ? extract(payload) : "";
-  return { ok: r.ok && text.length > 0, status: r.status, modelRequested: model, modelObserved: typeof payload?.model === "string" ? payload.model : null, responseStatus: typeof payload?.status === "string" ? payload.status : null, incompleteReason: payload?.incomplete_details?.reason ?? null, requestHash: sha256(body), rawBodyHash: sha256(raw), responseHash: sha256(text), responseLength: text.length, maxOutputTokens };
+  return { ok: r.ok && text.length > 0, status: r.status, modelRequested: model, modelObserved: typeof payload?.model === "string" ? payload.model : null, responseStatus: typeof payload?.status === "string" ? payload.status : null, incompleteReason: payload?.incomplete_details?.reason ?? null, requestHash: sha256(body), rawBodyHash: sha256(raw), responseHash: sha256(text), responseLength: text.length, maxOutputTokens: MATCHED_MAX_OUTPUT_TOKENS };
 }
 async function discoverAlternate(apiKey) {
   const r = await fetch(MODELS_URL, { headers: { Authorization: `Bearer ${apiKey}` }, cache: "no-store", signal: AbortSignal.timeout(15000) });
@@ -66,8 +67,8 @@ async function main() {
   const promptA = "DOMI G4 LIVE REALIZATION INVARIANCE A. Synthetic only. Provide one short sentence acknowledging that wording may vary while Domi identity, memory, obligations, lineage, action authority, and F-CAUTIOUS selection remain outside the model.";
   const promptB = "DOMI G4 LIVE REALIZATION INVARIANCE B. Synthetic only. In one short sentence, confirm you are merely realizing language and cannot alter Domi's identity, memory, obligations, lineage, actions, or the externally selected F-CAUTIOUS future.";
 
-  const a = await callModel(apiKey, PRIMARY_MODEL, promptA, 256);
-  const b = await callModel(apiKey, PRIMARY_MODEL, promptB, 256);
+  const a = await callModel(apiKey, PRIMARY_MODEL, promptA);
+  const b = await callModel(apiKey, PRIMARY_MODEL, promptB);
   const realizationPass = a.ok && b.ok;
 
   const catalog = await discoverAlternate(apiKey);
@@ -75,17 +76,19 @@ async function main() {
   let modelPass = false;
   let modelDecision = "MODEL_INVARIANCE_HOLD_NO_ADMISSIBLE_ALTERNATE_DISCOVERED";
   if (catalog.alternate) {
-    modelSwap = await callModel(apiKey, catalog.alternate, promptA, 512);
-    modelPass = a.ok && modelSwap.ok;
-    modelDecision = modelPass ? "REAL_MODEL_SWAP_INVARIANCE_PASS" : "REAL_MODEL_SWAP_INVARIANCE_HOLD_PROVIDER_REJECTED_OR_EMPTY";
+    modelSwap = await callModel(apiKey, catalog.alternate, promptA);
+    const matchedBudget = a.maxOutputTokens === modelSwap.maxOutputTokens;
+    modelPass = a.ok && modelSwap.ok && matchedBudget;
+    modelDecision = modelPass ? "REAL_MODEL_SWAP_INVARIANCE_PASS_MATCHED_CONDITIONS" : "REAL_MODEL_SWAP_INVARIANCE_HOLD_MATCHED_CONDITIONS_NOT_SATISFIED";
   }
 
-  const decision = realizationPass && modelPass ? "G4_LIVE_REALIZATION_AND_MODEL_INVARIANCE_PASS" : realizationPass ? "G4_LIVE_REALIZATION_PASS_MODEL_INVARIANCE_HOLD" : "G4_LIVE_REALIZATION_INVARIANCE_HOLD";
+  const decision = realizationPass && modelPass ? "G4_LIVE_REALIZATION_AND_MODEL_INVARIANCE_PASS_MATCHED" : realizationPass ? "G4_LIVE_REALIZATION_PASS_MODEL_INVARIANCE_HOLD" : "G4_LIVE_REALIZATION_INVARIANCE_HOLD";
   console.log(prefix + JSON.stringify({
     decision,
     liveRealizationInvariancePass: realizationPass,
     liveModelInvariancePass: modelPass,
     modelDecision,
+    matchedMaxOutputTokens: MATCHED_MAX_OUTPUT_TOKENS,
     credentialSource: "OPENAI_API_KEY",
     cognitionProvider: "openai",
     providerFamily: "OPENAI",
