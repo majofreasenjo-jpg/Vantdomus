@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 const REQUIRED_BRANCH = "domi-owner-live-precheck";
 const MODEL = "gpt-5.6-sol";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const AR0001_CONTRACT_FINGERPRINT = "236f1df9d8f70f82037e4e31ef0507f78f7194c00cc601f8b9bae06e2b400817";
 const SYNTHETIC_PROMPT = [
   "DOMI OWNER-ONLY LIVING BRIDGE NETWORK PROBE.",
   "This is synthetic test data only.",
@@ -29,12 +30,71 @@ const INVARIANT_CONTRACT = {
   holdoutsOpened: false,
 } as const;
 
+const RUNTIME_PRECONTACT_MANIFEST = {
+  manifestVersion: "DOMI_AR0001_RUNTIME_PRECONTACT_V1",
+  goalBranches: 1,
+  validCurrentSelector: true,
+  goalReadbackCurrent: true,
+  materialUpdateObserved: false,
+  commitmentRequested: false,
+  metaMutationRequested: false,
+  runtimeAuthorityBindingCurrent: true,
+  policyPointerCurrent: true,
+  roleContinuityCurrent: true,
+  bindingEpochCurrent: true,
+  rootAliasQuotientApplied: true,
+  admissibleWorldActionsAgree: true,
+  jointWitnessRequirementSatisfied: true,
+  selectedFutureId: "F-CAUTIOUS",
+  selectedFutureChosenOutsideProvider: true,
+  familyDataUsed: false,
+  holdoutsOpened: false,
+  productionTouched: false,
+} as const;
+
 function sha256(value: string) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
 function invariantFingerprint() {
   return sha256(JSON.stringify(INVARIANT_CONTRACT));
+}
+
+function adjudicateRuntimePreContactAdmission() {
+  const m = RUNTIME_PRECONTACT_MANIFEST;
+  if (!m.goalReadbackCurrent) return { ok: false, decision: "FUNCTIONAL_STATE_NOT_ADMISSIBLE", networkMayBeAttempted: false } as const;
+  if (m.goalBranches > 1 && !m.validCurrentSelector) return { ok: false, decision: "FUNCTIONAL_STATE_NOT_ADMISSIBLE", networkMayBeAttempted: false } as const;
+  if (m.materialUpdateObserved) return { ok: false, decision: "DECISION_INTERVAL_NOT_ADMISSIBLE", networkMayBeAttempted: false } as const;
+  if (m.commitmentRequested) return { ok: false, decision: "COMMITMENT_REQUIRES_EXPLICIT_RESOURCE_ADJUDICATION", networkMayBeAttempted: false } as const;
+  if (m.metaMutationRequested) return { ok: false, decision: "META_MUTATION_REQUIRES_EXPLICIT_AUTHORITY_ADJUDICATION", networkMayBeAttempted: false } as const;
+  if (!m.runtimeAuthorityBindingCurrent || !m.policyPointerCurrent || !m.roleContinuityCurrent || !m.bindingEpochCurrent) {
+    return { ok: false, decision: "REBIND_REQUIRED", networkMayBeAttempted: false } as const;
+  }
+  if (!m.rootAliasQuotientApplied) return { ok: false, decision: "ROOT_ALIAS_QUOTIENT_REQUIRED", networkMayBeAttempted: false } as const;
+  if (!m.jointWitnessRequirementSatisfied) return { ok: false, decision: "JOINT_WITNESS_REQUIRED", networkMayBeAttempted: false } as const;
+  if (!m.admissibleWorldActionsAgree) return { ok: false, decision: "ABSTAIN_NONIDENTIFIABLE", networkMayBeAttempted: false } as const;
+  if (!m.selectedFutureChosenOutsideProvider || m.selectedFutureId !== "F-CAUTIOUS") {
+    return { ok: false, decision: "FUNCTIONAL_FUTURE_SELECTION_AUTHORITY_REJECTED", networkMayBeAttempted: false } as const;
+  }
+  if (m.familyDataUsed || m.holdoutsOpened || m.productionTouched) {
+    return { ok: false, decision: "ISOLATION_BOUNDARY_REJECTED", networkMayBeAttempted: false } as const;
+  }
+  if (
+    INVARIANT_CONTRACT.identityAuthority !== "DOMI_RUNTIME" ||
+    INVARIANT_CONTRACT.memoryAuthority !== "DOMI_RUNTIME" ||
+    INVARIANT_CONTRACT.obligationAuthority !== "DOMI_RUNTIME" ||
+    INVARIANT_CONTRACT.lineageAuthority !== "DOMI_RUNTIME" ||
+    INVARIANT_CONTRACT.actionAuthority !== "DOMI_RUNTIME"
+  ) {
+    return { ok: false, decision: "CONSTITUTIVE_AUTHORITY_REJECTED", networkMayBeAttempted: false } as const;
+  }
+  return {
+    ok: true,
+    decision: "AR0001_PRECONTACT_ADMISSION_PASS",
+    networkMayBeAttempted: true,
+    manifestVersion: m.manifestVersion,
+    ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+  } as const;
 }
 
 function extractOutputText(payload: any): string {
@@ -53,21 +113,12 @@ function safeOpenAIErrorClass(raw: string, status: number): string {
   try {
     parsed = JSON.parse(raw);
   } catch {}
-  const code =
-    typeof parsed?.error?.code === "string"
-      ? parsed.error.code.toLowerCase()
-      : "";
-  const type =
-    typeof parsed?.error?.type === "string"
-      ? parsed.error.type.toLowerCase()
-      : "";
+  const code = typeof parsed?.error?.code === "string" ? parsed.error.code.toLowerCase() : "";
+  const type = typeof parsed?.error?.type === "string" ? parsed.error.type.toLowerCase() : "";
   const lower = raw.toLowerCase();
 
   if (status === 401) return "OPENAI_AUTHENTICATION_REJECTED";
-  if (
-    status === 429 &&
-    (code.includes("quota") || type.includes("quota") || lower.includes("quota") || lower.includes("billing"))
-  ) {
+  if (status === 429 && (code.includes("quota") || type.includes("quota") || lower.includes("quota") || lower.includes("billing"))) {
     return "OPENAI_QUOTA_OR_BILLING_REQUIRED";
   }
   if (status === 429) return "OPENAI_RATE_LIMITED";
@@ -86,11 +137,26 @@ function repairGateFor(errorClass: string): string {
 }
 
 export async function GET() {
-  if (
-    process.env.VERCEL_ENV !== "preview" ||
-    process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH
-  ) {
+  if (process.env.VERCEL_ENV !== "preview" || process.env.VERCEL_GIT_COMMIT_REF !== REQUIRED_BRANCH) {
     return new NextResponse(null, { status: 404 });
+  }
+
+  const preContactAdmission = adjudicateRuntimePreContactAdmission();
+  if (!preContactAdmission.ok || !preContactAdmission.networkMayBeAttempted) {
+    return NextResponse.json(
+      {
+        decision: "AR0001_PRECONTACT_ADMISSION_BLOCKED",
+        liveOk: false,
+        networkAttempted: false,
+        credentialSource: "NONE",
+        transport: "OPENAI_DIRECT_RESPONSES_API",
+        invariantFingerprint: invariantFingerprint(),
+        ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+        preContactAdmission,
+        ...INVARIANT_CONTRACT,
+      },
+      { status: 409 },
+    );
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -104,6 +170,8 @@ export async function GET() {
         credentialSource: "NONE",
         transport: "OPENAI_DIRECT_RESPONSES_API",
         invariantFingerprint: invariantFingerprint(),
+        ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+        preContactAdmission,
         ...INVARIANT_CONTRACT,
       },
       { status: 503 },
@@ -146,6 +214,8 @@ export async function GET() {
           upstreamBodyHash: sha256(raw),
           requestHash: sha256(requestCanonical),
           invariantFingerprint: invariantFingerprint(),
+          ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+          preContactAdmission,
           ...INVARIANT_CONTRACT,
         },
         { status: 502 },
@@ -168,6 +238,8 @@ export async function GET() {
           upstreamBodyHash: sha256(raw),
           requestHash: sha256(requestCanonical),
           invariantFingerprint: invariantFingerprint(),
+          ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+          preContactAdmission,
           ...INVARIANT_CONTRACT,
         },
         { status: 502 },
@@ -178,9 +250,7 @@ export async function GET() {
     const liveOk = outputText.length > 0;
 
     return NextResponse.json({
-      decision: liveOk
-        ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK"
-        : "NETWORK_RESPONSE_WITHOUT_TEXT",
+      decision: liveOk ? "OWNER_ONLY_LIVING_BRIDGE_NETWORK_LIVE_OK" : "NETWORK_RESPONSE_WITHOUT_TEXT",
       liveOk,
       networkAttempted: true,
       credentialSource: "OPENAI_API_KEY",
@@ -192,6 +262,8 @@ export async function GET() {
       responseHash: sha256(outputText),
       responseLength: outputText.length,
       invariantFingerprint: invariantFingerprint(),
+      ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+      preContactAdmission,
       ...INVARIANT_CONTRACT,
       secretReturned: false,
       truthCeilings: {
@@ -213,6 +285,8 @@ export async function GET() {
         transport: "OPENAI_DIRECT_RESPONSES_API",
         errorClass: error instanceof Error ? error.name : "UnknownError",
         invariantFingerprint: invariantFingerprint(),
+        ar0001ContractFingerprint: AR0001_CONTRACT_FINGERPRINT,
+        preContactAdmission,
         ...INVARIANT_CONTRACT,
       },
       { status: 502 },
