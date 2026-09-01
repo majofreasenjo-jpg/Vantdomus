@@ -105,6 +105,7 @@ async function callDirect(openaiKey) {
     status: r.status,
     endpoint: DIRECT_URL,
     authPath: "OPENAI_API_KEY_DIRECT",
+    billingPath: "OPENAI_ACCOUNT_DIRECT",
     cognitionProvider: "openai",
     transportProvider: "OPENAI_DIRECT_RESPONSES_API",
     modelRequested: DIRECT_MODEL,
@@ -118,7 +119,7 @@ async function callDirect(openaiKey) {
     maxOutputTokens: MATCHED_MAX_OUTPUT_TOKENS,
   };
 }
-async function callGateway(gatewayAuth, openaiKey, authSource) {
+async function callGateway(gatewayAuth, authSource) {
   const requestBody = {
     model: GATEWAY_MODEL,
     input: PROMPT,
@@ -127,7 +128,6 @@ async function callGateway(gatewayAuth, openaiKey, authSource) {
     providerOptions: {
       gateway: {
         only: ["openai"],
-        byok: { openai: [{ apiKey: openaiKey }] },
       },
     },
   };
@@ -150,7 +150,8 @@ async function callGateway(gatewayAuth, openaiKey, authSource) {
     status: r.status,
     endpoint: GATEWAY_URL,
     authPath: authSource,
-    byokProviderCredential: "OPENAI_API_KEY",
+    billingPath: "VERCEL_AI_GATEWAY_CREDITS",
+    byokProviderCredential: null,
     providerRestriction: ["openai"],
     cognitionProvider: "openai",
     transportProvider: "VERCEL_AI_GATEWAY_OPENRESPONSES",
@@ -201,25 +202,30 @@ async function main() {
     }));
     return;
   }
-  const gatewayCredits = await probeGatewayCredits(gatewayAuth);
-  const gateway = await callGateway(gatewayAuth, openaiKey, gatewayAuthSource);
+  const gatewayCreditsBefore = await probeGatewayCredits(gatewayAuth);
+  const gateway = await callGateway(gatewayAuth, gatewayAuthSource);
+  const gatewayCreditsAfter = await probeGatewayCredits(gatewayAuth);
   const matchedConditions = direct.promptHash === gateway.promptHash && direct.maxOutputTokens === gateway.maxOutputTokens;
   const distinctEndpoints = direct.endpoint !== gateway.endpoint;
   const normalizedModelMatch = direct.modelRequested === "gpt-5.6-sol" && gateway.modelRequested === "openai/gpt-5.6-sol";
-  const pass = direct.ok && gateway.ok && matchedConditions && distinctEndpoints && normalizedModelMatch;
+  const sameCognitionProvider = direct.cognitionProvider === gateway.cognitionProvider && gateway.cognitionProvider === "openai";
+  const pass = direct.ok && gateway.ok && matchedConditions && distinctEndpoints && normalizedModelMatch && sameCognitionProvider;
   console.log(prefix + JSON.stringify({
-    decision: pass ? "G4_TRANSPORT_ROUTING_INVARIANCE_PASS_MATCHED" : "G4_TRANSPORT_ROUTING_INVARIANCE_HOLD",
+    decision: pass ? "G4_TRANSPORT_ROUTING_INVARIANCE_PASS_MATCHED_OPENAI_SAME_PROVIDER" : "G4_TRANSPORT_ROUTING_INVARIANCE_HOLD",
     transportInvariancePass: pass,
     matchedConditions,
     distinctEndpoints,
     normalizedModelMatch,
+    sameCognitionProvider,
     directExecuted: true,
     gatewayExecuted: true,
-    gatewayCredits,
+    gatewayCreditsBefore,
+    gatewayCreditsAfter,
     direct,
     gateway,
     cognitionProvider: "openai",
     transportSwapOnly: true,
+    billingPathSwapObserved: true,
     trueProviderSwapClaimed: false,
     effectiveRootId: "OPENAI_PROVIDER_ROOT_UNRESOLVED_SHARED_FAMILY",
     rootIndependenceWitness: false,
