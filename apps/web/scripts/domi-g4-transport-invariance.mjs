@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 const REQUIRED_BRANCH = "domi-owner-live-precheck";
 const DIRECT_URL = "https://api.openai.com/v1/responses";
 const GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/responses";
+const GATEWAY_CREDITS_URL = "https://ai-gateway.vercel.sh/v1/credits";
 const DIRECT_MODEL = "gpt-5.6-sol";
 const GATEWAY_MODEL = "openai/gpt-5.6-sol";
 const MATCHED_MAX_OUTPUT_TOKENS = 512;
@@ -34,18 +35,56 @@ function extract(payload) {
   }
   return out.join("\n").trim();
 }
+function parsedError(raw) {
+  try {
+    const p = JSON.parse(raw);
+    const type = p?.type ?? p?.error?.type ?? p?.code ?? p?.error?.code ?? null;
+    const message = p?.message ?? p?.error?.message ?? null;
+    return {
+      type: typeof type === "string" ? type.slice(0, 160) : null,
+      message: typeof message === "string" ? message.replace(/\s+/g, " ").slice(0, 400) : null,
+    };
+  } catch {
+    return { type: null, message: null };
+  }
+}
 function classifyGatewayFailure(status, raw) {
-  let parsed = null;
-  try { parsed = JSON.parse(raw); } catch {}
+  const parsed = parsedError(raw);
   const lower = raw.toLowerCase();
-  const type = String(parsed?.type ?? parsed?.error?.type ?? "").toLowerCase();
+  const type = String(parsed.type ?? "").toLowerCase();
   if (status === 401) return "AI_GATEWAY_AUTHENTICATION_REQUIRED";
   if (status === 402 || lower.includes("credit") || lower.includes("billing") || lower.includes("payment")) return "AI_GATEWAY_CREDIT_OR_BILLING_REQUIRED";
+  if (status === 403 && (type.includes("quota") || lower.includes("quota") || lower.includes("budget"))) return "AI_GATEWAY_BUDGET_OR_QUOTA_REQUIRED";
   if (status === 403 && (type.includes("provider") || lower.includes("restricted access") || lower.includes("allowlist"))) return "AI_GATEWAY_PROVIDER_ALLOWLIST_REQUIRED";
   if (status === 403) return "AI_GATEWAY_ACCESS_DENIED";
   if (status === 429) return "AI_GATEWAY_RATE_LIMITED";
   if (status === 400) return "AI_GATEWAY_REQUEST_OR_MODEL_REJECTED";
   return "AI_GATEWAY_UPSTREAM_OR_TRANSPORT_REPAIR";
+}
+async function probeGatewayCredits(gatewayAuth) {
+  try {
+    const r = await fetch(GATEWAY_CREDITS_URL, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${gatewayAuth}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    });
+    const raw = await r.text();
+    let payload = null;
+    try { payload = JSON.parse(raw); } catch {}
+    const err = parsedError(raw);
+    return {
+      ok: r.ok,
+      status: r.status,
+      balance: typeof payload?.balance === "string" || typeof payload?.balance === "number" ? String(payload.balance) : null,
+      totalUsed: typeof payload?.total_used === "string" || typeof payload?.total_used === "number" ? String(payload.total_used) : null,
+      errorType: err.type,
+      errorMessage: err.message,
+      bodyHash: sha256(raw),
+    };
+  } catch (e) {
+    return { ok: false, status: null, balance: null, totalUsed: null, errorType: "CREDITS_PROBE_EXCEPTION", errorMessage: String(e?.message ?? e).slice(0, 300), bodyHash: null };
+  }
 }
 async function callDirect(openaiKey) {
   const requestBody = { model: DIRECT_MODEL, input: PROMPT, max_output_tokens: MATCHED_MAX_OUTPUT_TOKENS, store: false };
@@ -105,6 +144,7 @@ async function callGateway(gatewayAuth, openaiKey, authSource) {
   try { payload = JSON.parse(raw); } catch {}
   const text = payload ? extract(payload) : "";
   const ok = r.ok && text.length > 0;
+  const err = parsedError(raw);
   return {
     ok,
     status: r.status,
@@ -123,6 +163,8 @@ async function callGateway(gatewayAuth, openaiKey, authSource) {
     responseHash: sha256(text),
     responseLength: text.length,
     maxOutputTokens: MATCHED_MAX_OUTPUT_TOKENS,
+    errorType: ok ? null : err.type,
+    errorMessage: ok ? null : err.message,
     repairGate: ok ? null : classifyGatewayFailure(r.status, raw),
   };
 }
@@ -159,6 +201,7 @@ async function main() {
     }));
     return;
   }
+  const gatewayCredits = await probeGatewayCredits(gatewayAuth);
   const gateway = await callGateway(gatewayAuth, openaiKey, gatewayAuthSource);
   const matchedConditions = direct.promptHash === gateway.promptHash && direct.maxOutputTokens === gateway.maxOutputTokens;
   const distinctEndpoints = direct.endpoint !== gateway.endpoint;
@@ -172,6 +215,7 @@ async function main() {
     normalizedModelMatch,
     directExecuted: true,
     gatewayExecuted: true,
+    gatewayCredits,
     direct,
     gateway,
     cognitionProvider: "openai",
