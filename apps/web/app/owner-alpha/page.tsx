@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import DomiCompanionHome from "../components/domi/DomiCompanionHome";
+import OwnerAlphaLongitudinalHarness from "./OwnerAlphaLongitudinalHarness";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -84,6 +85,8 @@ export default function OwnerAlphaPage() {
         initialAppearance="original"
         initialDev={false}
       />
+
+      <OwnerAlphaLongitudinalHarness />
     </div>
   );
 }
