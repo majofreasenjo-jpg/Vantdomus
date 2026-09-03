@@ -72,6 +72,58 @@ export default function OwnerAlphaPage() {
           text-align: center;
           pointer-events: none;
         }
+
+        /* P3.1 physical-acceptance accessibility hotfix.
+           The main Domi theme has light-on-dark control rules that leaked into
+           this light synthetic harness. Scope the correction ONLY to P3.1. */
+        #vantdomus-owner-alpha .owner-alpha-longitudinal {
+          color: #2f271f !important;
+          color-scheme: light;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal section,
+        #vantdomus-owner-alpha .owner-alpha-longitudinal section > div {
+          color: #2f271f;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal strong,
+        #vantdomus-owner-alpha .owner-alpha-longitudinal label,
+        #vantdomus-owner-alpha .owner-alpha-longitudinal small,
+        #vantdomus-owner-alpha .owner-alpha-longitudinal li,
+        #vantdomus-owner-alpha .owner-alpha-longitudinal code {
+          color: #2f271f !important;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal button {
+          color: #352b21 !important;
+          opacity: 1;
+          font-weight: 650;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal button[style*="#5f4b35"] {
+          color: #ffffff !important;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal button:disabled {
+          color: #766b60 !important;
+          opacity: .52;
+          cursor: not-allowed !important;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal input,
+        #vantdomus-owner-alpha .owner-alpha-longitudinal textarea {
+          color: #ffffff !important;
+          background: #383633 !important;
+          caret-color: #ffffff;
+          border-color: #867b6d !important;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal .physical-test-note {
+          margin: 0 auto 12px;
+          max-width: 1080px;
+          border: 2px solid #9a6a18;
+          border-radius: 16px;
+          padding: 12px 16px;
+          background: #fff4d8;
+          color: #352b21 !important;
+          font: 650 14px/1.45 var(--domi-font-inter), system-ui, sans-serif;
+        }
+        #vantdomus-owner-alpha .owner-alpha-longitudinal .physical-test-note b {
+          color: #7a4e00 !important;
+        }
       `}</style>
 
       <div className="owner-alpha-ribbon">
@@ -86,7 +138,12 @@ export default function OwnerAlphaPage() {
         initialDev={false}
       />
 
-      <OwnerAlphaLongitudinalHarness />
+      <div className="owner-alpha-longitudinal">
+        <div className="physical-test-note">
+          <b>Prueba física P3.1:</b> al pulsar “Recuerda que…” una sola vez, “Memorias recuperadas” debe cambiar de 0 a 1 y aparecer un identificador OA-M-*. Si no cambia, lo tratamos como fallo funcional.
+        </div>
+        <OwnerAlphaLongitudinalHarness />
+      </div>
     </div>
   );
 }
