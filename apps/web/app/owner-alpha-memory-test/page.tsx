@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import InteractionProbe from "./InteractionProbe";
+import MemoryActionProbe from "./MemoryActionProbe";
 import OwnerAlphaLongitudinalHarness from "../owner-alpha/OwnerAlphaLongitudinalHarness";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +21,11 @@ export default function OwnerAlphaMemoryTestPage() {
         </div>
         <h1 style={{ margin: "6px 0 8px", fontSize: 30 }}>Diagnóstico físico P3.1</h1>
         <p style={{ margin: 0, maxWidth: 800, opacity: .9 }}>
-          Esta ruta elimina DomiCompanionHome y cualquier overlay del producto principal. Primero verifica que los clics lleguen a React; después prueba el mismo harness longitudinal.
+          Esta ruta elimina DomiCompanionHome y cualquier overlay del producto principal. Primero verifica que los clics lleguen a React; después prueba una secuencia de memoria instrumentada y finalmente el harness longitudinal completo.
         </p>
       </div>
       <InteractionProbe />
+      <MemoryActionProbe />
       <OwnerAlphaLongitudinalHarness />
     </main>
   );
