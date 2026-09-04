@@ -229,7 +229,7 @@ export default function OwnerAlphaLongitudinalHarness() {
 
   return (
     <section style={{ maxWidth: 1120, margin: "24px auto 48px", padding: "0 20px", fontFamily: "var(--domi-font-inter), system-ui, sans-serif" }}>
-      <div style={{ border: "1px solid rgba(90,73,53,.18)", borderRadius: 24, background: "rgba(255,252,244,.96)", boxShadow: "0 18px 50px rgba(90,70,45,.10)", padding: 22 }}>
+      <div style={{ border: "1px solid rgba(90,73,53,.18)", borderRadius: 24, background: "rgba(255,252,244,.96)", boxShadow: "0 18px 50px rgba(90,70,45,.10)", padding: 22, color: "#352b21" }}>
         <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap" }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#8f6a2b" }}>P3.1 · Owner Alpha · Synthetic only</div>
@@ -238,59 +238,62 @@ export default function OwnerAlphaLongitudinalHarness() {
               Prueba separada del hogar real. Ningún dato de este panel se escribe al backend. La memoria sólo entra por autoridad humana y el contexto cambia por historia admitida, no por copiar todo el transcript.
             </p>
           </div>
-          <button onClick={reset} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "8px 13px", background: "white", cursor: "pointer" }}>Reiniciar prueba</button>
+          <button type="button" onClick={reset} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "8px 13px", background: "white", color: "#352b21", fontWeight: 700, cursor: "pointer" }}>Reiniciar prueba</button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 12, marginTop: 18 }}>
-          <div style={{ padding: 14, borderRadius: 16, background: "#f7f1e6" }}><strong>Sesión</strong><div>{sessionId}</div><small>{surfaceClass}</small></div>
-          <div style={{ padding: 14, borderRadius: 16, background: "#f7f1e6" }}><strong>Memorias recuperadas</strong><div>{context.memories?.length ?? 0}</div><small>{context.memories?.map((m: any) => m.memoryId).join(", ") || "ninguna"}</small></div>
-          <div style={{ padding: 14, borderRadius: 16, background: "#f7f1e6" }}><strong>Fingerprint</strong><div style={{ fontFamily: "monospace", fontSize: 12, wordBreak: "break-all" }}>{context.contextFingerprint}</div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 12, marginTop: 18, color: "#352b21" }}>
+          <div style={{ padding: 14, borderRadius: 16, background: "#f7f1e6", color: "#352b21" }}><strong>Sesión</strong><div>{sessionId}</div><small>{surfaceClass}</small></div>
+          <div style={{ padding: 14, borderRadius: 16, background: "#f7f1e6", color: "#352b21" }}><strong>Memorias recuperadas</strong><div>{context.memories?.length ?? 0}</div><small>{context.memories?.map((m: any) => m.memoryId).join(", ") || "ninguna"}</small></div>
+          <div style={{ padding: 14, borderRadius: 16, background: "#f7f1e6", color: "#352b21" }}><strong>Fingerprint</strong><div style={{ fontFamily: "monospace", fontSize: 12, wordBreak: "break-all" }}>{context.contextFingerprint}</div></div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 18, marginTop: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 18, marginTop: 18, color: "#352b21" }}>
           <div>
-            <label style={{ display: "block", fontWeight: 700, marginBottom: 6 }}>1. Memoria explícita</label>
-            <textarea value={rememberText} onChange={(e) => setRememberText(e.target.value)} rows={3} style={{ width: "100%", boxSizing: "border-box", borderRadius: 14, border: "1px solid #d8c9b4", padding: 12 }} />
-            <button onClick={remember} style={{ marginTop: 8, border: 0, borderRadius: 999, padding: "9px 14px", background: "#5f4b35", color: "white", cursor: "pointer" }}>“Recuerda que…”</button>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: 6, color: "#352b21" }}>1. Memoria explícita</label>
+            <textarea value={rememberText} onChange={(e) => setRememberText(e.target.value)} rows={3} style={{ width: "100%", boxSizing: "border-box", borderRadius: 14, border: "1px solid #d8c9b4", padding: 12, background: "white", color: "#1f1a15" }} />
+            <button type="button" onClick={remember} style={{ marginTop: 8, border: 0, borderRadius: 999, padding: "9px 14px", background: "#5f4b35", color: "white", fontWeight: 700, cursor: "pointer" }}>“Recuerda que…”</button>
           </div>
           <div>
-            <label style={{ display: "block", fontWeight: 700, marginBottom: 6 }}>2. Recall posterior</label>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} style={{ width: "100%", boxSizing: "border-box", borderRadius: 14, border: "1px solid #d8c9b4", padding: 12 }} />
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              <button onClick={() => newSession("PERSONAL_MOBILE")} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "9px 13px", background: "white", cursor: "pointer" }}>Nueva sesión móvil</button>
-              <button onClick={() => switchSurface("SHARED_TV")} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "9px 13px", background: "white", cursor: "pointer" }}>Nueva sesión TV compartida</button>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: 6, color: "#352b21" }}>2. Recall posterior</label>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} style={{ width: "100%", boxSizing: "border-box", borderRadius: 14, border: "1px solid #d8c9b4", padding: 12, background: "white", color: "#1f1a15" }} />
+            <div style={{ marginTop: 8, padding: 10, borderRadius: 14, background: "#eef7f1", border: "1px solid #b8d9c3" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#1f6f43", marginBottom: 8 }}>PASO FÍSICO 2 · CONTINUIDAD ENTRE SESIONES</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => newSession("PERSONAL_MOBILE")} style={{ border: 0, borderRadius: 999, padding: "10px 15px", background: "#173b29", color: "white", fontWeight: 800, cursor: "pointer" }}>Nueva sesión móvil</button>
+                <button type="button" onClick={() => switchSurface("SHARED_TV")} style={{ border: 0, borderRadius: 999, padding: "10px 15px", background: "#7c2d12", color: "white", fontWeight: 800, cursor: "pointer" }}>Nueva sesión TV compartida</button>
+              </div>
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontWeight: 700, marginBottom: 6 }}>3. Corregir / olvidar</label>
-            <input value={correction} onChange={(e) => setCorrection(e.target.value)} style={{ width: "100%", boxSizing: "border-box", borderRadius: 14, border: "1px solid #d8c9b4", padding: 12 }} />
+            <label style={{ display: "block", fontWeight: 700, marginBottom: 6, color: "#352b21" }}>3. Corregir / olvidar</label>
+            <input value={correction} onChange={(e) => setCorrection(e.target.value)} style={{ width: "100%", boxSizing: "border-box", borderRadius: 14, border: "1px solid #d8c9b4", padding: 12, background: "white", color: "#1f1a15" }} />
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <button disabled={!lastMemoryId} onClick={correct} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "9px 13px", background: "white", cursor: "pointer" }}>Corregir</button>
-              <button disabled={!lastMemoryId} onClick={forget} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "9px 13px", background: "white", cursor: "pointer" }}>Olvidar</button>
+              <button type="button" disabled={!lastMemoryId} onClick={correct} style={{ border: "1px solid #9c8061", borderRadius: 999, padding: "9px 13px", background: lastMemoryId ? "#fffaf2" : "#eee8de", color: "#352b21", fontWeight: 700, cursor: lastMemoryId ? "pointer" : "not-allowed", opacity: lastMemoryId ? 1 : 0.55 }}>Corregir</button>
+              <button type="button" disabled={!lastMemoryId} onClick={forget} style={{ border: "1px solid #9c8061", borderRadius: 999, padding: "9px 13px", background: lastMemoryId ? "#fffaf2" : "#eee8de", color: "#352b21", fontWeight: 700, cursor: lastMemoryId ? "pointer" : "not-allowed", opacity: lastMemoryId ? 1 : 0.55 }}>Olvidar</button>
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontWeight: 700, marginBottom: 6 }}>4. Inferencia de Domi</label>
+            <label style={{ display: "block", fontWeight: 700, marginBottom: 6, color: "#352b21" }}>4. Inferencia de Domi</label>
             <p style={{ margin: "0 0 8px", color: "#6a5948", fontSize: 13 }}>La inferencia se guarda como candidata, pero no entra al recall hasta confirmarla.</p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={proposeInference} style={{ border: "1px solid #cbb99f", borderRadius: 999, padding: "9px 13px", background: "white", cursor: "pointer" }}>Proponer inferencia</button>
-              <button disabled={!pendingInferenceId} onClick={confirmInference} style={{ border: 0, borderRadius: 999, padding: "9px 13px", background: "#5f4b35", color: "white", cursor: "pointer" }}>Confirmar inferencia</button>
+              <button type="button" onClick={proposeInference} style={{ border: "1px solid #9c8061", borderRadius: 999, padding: "9px 13px", background: "white", color: "#352b21", fontWeight: 700, cursor: "pointer" }}>Proponer inferencia</button>
+              <button type="button" disabled={!pendingInferenceId} onClick={confirmInference} style={{ border: 0, borderRadius: 999, padding: "9px 13px", background: pendingInferenceId ? "#5f4b35" : "#b9ac9d", color: "white", fontWeight: 700, cursor: pendingInferenceId ? "pointer" : "not-allowed" }}>Confirmar inferencia</button>
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: 18, padding: 14, borderRadius: 16, background: surfaceClass === "SHARED_TV" ? "#fff4dc" : "#f8f5ef" }}>
+        <div style={{ marginTop: 18, padding: 14, borderRadius: 16, background: surfaceClass === "SHARED_TV" ? "#fff4dc" : "#f8f5ef", color: "#352b21" }}>
           <strong>Contexto recuperable ahora</strong>
-          {surfaceClass === "SHARED_TV" && <div style={{ marginTop: 4, fontSize: 13 }}>TV compartida: <code>private_self</code> queda suprimido por defecto.</div>}
-          <ul style={{ marginBottom: 0 }}>
+          {surfaceClass === "SHARED_TV" && <div style={{ marginTop: 4, fontSize: 13, color: "#6a3a16" }}>TV compartida: <code>private_self</code> queda suprimido por defecto.</div>}
+          <ul style={{ marginBottom: 0, color: "#352b21" }}>
             {(context.memories ?? []).map((memory: any) => <li key={memory.memoryId}>{memory.memoryId}: {memory.content}</li>)}
             {(context.memories?.length ?? 0) === 0 && <li>Ninguna memoria autorizada coincide con la consulta/superficie.</li>}
           </ul>
         </div>
 
-        <div style={{ marginTop: 18 }}>
+        <div style={{ marginTop: 18, color: "#352b21" }}>
           <strong>Eventos recientes</strong>
-          <ul>
+          <ul style={{ color: "#352b21" }}>
             {events.map((event) => <li key={event.id}><b>{event.label}</b> — {event.detail}</li>)}
             {events.length === 0 && <li>Aún no hay eventos de la prueba.</li>}
           </ul>
