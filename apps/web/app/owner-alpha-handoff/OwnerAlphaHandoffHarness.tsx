@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 // @ts-ignore deterministic target-native modules exercised in node tests too.
 import {
   createLongitudinalConversationState,
@@ -21,6 +21,7 @@ import {
 const PERSON_ID = "OWNER_ALPHA_SYNTHETIC_PERSON";
 const HOUSEHOLD_ID = "OWNER_ALPHA_SYNTHETIC_HOUSEHOLD";
 const LINEAGE_ID = "OWNER_ALPHA_SYNTHETIC_LINEAGE";
+const PHYSICAL_TEST_RECEIPT_TTL_MINUTES = 180;
 
 type DemoState = any;
 type Receipt = any;
@@ -33,6 +34,12 @@ function isoNow() {
 
 function plusMinutes(minutes: number) {
   return new Date(Date.now() + minutes * 60_000).toISOString();
+}
+
+function minutesRemaining(expiresAt?: string | null) {
+  if (!expiresAt) return null;
+  const delta = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(delta / 60_000));
 }
 
 function seedDesktopState() {
@@ -127,6 +134,12 @@ export default function OwnerAlphaHandoffHarness() {
   const [consumed, setConsumed] = useState<any | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [lastError, setLastError] = useState("ninguno");
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 5_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const log = (label: string, detail: string) => {
     setEvents((prev) => [{ id: `${Date.now()}-${Math.random()}`, label, detail }, ...prev].slice(0, 10));
@@ -134,8 +147,8 @@ export default function OwnerAlphaHandoffHarness() {
 
   const receiptValidation = useMemo(() => {
     if (!receipt) return null;
-    return validateSessionContinuationReceipt(receipt, { now: isoNow() });
-  }, [receipt]);
+    return validateSessionContinuationReceipt(receipt, { now: new Date(clockNow).toISOString() });
+  }, [receipt, clockNow]);
 
   const reset = () => {
     setState(seedDesktopState());
@@ -159,13 +172,14 @@ export default function OwnerAlphaHandoffHarness() {
         authorizedScopes: ["private_self", "household_shared", "temporary_session", "document_derived"],
         transferableTurnIds: ["P5-T-PRIVATE", "P5-T-SHARED"],
         createdAt: isoNow(),
-        expiresAt: plusMinutes(30),
+        expiresAt: plusMinutes(PHYSICAL_TEST_RECEIPT_TTL_MINUTES),
       });
       setReceipt(created);
       setConsumed(null);
       setTargetSessionId(null);
       setTargetSurface(surface);
       setLastError("ninguno");
+      setClockNow(Date.now());
       log("Receipt emitido", `${created.receiptId} · ${surface} · memories=${created.projectedMemoryIds.join(",") || "0"}`);
     } catch (error: any) {
       setLastError(error?.message || String(error));
@@ -201,9 +215,11 @@ export default function OwnerAlphaHandoffHarness() {
       setTargetSessionId(nextId);
       setConsumed(result);
       setLastError("ninguno");
+      setClockNow(Date.now());
       log("Receipt consumido", `${nextId} · ${targetSurface} · memories=${result.memoryIds.join(",") || "0"}`);
     } catch (error: any) {
       setLastError(error?.message || String(error));
+      setClockNow(Date.now());
     }
   };
 
@@ -217,6 +233,7 @@ export default function OwnerAlphaHandoffHarness() {
       setReceipt(next);
       setConsumed(null);
       setLastError("ninguno");
+      setClockNow(Date.now());
       log("Receipt revocado", next.receiptId);
     } catch (error: any) {
       setLastError(error?.message || String(error));
@@ -226,6 +243,7 @@ export default function OwnerAlphaHandoffHarness() {
   const mobileExpected = receipt?.targetSurfaceClass === "PERSONAL_MOBILE";
   const tvExpected = receipt?.targetSurfaceClass === "SHARED_TV";
   const receiptOk = Boolean(receiptValidation?.pass);
+  const remainingMinutes = receipt ? minutesRemaining(receipt.expiresAt) : null;
   const mobileMemoryOk = Boolean(consumed && mobileExpected && consumed.memoryIds.includes("P5-M-PRIVATE") && consumed.memoryIds.includes("P5-M-SHARED"));
   const tvPrivacyOk = Boolean(consumed && tvExpected && !consumed.memoryIds.includes("P5-M-PRIVATE") && consumed.memoryIds.includes("P5-M-SHARED"));
 
@@ -255,6 +273,7 @@ export default function OwnerAlphaHandoffHarness() {
               <div>Sesión: <code>P5-DESKTOP-1</code> · <code>PERSONAL_DESKTOP</code></div>
               <div>Memoria privada: <code>P5-M-PRIVATE</code></div>
               <div>Memoria compartida: <code>P5-M-SHARED</code></div>
+              <div>TTL físico de prueba: <code>{PHYSICAL_TEST_RECEIPT_TTL_MINUTES} min</code> (la semántica fail-closed de expiración no cambia).</div>
             </div>
           </section>
 
@@ -282,6 +301,8 @@ export default function OwnerAlphaHandoffHarness() {
                 <div><strong>Memorias proyectadas:</strong> <code>{receipt.projectedMemoryIds.join(", ") || "ninguna"}</code></div>
                 <div><strong>Turnos transferibles:</strong> <code>{receipt.transferableTurnIds.join(", ") || "ninguno"}</code></div>
                 <div><strong>Scopes:</strong> <code>{receipt.memoryScopes.join(", ") || "ninguno"}</code></div>
+                <div><strong>Creado:</strong> <code>{receipt.createdAt}</code></div>
+                <div><strong>Expira:</strong> <code>{receipt.expiresAt}</code> · <strong>restan aprox.:</strong> <code>{remainingMinutes} min</code></div>
                 <div><strong>Digest:</strong> <code>{receipt.receiptDigest}</code></div>
               </div>
             )}
