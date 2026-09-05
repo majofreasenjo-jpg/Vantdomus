@@ -89,7 +89,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
         targetSurfaceClass: "PERSONAL_MOBILE",
         purpose: "P5 real cross-device synthetic receipt transport",
         query: P5_QUERY,
-        authorizedScopes: P5_AUTHORIZED_SCOPES,
+        authorizedScopes: [...P5_AUTHORIZED_SCOPES],
         transferableTurnIds: [P5_PRIVATE_TURN_ID, P5_SHARED_TURN_ID],
         createdAt: nowIso(),
         expiresAt: plusMinutes(TTL_MINUTES),
@@ -162,7 +162,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
         targetSessionId: "P5-PHONE-REAL-1",
         now: nowIso(),
         query: P5_QUERY,
-        authorizedScopes: P5_AUTHORIZED_SCOPES,
+        authorizedScopes: [...P5_AUTHORIZED_SCOPES],
       });
       setConsumed(result);
       setLastError("ninguno");
