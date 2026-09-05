@@ -22,10 +22,14 @@ export const P5_AUTHORIZED_SCOPES = Object.freeze([
   "document_derived",
 ]);
 
+/** @param {string | number | Date} [value] */
 function iso(value = new Date()) {
   return new Date(value).toISOString();
 }
 
+/**
+ * @param {{ baseTime?: string | number | Date }} [options]
+ */
 export function seedP5SyntheticDesktopState({ baseTime = new Date() } = {}) {
   const t0 = new Date(baseTime).getTime();
   const at = (offsetMs) => iso(new Date(t0 + offsetMs));
