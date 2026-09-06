@@ -31,7 +31,7 @@ import {
   decodeCrossDeviceTransportEnvelope,
 } from "../../lib/domiP5CrossDeviceTransport.mjs";
 
-const TTL_MINUTES = 180;
+const TTL_MINUTES = 1440;
 
 type Mode = "SOURCE" | "DESTINATION";
 
@@ -190,6 +190,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
             El enlace transporta sólo el SessionContinuationReceipt sintético dentro del fragmento URL. No transporta memoria cruda, transcripción completa ni autoridad constitutiva.
           </p>
           <div style={{ marginTop: 10, fontSize: 13 }}>Superficie física detectada: <code>{deviceLabel}</code></div>
+          <div style={{ marginTop: 6, fontSize: 13 }}>TTL físico de prueba: <code>{TTL_MINUTES} min</code> · la expiración sigue siendo fail-closed.</div>
         </div>
 
         {mode === "SOURCE" ? (
@@ -208,6 +209,8 @@ export default function OwnerAlphaCrossDeviceHarness() {
                   <div><strong>Raw memory:</strong> <code>{String(receipt.rawMemoryContentIncluded)}</code></div>
                   <div><strong>Raw transcript:</strong> <code>{String(receipt.rawTranscriptContentIncluded)}</code></div>
                   <div><strong>Full state copied:</strong> <code>{String(receipt.fullStateCopied)}</code></div>
+                  <div><strong>Creado:</strong> <code>{receipt.createdAt}</code></div>
+                  <div><strong>Expira:</strong> <code>{receipt.expiresAt}</code></div>
                   <div><strong>Integridad:</strong> <code>{validation?.pass ? "PASS" : "FAIL"}</code></div>
                 </div>
               )}
@@ -240,6 +243,8 @@ export default function OwnerAlphaCrossDeviceHarness() {
             <div><strong>Integridad / expiración:</strong> <code>{validation?.pass ? "PASS" : "FAIL"}</code></div>
             {receipt && <div><strong>Receipt:</strong> <code>{receipt.receiptId}</code></div>}
             {receipt && <div><strong>Destino declarado:</strong> <code>{receipt.targetSurfaceClass}</code></div>}
+            {receipt && <div><strong>Creado:</strong> <code>{receipt.createdAt}</code></div>}
+            {receipt && <div><strong>Expira:</strong> <code>{receipt.expiresAt}</code></div>}
             {receipt && <div><strong>Raw memory transportada:</strong> <code>{String(receipt.rawMemoryContentIncluded)}</code></div>}
             {receipt && <div><strong>Raw transcript transportada:</strong> <code>{String(receipt.rawTranscriptContentIncluded)}</code></div>}
 
