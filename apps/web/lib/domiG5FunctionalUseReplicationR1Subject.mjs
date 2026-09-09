@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
+import {
+  G5_OWNER_DATA_CLASS,
+  createG5OwnerActivationReceipt,
+} from "./domiG5OwnerActivation.mjs";
 
-export const DOMI_G5_FUR1_SUBJECT_VERSION = "DOMI_G5_FUR1_SUBJECT_V0_1";
+export const DOMI_G5_FUR1_SUBJECT_VERSION = "DOMI_G5_FUR1_SUBJECT_V0_2";
 export const DOMI_G5_FUR1_CANONICAL_ENTRY_ID = "G5-E-0001-REAL";
 export const DOMI_G5_FUR1_CANONICAL_ENTRY_FINGERPRINT = "f123fe84d4059c04249e4fd1bb58a24f60416fbefbda41b17f5046de277213b4";
 export const DOMI_G5_FUR1_ACTION_SPACE = Object.freeze([
@@ -9,6 +13,23 @@ export const DOMI_G5_FUR1_ACTION_SPACE = Object.freeze([
   "ACTION_8", "ACTION_9", "ACTION_A", "ACTION_B",
   "ACTION_C", "ACTION_D", "ACTION_E", "ACTION_F",
 ]);
+
+const DOMI_G5_FUR1_ACTIVATION_FINGERPRINT = createG5OwnerActivationReceipt().activationFingerprint;
+
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
+  }
+  return value;
+}
+
+function sha256Canonical(value) {
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(canonical(value)))
+    .digest("hex");
+}
 
 function normalizeContent(content) {
   if (typeof content !== "string" || content.length === 0) {
@@ -34,13 +55,45 @@ function normalizeChallenge(challenge) {
   return Object.freeze({ challengeId, selector, nonce });
 }
 
+function reproduceEntryFingerprint(memory) {
+  if (
+    !memory ||
+    typeof memory !== "object" ||
+    typeof memory.content !== "string" ||
+    typeof memory.observedAt !== "string" ||
+    typeof memory.surfaceClass !== "string"
+  ) {
+    return null;
+  }
+
+  const entryCore = {
+    schema: "domi.g5.owner-prospective-entry.v1",
+    entryId: memory.entryId,
+    activationFingerprint: DOMI_G5_FUR1_ACTIVATION_FINGERPRINT,
+    observedAt: memory.observedAt,
+    surfaceClass: memory.surfaceClass,
+    dataClass: G5_OWNER_DATA_CLASS,
+    content: memory.content.trim(),
+    prospective: true,
+    retroactiveImport: false,
+    familyData: false,
+    holdout: false,
+    production: false,
+    scientificEvidenceRootMinted: false,
+    developmentalCredit: 0,
+  };
+  return sha256Canonical(entryCore);
+}
+
 function isCanonicalGovernedMemory(memory) {
-  return Boolean(
-    memory &&
-    typeof memory === "object" &&
-    memory.entryId === DOMI_G5_FUR1_CANONICAL_ENTRY_ID &&
-    memory.fingerprint === DOMI_G5_FUR1_CANONICAL_ENTRY_FINGERPRINT
-  );
+  if (!memory || typeof memory !== "object") return false;
+  if (memory.entryId !== DOMI_G5_FUR1_CANONICAL_ENTRY_ID) return false;
+  if (memory.entryFingerprint !== DOMI_G5_FUR1_CANONICAL_ENTRY_FINGERPRINT) return false;
+  if (memory.prospective !== true) return false;
+  if (memory.appendOnly !== true || memory.overwriteAllowed !== false) return false;
+  if (memory.realOwnerMemoryEntryCount !== 1) return false;
+  if (memory.scientificRootsMinted !== 0) return false;
+  return reproduceEntryFingerprint(memory) === DOMI_G5_FUR1_CANONICAL_ENTRY_FINGERPRINT;
 }
 
 function memoryDerivedPermutation(content) {
