@@ -13,6 +13,8 @@ export const DOMI_G5_FUR1_SECONDARY_ARMS = Object.freeze([
   "D_RENDERING_PERTURBATION",
 ]);
 
+const CHALLENGE_PREFIX = "G5-FUR1-C-";
+
 function digestHex(algorithm, text) {
   return crypto.createHash(algorithm).update(Buffer.from(text, "utf8")).digest("hex");
 }
@@ -28,9 +30,9 @@ function inspectChallenge(candidate) {
 
   if (
     typeof challengeId !== "string" ||
-    challengeId.length !== 35 ||
-    !challengeId.startsWith("G5-FUR1-C-") ||
-    !/^[0-9a-f]{24}$/.test(challengeId.slice(11))
+    challengeId.length !== CHALLENGE_PREFIX.length + 24 ||
+    !challengeId.startsWith(CHALLENGE_PREFIX) ||
+    !/^[0-9a-f]{24}$/.test(challengeId.slice(CHALLENGE_PREFIX.length))
   ) {
     throw new Error("G5_FUR1_SECONDARY_CHALLENGE_ID_INVALID");
   }
