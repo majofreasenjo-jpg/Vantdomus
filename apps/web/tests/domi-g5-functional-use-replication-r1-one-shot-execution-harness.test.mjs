@@ -74,14 +74,14 @@ test("R1 one-shot authorization contract is frozen to non-production and no netw
   assert.ok(source.includes('authorization.scientificNetworkProbes !== false'));
 });
 
-test("R1 one-shot latch is set before the first subject call and forbids same-panel retry", () => {
+test("R1 one-shot latch is set before the execution-loop subject invocation and forbids same-panel retry", () => {
   const latchIndex = source.indexOf("executionStarted = true;");
-  const subjectLoopIndex = source.indexOf("runSubjectArm(arm, item)");
+  const executionLoopCallIndex = source.indexOf("outcomesByArm[arm].push(wrapRow(item, runSubjectArm(arm, item)))");
   const retryGuardIndex = source.indexOf("G5_FUR1_ONE_SHOT_ALREADY_STARTED_NO_SAME_PANEL_RETRY");
   assert.ok(retryGuardIndex >= 0);
   assert.ok(latchIndex >= 0);
-  assert.ok(subjectLoopIndex >= 0);
-  assert.ok(latchIndex < subjectLoopIndex);
+  assert.ok(executionLoopCallIndex >= 0);
+  assert.ok(latchIndex < executionLoopCallIndex);
 });
 
 test("R1 one-shot harness freezes exact 96x4 execution geometry and arm semantics", () => {
