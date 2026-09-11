@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   G5_R2_OWNER_APPEND_ONLY_LEDGER,
-  G5_OWNER_ACTIVATION_RECEIPT,
   readG5R2FirstOwnerMemory,
   readG5SecondOwnerMemory,
 } from "../lib/domiG5OwnerLongitudinalStateR2.mjs";
+import {
+  G5_OWNER_ACTIVATION_RECEIPT,
+} from "../lib/domiG5OwnerLongitudinalSeed.mjs";
 import {
   getG5Fur2SubjectFreezeDescriptor,
   diagnoseG5Fur2PairOrderSensitivity,
