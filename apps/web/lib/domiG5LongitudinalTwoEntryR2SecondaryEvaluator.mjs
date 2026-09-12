@@ -14,7 +14,7 @@ const FP = Object.freeze({ [E1]:F1, [E2]:F2 });
 function h(alg, text) { return crypto.createHash(alg).update(Buffer.from(text,"utf8")).digest("hex"); }
 function inspect(c) {
   if (!c || typeof c !== "object" || Array.isArray(c)) throw new Error("G5_FUR2_SECONDARY_CHALLENGE_REQUIRED");
-  if (typeof c.challengeId !== "string" || c.challengeId.length !== 35 || !c.challengeId.startsWith("G5-FUR2-C-") || !/^[0-9a-f]{24}$/.test(c.challengeId.slice(11))) throw new Error("G5_FUR2_SECONDARY_CHALLENGE_ID_INVALID");
+  if (typeof c.challengeId !== "string" || c.challengeId.length !== 34 || !c.challengeId.startsWith("G5-FUR2-C-") || !/^[0-9a-f]{24}$/.test(c.challengeId.slice(10))) throw new Error("G5_FUR2_SECONDARY_CHALLENGE_ID_INVALID");
   if (!CLASSES.includes(c.targetClass)) throw new Error("G5_FUR2_SECONDARY_TARGET_CLASS_INVALID");
   if (!Number.isSafeInteger(c.selector) || c.selector < 0 || c.selector > 31) throw new Error("G5_FUR2_SECONDARY_SELECTOR_INVALID");
   if (typeof c.nonce !== "string" || c.nonce.length !== 40 || !/^[0-9a-f]+$/.test(c.nonce)) throw new Error("G5_FUR2_SECONDARY_NONCE_INVALID");
