@@ -12,10 +12,18 @@ const scriptSrc = isProd
   : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
 
 const securityHeaders = [
+  // CP1d-FAMILY-PILOT-WEB-HARDENING: piloto familiar cerrado — NINGUNA página
+  // de la superficie web debe indexarse (aplica a /:path* completo, incluidos
+  // /, /login, /hogar/* y /api/*). Complementa robots.txt (Disallow: /) y la
+  // metadata robots del layout raíz. Vive en código, no en config del panel.
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // OPS-1/M4: geolocation (clima) y microphone (voz para hablarle a Domi)
+  // habilitados SOLO para el propio origen. camera sigue deshabilitada (la foto
+  // de boletas usa el selector de archivos, no getUserMedia).
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(self)' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
   {
     key: 'Content-Security-Policy',

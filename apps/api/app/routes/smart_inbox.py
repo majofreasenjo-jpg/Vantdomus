@@ -28,6 +28,7 @@ from pydantic import BaseModel
 
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role
+from ..rbac import require_module_visible
 from ..tenancy import get_household_organization_id
 from .unit_functions import create_unit_function_internal
 from .vantguide_library import log_evidence_internal, upsert_memory_internal
@@ -59,6 +60,52 @@ def _extract_text(filename: str, data: bytes) -> str:
             return " ".join(page.get_text() for page in doc).strip()
     except Exception:
         return ""
+
+
+def _extract_receipt_items(data: bytes) -> list[dict]:
+    """Detalle de una boleta PDF (producto -> precio).
+
+    El texto plano separa el nombre y el precio en columnas distintas, así que
+    agrupamos por fila usando las coordenadas de cada palabra (get_text('words')).
+    Se saltan las líneas de totales/impuestos/encabezados.
+    """
+    try:
+        import fitz  # PyMuPDF (lazy)
+    except Exception:
+        return []
+    STOP = ("TOTAL", "SUBTOTAL", "IVA", "AFECTO", "EXENTO", "VUELTO", "DEBIT",
+            "ACUMULAD", "ARTIC", "CANJE", "CLIENTE", "CLUB", "BOLETA", "RUT",
+            "CAJA", "FECHA", "CODIGO", "CÓDIGO", "DESCUENTO")
+    items: list[dict] = []
+    try:
+        with fitz.open(stream=data, filetype="pdf") as doc:
+            for page in doc:
+                rows: dict = {}
+                for x0, y0, x1, y1, w, *_ in page.get_text("words"):
+                    rows.setdefault(round(y0 / 3), []).append((x0, w))
+                for k in sorted(rows):
+                    ws = sorted(rows[k])
+                    up = " ".join(w for _, w in ws).upper()
+                    if any(s in up for s in STOP):
+                        continue
+                    nums = [w for _, w in ws if re.fullmatch(r"\$?\d{1,3}(?:[.,]\d{3})+", w)]
+                    if not nums:
+                        continue
+                    price = _to_number(nums[-1])
+                    if not price or price < 200:
+                        continue
+                    # Nombre = tokens con >=2 letras (excluye códigos de barra y "3X1.550").
+                    name_tokens = [w for _, w in ws
+                                   if sum(c.isalpha() for c in w) >= 2 and not re.search(r"\d{6,}", w)]
+                    name = re.sub(r"^[\d.,xX$\s]+", "", " ".join(name_tokens)).strip()
+                    if len(name) < 3:
+                        continue
+                    items.append({"name": name[:40], "price": price})
+                    if len(items) >= 40:
+                        return items
+    except Exception:
+        return []
+    return items
 
 
 # ---------------------------------------------------------------------------
@@ -156,6 +203,23 @@ _MERCHANTS = [
 ]
 
 
+# Etiquetas que a veces preceden al nombre del comercio en una boleta.
+_MERCHANT_LABEL_RE = re.compile(
+    r"^\s*(comercio|tienda|local|sucursal|empresa|negocio|establecimiento|raz[oó]n\s+social)\s*[:\-]\s*",
+    re.IGNORECASE,
+)
+
+
+def _clean_merchant(s: str) -> str:
+    """Quita prefijos tipo 'Comercio: ', 'Tienda: ', 'Local: ' del nombre."""
+    s = (s or "").strip()
+    prev = None
+    while s and s != prev:
+        prev = s
+        s = _MERCHANT_LABEL_RE.sub("", s).strip()
+    return s[:40]
+
+
 def _detect_merchant(text: str) -> str:
     low = (text or "").lower()
     for key, label in _MERCHANTS:
@@ -170,8 +234,8 @@ def _detect_merchant(text: str) -> str:
         if up.startswith(("SUC", "RUT", "BOL", "FECHA", "HORA", "CODIGO", "CÓDIGO", "CAJA", "$")):
             continue
         if any(c.isalpha() for c in s):
-            return s[:40]
-    return _first_line(text)
+            return _clean_merchant(s)
+    return _clean_merchant(_first_line(text))
 
 
 def _parse_amount(text: str) -> Optional[float]:
@@ -181,7 +245,7 @@ def _parse_amount(text: str) -> Optional[float]:
     # Montos que vienen tras una etiqueta "total" (excluyendo subtotal/iva/etc.)
     for m in re.finditer(r"(total[^\n$]{0,22}?)\$?\s*([\d][\d.\,]{2,})", txt, re.IGNORECASE):
         label = m.group(1).lower()
-        if any(x in label for x in ("subtotal", "iva", "numero", "número", "acumulado", "exento", "artic")):
+        if any(x in label for x in ("subtotal", "iva", "numero", "número", "acumulado", "exento", "artic", "neto", "vuelto", "cambio", "propina")):
             continue
         v = _to_number(m.group(2))
         if v:
@@ -338,10 +402,13 @@ async def analyze_document(
 ):
     """Sube/pega un documento, lo clasifica y crea un DocumentRouteCandidate."""
     require_household_role(db, user["user_id"], household_id, "member")
+    # CP1d-1b.1: bandeja de documentos = modulo "documents" (family-pilot => DENIED).
+    require_module_visible(db, user["user_id"], household_id, "documents")
 
     source = "pasted_text"
     text = (pasted_text or "").strip()
     pending_image = False
+    ocr_used = False
     if file is not None:
         data = await file.read()
         if len(data) > _MAX_BYTES:
@@ -351,8 +418,17 @@ async def analyze_document(
         if extracted:
             text = extracted
         elif not text:
-            # Imagen/otro sin OCR: queda pendiente de revisión manual.
-            pending_image = True
+            # OPS-1.D: antes de rendir a revisión manual, intentamos OCR por
+            # visión (solo si el perfil operativo tiene IA real disponible). El
+            # texto transcrito sigue el MISMO clasificador por reglas + la
+            # confirmación humana; nada se archiva sin que la familia lo apruebe.
+            from ..assistant.document_ocr import ocr_image_text
+            ocr_text = ocr_image_text(data, file.filename or "")
+            if ocr_text:
+                text = ocr_text
+                ocr_used = True
+            else:
+                pending_image = True
     if not text and not pending_image:
         raise HTTPException(status_code=400, detail="No hay texto para analizar (pegá texto o subí un PDF)")
 
@@ -368,6 +444,16 @@ async def analyze_document(
         }
     else:
         result = _classify(text, file.filename if file else "")
+        # Detalle de boleta (producto -> precio) desde el PDF, por coordenadas.
+        if result["route_type"] == "receipt_to_finance" and file is not None and not ocr_used:
+            line_items = _extract_receipt_items(data)
+            if line_items:
+                result["proposed_payload"]["line_items"] = line_items
+                n = len(line_items)
+                result["summary"] = f"Boleta detectada con {n} producto{'s' if n != 1 else ''}. Revisá el detalle y el total."
+        if ocr_used:
+            result["proposed_payload"]["read_by_ocr"] = True
+            result["summary"] = "Foto leída por Domi (OCR). " + result["summary"] + " Revisá que el texto sea correcto."
 
     organization_id = get_household_organization_id(db, household_id)
     cid = str(uuid.uuid4())
@@ -383,7 +469,7 @@ async def analyze_document(
             (text or "")[:_PREVIEW_LEN], result["confidence"],
             1 if result["requires_confirmation"] else 0, "pending",
             json.dumps(result["proposed_payload"], ensure_ascii=False),
-            0, user["user_id"], _now(),
+            1 if ocr_used else 0, user["user_id"], _now(),
         ),
     )
     db.commit()
@@ -401,6 +487,7 @@ def list_candidates(
     """Lista candidatos. Scoping: owner/admin ven todos; un integrante (member)
     ve los no asignados o los de su propia persona."""
     role = require_household_role(db, user["user_id"], household_id, "viewer")
+    require_module_visible(db, user["user_id"], household_id, "documents")
     rows = db.execute(
         "SELECT * FROM document_route_candidates WHERE household_id=? AND status=? "
         "ORDER BY created_at DESC LIMIT 200",
@@ -415,6 +502,7 @@ def list_candidates(
 
 class ConfirmBody(BaseModel):
     overrides: dict = {}
+    allow_duplicate: bool = False
 
 
 @router.post("/candidates/{candidate_id}/confirm")
@@ -430,6 +518,7 @@ def confirm_candidate(
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
     cand = _row_to_dict(row)
     require_household_role(db, user["user_id"], cand["household_id"], "member")
+    require_module_visible(db, user["user_id"], cand["household_id"], "documents")
     if cand["status"] != "pending":
         raise HTTPException(status_code=409, detail=f"El candidato ya está {cand['status']}")
 
@@ -502,12 +591,26 @@ def confirm_candidate(
         amount = payload.get("amount")
         if not amount or float(amount) <= 0:
             raise HTTPException(status_code=400, detail="Falta el monto del gasto — completalo")
+        merchant = payload.get("merchant")
+        # Dedup: mismo hogar + monto + comercio + mismo día = posible duplicado.
+        # Se bloquea salvo que el usuario confirme explícitamente (allow_duplicate).
+        if not body.allow_duplicate:
+            dup = db.execute(
+                "SELECT id FROM expenses WHERE household_id=? AND amount=? "
+                "AND IFNULL(merchant,'')=IFNULL(?,'') AND substr(expense_at,1,10)=substr(?,1,10) LIMIT 1",
+                (hid, float(amount), merchant, _now()),
+            ).fetchone()
+            if dup:
+                raise HTTPException(
+                    status_code=409,
+                    detail="DUPLICADO: ya registraste hoy un gasto igual (mismo comercio y monto).",
+                )
         eid = str(uuid.uuid4())
         db.execute(
             "INSERT INTO expenses (id,household_id,organization_id,amount,currency,category,merchant,expense_at,notes,person_id,created_at) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (eid, hid, org, float(amount), payload.get("currency", "CLP"),
-             payload.get("category", "groceries"), payload.get("merchant"),
+             payload.get("category", "groceries"), merchant,
              _now(), "Cargado desde Bandeja Inteligente", pid, _now()),
         )
         result_type = "expense"
@@ -562,6 +665,7 @@ def reject_candidate(
         raise HTTPException(status_code=404, detail="Candidato no encontrado")
     cand = _row_to_dict(row)
     require_household_role(db, user["user_id"], cand["household_id"], "member")
+    require_module_visible(db, user["user_id"], cand["household_id"], "documents")
     if cand["status"] != "pending":
         raise HTTPException(status_code=409, detail=f"El candidato ya está {cand['status']}")
 

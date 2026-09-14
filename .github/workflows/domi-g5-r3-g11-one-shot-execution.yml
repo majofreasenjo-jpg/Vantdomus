@@ -1,0 +1,42 @@
+name: DOMI G5 R3 G11-R1 Supersession One-Shot Execution
+
+on:
+  push:
+    branches:
+      - domi-g5-r3-autobiographical-history
+    paths:
+      - apps/web/scientific/r3/G11_R1_OWNER_EXPLICIT_SUPERSESSION_AUTHORIZATION_R3_2026_09_14.txt
+
+permissions:
+  contents: write
+
+jobs:
+  g11-r1-one-shot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout authorized branch
+        uses: actions/checkout@v4
+        with:
+          ref: domi-g5-r3-autobiographical-history
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Execute frozen G11-R1 supersession exactly once and freeze outcomes
+        working-directory: apps/web
+        run: node scripts/domi-g5-r3-g11-r1-execute-once.mjs
+
+      - name: Commit immutable G11-R1 outcome freeze
+        if: always()
+        run: |
+          if [ ! -f apps/web/scientific/r3/G11_R1_ONE_SHOT_OUTCOME_FREEZE_2026_09_14.json ]; then
+            echo "G11-R1 freeze file missing; nothing to commit"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/scientific/r3/G11_R1_ONE_SHOT_OUTCOME_FREEZE_2026_09_14.json
+          git commit -m "freeze R3 G11-R1 one-shot outcome"
+          git push origin HEAD:domi-g5-r3-autobiographical-history

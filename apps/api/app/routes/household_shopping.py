@@ -100,6 +100,22 @@ def _validate(category=None, priority=None, store_type=None, status=None):
         raise HTTPException(400, f"Invalid status. Allowed: {sorted(ALLOWED_STATUSES)}")
 
 
+@router.get("/{household_id}/summary")
+def shopping_summary_endpoint(
+    household_id: str,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    CP1c-FUNC-MIN-3.3a — Resumen CANÓNICO de Compras (única fuente de verdad).
+    Home, Domi y módulo Compras deben mostrar estos números.
+    Criterio: por_comprar = needed + in_cart · comprado = purchased · excluido = cancelled.
+    """
+    from ..shopping_contract import shopping_summary
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    return shopping_summary(db, household_id)
+
+
 @router.get("/{household_id}/items")
 def list_items(
     household_id: str,

@@ -76,7 +76,7 @@ export default function DomiCompanion({
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [feed]);
 
-  function push(b: Omit<Block, "id">) { setFeed((f) => [...f, { ...(b as any), id: idRef.current++ }]); }
+  function push(b: { role: "user"; text: string } | { role: "domi"; text: string } | { role: "card"; card: DomiCard }) { setFeed((f) => [...f, { ...(b as any), id: idRef.current++ } as Block]); }
 
   function handle(text: string) {
     const q = text.trim();
@@ -96,7 +96,7 @@ export default function DomiCompanion({
   function closeVoice() {
     try { recRef.current?.stop(); } catch {}
     setListening(false); setVoiceOpen(false);
-    setState((s) => (s === "escuchando" ? "listo" : s));
+    setState((s) => (s === "escuchando" ? "atento" : s));
   }
 
   function speakDemo(text: string) { closeVoice(); handle(text); }

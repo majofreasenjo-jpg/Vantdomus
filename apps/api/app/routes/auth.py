@@ -4,7 +4,7 @@ import re
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from pydantic import BaseModel
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role, require_verified_email_for_sensitive_action
@@ -184,8 +184,12 @@ def _raw_action_token() -> str:
     return secrets.token_urlsafe(32)
 
 def _local_token_payload(raw_token: str) -> dict:
+    # Solo entornos de desarrollo local exponen el token en la respuesta (para
+    # tests/demo sin SMTP). family-pilot es ONLINE: el token viaja solo por
+    # email, nunca en la respuesta HTTP.
     env = os.getenv("APP_ENV", "local").strip().lower()
-    return {"token": raw_token} if env not in {"production", "prod", "staging"} else {}
+    online_envs = {"production", "prod", "staging", "family-pilot", "family_pilot", "familypilot"}
+    return {"token": raw_token} if env not in online_envs else {}
 
 def _public_app_url() -> str:
     return os.getenv("VANTDOMUS_APP_PUBLIC_URL", "http://127.0.0.1:3000").rstrip("/")
@@ -326,6 +330,16 @@ def _verified_totp(db, user_id: str, stored_secret: str, code: str) -> bool:
         db.execute("UPDATE user_mfa SET totp_secret=? WHERE user_id=?", (protect_totp_secret(secret), user_id))
     return verified
 
+@router.get("/config")
+def auth_config():
+    """
+    CP1d-FAMILY-PILOT-1a — Config pública NO sensible para la UI (evita usar
+    NEXT_PUBLIC_* para gating). Solo expone si el registro público está abierto.
+    """
+    from app.config import public_registration_enabled
+    return {"public_registration": public_registration_enabled()}
+
+
 @router.post("/register")
 def register(
     body: RegisterBody | None = None,
@@ -333,6 +347,15 @@ def register(
     password: str | None = None,
     db=Depends(get_db),
 ):
+    # CP1d-FAMILY-PILOT-1a — puerta cerrada: en piloto/producción el registro
+    # público se RECHAZA en el ENDPOINT (no basta ocultarlo en la UI). El alta
+    # de integrantes es por invitación privada del hogar (single-use, expira).
+    from app.config import public_registration_enabled
+    if not public_registration_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="El registro público está deshabilitado. Pide una invitación al administrador de tu hogar.",
+        )
     # Accept credentials from JSON body (preferred) or legacy query params
     # (deprecated; logs URLs and leaks the password).
     body_email = body.email if body else None
@@ -341,6 +364,8 @@ def register(
         body_email, body_password, None, email, password, None,
     )
     email = _normalize_email(resolved_email)
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("register", email)
     _validate_registration(email, password)
     row = db.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone()
     if row:
@@ -361,6 +386,221 @@ def register(
     db.commit()
     return {"user_id": uid, "email_delivery": {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")}, **_local_token_payload(raw_token)}
 
+class RegisterWithInvitationBody(BaseModel):
+    """Alta atómica mediante token de invitación (CP1d-FAMILY-PILOT-1a)."""
+    token: str
+    email: str
+    password: str
+
+
+# Anti-enumeración: token inexistente, revocado, usado, expirado o con email
+# distinto responden EXACTAMENTE igual (mismo código y mismo mensaje).
+_INVITATION_GENERIC_ERROR = "Invitación inválida, expirada o ya utilizada"
+
+
+def _parse_invitation_expiry(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+@router.post("/register-with-invitation")
+def register_with_invitation(
+    body: RegisterWithInvitationBody,
+    request: Request,
+    db=Depends(get_db),
+):
+    """
+    Única vía de alta con el registro público cerrado: crea usuario, membresía
+    y vínculo de persona EN UNA SOLA TRANSACCIÓN, consumiendo la invitación.
+    Cualquier fallo revierte todo (la invitación no puede consumirse a medias).
+    """
+    from app.rate_limit import enforce_action_limit
+
+    token = (body.token or "").strip()
+    email = _normalize_email(body.email or "")
+    # Rate limit por IP y por fingerprint NO reversible del token (el token en
+    # claro jamás se registra ni se usa como clave).
+    client_ip = request.client.host if request.client else "unknown"
+    token_fp = hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+    enforce_action_limit("invitation_register", f"ip:{client_ip}")
+    enforce_action_limit("invitation_register", f"tok:{token_fp}")
+    _validate_registration(email, body.password)
+
+    invitation = db.execute(
+        """
+        SELECT id, household_id, organization_id, email, role, expires_at,
+               accepted_at, revoked_at, person_id
+        FROM household_invitations
+        WHERE token_hash=?
+        """,
+        (hashlib.sha256(token.encode("utf-8")).hexdigest(),),
+    ).fetchone()
+    if not invitation or invitation["revoked_at"] or invitation["accepted_at"]:
+        raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+    if _parse_invitation_expiry(invitation["expires_at"]) <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+    if invitation["email"] != email:
+        raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+
+    # Quien porta un token válido para este email ya conoce el email: indicar
+    # el camino correcto no filtra información nueva.
+    if db.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
+        raise HTTPException(
+            status_code=409,
+            detail="Ya existe una cuenta con este email. Inicia sesión y acepta la invitación desde tu cuenta.",
+        )
+
+    uid = str(uuid.uuid4())
+    linked_person_id = None
+    try:
+        # 0) CP1d-1b.1 — política de menores COMPARTIDA, re-validada DENTRO de
+        #    la transacción (banda/tutela/consentimiento pueden haber cambiado
+        #    desde que se creó la invitación). El rol es el PERSISTIDO en la
+        #    invitación; nada de banda/scope/rol viene del payload del cliente.
+        #    Vía pública: todo rechazo de política usa el mensaje genérico
+        #    anti-enumeración.
+        from app.config import is_family_profile
+        from app.minor_guardian_policy import validate_invitation_person_policy
+        policy = validate_invitation_person_policy(
+            db,
+            household_id=invitation["household_id"],
+            person_id=invitation["person_id"],
+            role=invitation["role"],
+            require_person=is_family_profile(),
+            generic_error=_INVITATION_GENERIC_ERROR,
+        )
+        # 1) Consumir la invitación PRIMERO, con guardia de concurrencia: solo
+        #    una transacción puede pasar de accepted_at NULL a consumida.
+        cur = db.execute(
+            """
+            UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=?
+            WHERE id=? AND accepted_at IS NULL AND revoked_at IS NULL
+            """,
+            (uid, now(), invitation["id"]),
+        )
+        if cur.rowcount != 1:
+            raise HTTPException(status_code=400, detail=_INVITATION_GENERIC_ERROR)
+        # 2) Usuario (UNIQUE(users.email) corta cualquier duplicado concurrente).
+        db.execute(
+            "INSERT INTO users (id,email,password_hash,is_active,created_at) VALUES (?,?,?,?,?)",
+            (uid, email, hash_password(body.password), 1, now()),
+        )
+        # 3) Membresía en el hogar con el rol de la invitación.
+        db.execute(
+            "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
+            (invitation["household_id"], uid, invitation["role"], now()),
+        )
+        # 4) Vínculo persona: si la invitación lo traía, DEBE poder enlazarse;
+        #    si la ficha ya no está libre o cambió de hogar, se revierte todo.
+        if invitation["person_id"]:
+            cur = db.execute(
+                "UPDATE persons SET user_id=? WHERE id=? AND household_id=? AND user_id IS NULL",
+                (uid, invitation["person_id"], invitation["household_id"]),
+            )
+            if cur.rowcount != 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail="La invitación no pudo completarse. Pide una nueva al administrador del hogar.",
+                )
+            linked_person_id = invitation["person_id"]
+        # 5) Auditoría (sin token ni contraseña).
+        write_audit_log(
+            db,
+            action="register_with_invitation",
+            resource_type="household_invitation",
+            household_id=invitation["household_id"],
+            user_id=uid,
+            resource_id=invitation["id"],
+            metadata={
+                "role": invitation["role"],
+                "linked_person_id": linked_person_id,
+                "email_fingerprint": _email_fingerprint(email),
+                "token_fingerprint": token_fp,
+                "age_band": policy.get("age_band"),
+                "relationship_id": policy.get("relationship_id"),
+                "consent_id": policy.get("consent_id"),
+            },
+        )
+        write_security_event(
+            db,
+            event_type="household_invitation_registered",
+            severity="high" if invitation["role"] == "owner" else "medium",
+            source="auth",
+            household_id=invitation["household_id"],
+            organization_id=invitation["organization_id"],
+            user_id=uid,
+            metadata={
+                "invitation_id": invitation["id"],
+                "email_fingerprint": _email_fingerprint(email),
+                "role": invitation["role"],
+                "linked_person_id": linked_person_id,
+            },
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    # POST-COMMIT: el email de verificación es un efecto lateral que NUNCA
+    # revierte una cuenta ya creada. Orden seguro (auditoría DEPLOY-PREFLIGHT):
+    #   1) crear el token de verificación y COMMITEARLO (token DURABLE);
+    #   2) recién entonces llamar al proveedor de email — así un correo
+    #      enviado jamás referencia un token que no exista en la base;
+    #   3) registrar el resultado del envío en una transacción posterior.
+    # Si falla el paso 1, NO se llama al proveedor (reenvío disponible).
+    # Si falla el paso 2, la cuenta y el token durable permanecen.
+    delivery: dict = {"ok": False, "provider": None}
+    token_payload: dict = {}
+    raw_token: str | None = None
+    try:
+        raw_token = _create_email_verification_token(db, uid)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raw_token = None
+        try:
+            write_security_event(
+                db,
+                event_type="email_verification_token_persist_failed",
+                severity="medium",
+                source="auth",
+                user_id=uid,
+                metadata={"email_fingerprint": _email_fingerprint(email), "stage": "post_commit_register_with_invitation"},
+                commit=True,
+            )
+        except Exception:
+            pass
+    if raw_token is not None:
+        try:
+            delivery = _send_email_verification(db, user_id=uid, email=email, raw_token=raw_token)
+            db.commit()
+            token_payload = _local_token_payload(raw_token)
+        except Exception:
+            db.rollback()
+            try:
+                write_security_event(
+                    db,
+                    event_type="email_verification_delivery_failed",
+                    severity="medium",
+                    source="auth",
+                    user_id=uid,
+                    metadata={"email_fingerprint": _email_fingerprint(email), "stage": "post_commit_register_with_invitation"},
+                    commit=True,
+                )
+            except Exception:
+                pass
+    return {
+        "ok": True,
+        "user_id": uid,
+        "household_id": invitation["household_id"],
+        "role": invitation["role"],
+        "linked_person_id": linked_person_id,
+        "email_delivery": {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")},
+        **token_payload,
+    }
+
+
 @router.post("/login")
 def login(
     body: LoginBody | None = None,
@@ -378,6 +618,8 @@ def login(
         body_email, body_password, body_mfa, email, password, mfa_code,
     )
     email = _normalize_email(resolved_email)
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("login", email)
     max_attempts, _window_seconds = _failed_login_limit()
     if _recent_failed_login_count(db, email) >= max_attempts:
         write_security_event(
@@ -447,6 +689,10 @@ def email_status(user=Depends(get_current_user), db=Depends(get_db)):
 
 @router.post("/email/verification/request")
 def request_email_verification(user=Depends(get_current_user), db=Depends(get_db)):
+    # Reenvío controlado: idempotente en efecto (ya-verificado corta antes) y
+    # con rate limit propio para que no sea un cañón de correos.
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("verification_resend", user["user_id"])
     row = db.execute("SELECT email, email_verified_at FROM users WHERE id=?", (user["user_id"],)).fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="User not found")
@@ -562,6 +808,8 @@ def request_password_reset(
         raise HTTPException(status_code=400, detail="email is required")
     email = effective_email
     normalized = _normalize_email(email)
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("password_reset", normalized)
     row = db.execute("SELECT id FROM users WHERE email=?", (normalized,)).fetchone()
     response = {"status": "accepted"}
     if row:

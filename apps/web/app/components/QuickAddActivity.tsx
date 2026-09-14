@@ -25,6 +25,8 @@ export default function QuickAddActivity({ hid, persons }: { hid: string; person
   const [personId, setPersonId] = useState("");
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  // OPS-2 M11 — aviso antes del evento (crea un recordatorio vinculado).
+  const [remindBefore, setRemindBefore] = useState<number>(0);
 
   function detectPerson(raw: string): { pid: string; cleaned: string } {
     const low = raw.toLowerCase();
@@ -46,14 +48,17 @@ export default function QuickAddActivity({ hid, persons }: { hid: string; person
     const parsed = parseActivity(det.cleaned || raw);
     setBusy(true); setPreview(null);
     try {
+      const startsAt = isoFromDateTime(parsed.dateIso, parsed.time);
       await dailyActivityCreate(hid, {
         person_id: pid,
         title: parsed.title,
         activity_type: "other",
         visibility: "family",
         date_iso: parsed.dateIso,
-        starts_at: isoFromDateTime(parsed.dateIso, parsed.time),
+        starts_at: startsAt,
         notes: parsed.recurrence ? `Recurrencia sugerida: ${parsed.recurrence}` : undefined,
+        // M11 — solo tiene sentido si hay hora concreta.
+        reminder_minutes_before: remindBefore && startsAt ? remindBefore : undefined,
       });
       setText("");
       router.refresh();
@@ -85,6 +90,14 @@ export default function QuickAddActivity({ hid, persons }: { hid: string; person
         <select className="input" value={personId} onChange={(e) => setPersonId(e.target.value)} title="Integrante por defecto">
           <option value="">Auto-detectar</option>
           {persons.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
+        </select>
+        <select className="input" value={remindBefore} onChange={(e) => setRemindBefore(Number(e.target.value))}
+          title="Avisarme antes (si el evento tiene hora)">
+          <option value={0}>Sin aviso</option>
+          <option value={15}>Avisar 15 min antes</option>
+          <option value={30}>Avisar 30 min antes</option>
+          <option value={60}>Avisar 1 h antes</option>
+          <option value={1440}>Avisar 1 día antes</option>
         </select>
         <button className="btn btnPrimary" onClick={add} disabled={busy || !text.trim()}>Agregar</button>
       </div>

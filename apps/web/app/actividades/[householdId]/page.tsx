@@ -13,6 +13,7 @@ import {
 import DomiOrb from "../../components/DomiOrb";
 import MemberChip from "../../components/MemberChip";
 import QuickAddActivity from "../../components/QuickAddActivity";
+import FamilyCalendar from "../../components/FamilyCalendar";
 import ProgressRing from "../../components/ProgressRing";
 import { markCelebrate } from "../../../lib/celebrate";
 
@@ -94,6 +95,9 @@ export default async function ActividadesPage({ params }: { params: Promise<{ ho
         </div>
         <a className="btn" href={`/hogar/${hid}`}>← Panel del hogar</a>
       </div>
+
+      {/* OPS-2 M11 — calendario mensual del hogar + descarga .ics */}
+      <FamilyCalendar hid={hid} />
 
       {/* QUICK-ADD lenguaje natural */}
       <QuickAddActivity hid={hid} persons={persons.map((p) => ({ id: p.id, display_name: p.display_name }))} />

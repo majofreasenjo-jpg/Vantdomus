@@ -1,14 +1,25 @@
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header
+from pydantic import BaseModel
 
-from app.assistant.context import build_chat_messages
 from app.assistant.schemas import ChatRequest
-from app.assistant.service import run_agentic_chat
+from app.assistant import orchestrator
+from app.assistant import proposals as proposal_store
+from app.assistant import memory as memory_store
 from app.deps import get_current_user, get_db, require_household_role
 from app.planner import apply_recommendation, generate_recommendations
+from app.tenancy import get_household_organization_id
 
 router = APIRouter(prefix="/assistant", tags=["Assistant"])
+
+
+def _current_person_id(db, user_id: str, household_id: str) -> str | None:
+    row = db.execute(
+        "SELECT id FROM persons WHERE household_id=? AND user_id=? LIMIT 1",
+        (household_id, user_id),
+    ).fetchone()
+    return row["id"] if row else None
 
 
 @router.get("/recommendations")
@@ -61,29 +72,648 @@ def plan(household_id: str, goal: str, user=Depends(get_current_user), db=Depend
 
 @router.post("/chat")
 def chat(payload: ChatRequest, user=Depends(get_current_user), db=Depends(get_db)):
+    """
+    CP1c-FUNC-MIN-3.1 — Entrada propose-first. Domi entiende, consulta contexto
+    permitido y PROPONE. Las acciones de escritura vuelven como propuestas
+    'pending' que requieren confirmación humana (endpoints /proposals/*). NADA se
+    ejecuta aquí. Proveedor = mock por defecto; el externo queda apagado.
+    """
     try:
-        require_household_role(db, user["user_id"], payload.household_id, "member")
-        messages, _taxonomy, fallback_reply = build_chat_messages(payload, user, db)
-        model = payload.model or os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-
-        try:
-            reply = run_agentic_chat(
-                messages=messages,
-                model=model,
-                temperature=payload.temperature,
-                db=db,
-                household_id=payload.household_id,
-                user_id=user["user_id"],
-            )
-            return {"ok": True, "provider": "openai", "model": model, "reply": reply}
-        except Exception:
-            # Sin LLM (o error): Domi responde por reglas sobre los datos reales
-            # del hogar, en vez de volcar contexto. Honesto y útil localmente.
-            from app.assistant.domi_rules import answer_domi
-            last_user = next((m.content for m in reversed(payload.messages) if m.role == "user"), "")
-            reply = answer_domi(last_user, db, payload.household_id)
-            return {"ok": True, "provider": "domi_rules", "model": None, "reply": reply}
+        role = require_household_role(db, user["user_id"], payload.household_id, "member")
+        out = orchestrator.handle_chat(
+            db,
+            household_id=payload.household_id,
+            user_id=user["user_id"],
+            role=role,
+            messages=payload.messages,
+        )
+        return {"ok": True, **out}
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Assistant chat failed: {exc}") from exc
+
+
+# =============================================================================
+# CP1c-FUNC-MIN-3.1 — Propuestas: listar / confirmar / rechazar
+# =============================================================================
+class DecisionBody(BaseModel):
+    overrides: dict = {}
+
+
+@router.get("/proposals")
+def list_proposals(household_id: str, status: str = "pending", user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    my_pid = _current_person_id(db, user["user_id"], household_id)
+    items = proposal_store.list_proposals(db, household_id, status, role, my_pid)
+    return {"items": items}
+
+
+@router.post("/proposals/{proposal_id}/confirm")
+def confirm_proposal(proposal_id: str, body: DecisionBody = DecisionBody(), user=Depends(get_current_user), db=Depends(get_db)):
+    """
+    Ejecuta una propuesta SOLO tras confirmación humana. Requiere rol member
+    (revalidado aquí, no se confía en el cliente).
+
+    MIN-3.2 — lifecycle endurecido:
+    - executed → respuesta IDEMPOTENTE (no re-ejecuta, no duplica; devuelve el
+      resultado ya existente).
+    - expired → 409 con copy claro (get_proposal ya la marcó lazy).
+    - rejected → 409.
+    - failed → reintento controlado permitido (una ejecución nueva, auditada).
+    - overrides → validados contra el contrato (whitelist + tipos) en el store.
+    """
+    prop = proposal_store.get_proposal(db, proposal_id)
+    if not prop:
+        raise HTTPException(status_code=404, detail="Propuesta no encontrada")
+    require_household_role(db, user["user_id"], prop["household_id"], "member")
+
+    if prop["status"] == "executed":
+        return {"ok": True, "proposal": prop, "already_executed": True,
+                "response_type": "accion_ejecutada",
+                "detail": "Esta propuesta ya se ejecutó; no se duplicó nada."}
+    if prop["status"] == "rejected":
+        raise HTTPException(status_code=409, detail="La propuesta fue rechazada; pídele a Domi una nueva.")
+    if prop["status"] == "expired":
+        raise HTTPException(status_code=409, detail="La propuesta expiró. Pídele a Domi que la proponga de nuevo.")
+    if prop["status"] == "confirmed":
+        # Estado transitorio (ejecución en curso): no relanzar.
+        raise HTTPException(status_code=409, detail="La propuesta se está ejecutando.")
+
+    try:
+        result = proposal_store.execute_proposal(db, prop, user["user_id"], overrides=body.overrides or {})
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        # La tool falló: el store ya la dejó 'failed' + audit. Sin éxito falso.
+        raise HTTPException(status_code=500, detail="La acción no pudo completarse. Puedes reintentar la confirmación.") from exc
+    return {"ok": True, "proposal": result, "response_type": "accion_ejecutada"}
+
+
+@router.post("/proposals/{proposal_id}/reject")
+def reject_proposal(proposal_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    prop = proposal_store.get_proposal(db, proposal_id)
+    if not prop:
+        raise HTTPException(status_code=404, detail="Propuesta no encontrada")
+    require_household_role(db, user["user_id"], prop["household_id"], "member")
+    if prop["status"] == "rejected":
+        # Idempotente: rechazar dos veces es seguro.
+        return {"ok": True, "proposal": prop, "already_rejected": True}
+    if prop["status"] not in ("pending", "failed"):
+        raise HTTPException(status_code=409, detail=f"La propuesta ya está {prop['status']}")
+    result = proposal_store.reject_proposal(db, prop, user["user_id"])
+    return {"ok": True, "proposal": result}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2.A — Memoria por persona: la familia le enseña a Domi hechos de cada
+# integrante y Domi los usa para personalizar. Solo tipos NO sensibles (salud
+# queda fuera); consentimiento por-item.
+# ---------------------------------------------------------------------------
+class MemoryCreateBody(BaseModel):
+    household_id: str
+    memory_type: str
+    content: str
+    person_id: str | None = None          # None = memoria de toda la familia
+    importance: float | None = 0.5
+    visibility_scope: str = "household_shared"
+
+
+@router.get("/memory")
+def list_memory(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return {
+        "items": memory_store.list_memories(
+            db, household_id,
+            requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+        ),
+        "allowed_types": sorted(memory_store.SAFE_MEMORY_TYPES),
+        "allowed_scopes": sorted(memory_store.ALLOWED_SCOPES),
+    }
+
+
+@router.post("/memory")
+def create_memory(body: MemoryCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.memory_type not in memory_store.SAFE_MEMORY_TYPES:
+        raise HTTPException(status_code=400, detail="Tipo de memoria no permitido")
+    if body.visibility_scope not in memory_store.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    # owner_operational solo lo puede crear un administrador del hogar.
+    if body.visibility_scope == "owner_operational" and role not in ("owner", "admin"):
+        raise HTTPException(status_code=403, detail="Solo un administrador puede crear memoria operativa del hogar")
+    if not (body.content or "").strip():
+        raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
+    # La persona (si se indica) DEBE pertenecer al hogar (evita fuga entre hogares).
+    if body.person_id:
+        row = db.execute(
+            "SELECT id FROM persons WHERE id=? AND household_id=?",
+            (body.person_id, body.household_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    organization_id = get_household_organization_id(db, body.household_id)
+    try:
+        mid = memory_store.add_memory(
+            db,
+            household_id=body.household_id,
+            organization_id=organization_id,
+            person_id=body.person_id,
+            memory_type=body.memory_type,
+            content=body.content,
+            importance=body.importance if body.importance is not None else 0.5,
+            created_by_user_id=user["user_id"],
+            visibility_scope=body.visibility_scope,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return {"ok": True, "id": mid}
+
+
+@router.post("/transcribe")
+async def transcribe_voice(
+    household_id: str = Form(...),
+    file: UploadFile = File(...),
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """
+    M4 — Voz (STT): recibe audio y devuelve el TEXTO transcrito para que el
+    usuario lo revise/corrija antes de enviarlo a Domi. El audio NO se guarda.
+    Si la IA real no está disponible, responde available=false (el frontend cae
+    a texto). Sin biometría: la identidad es la sesión, no la voz.
+    """
+    require_household_role(db, user["user_id"], household_id, "member")
+    from app.assistant import voice
+    if not voice.stt_available():
+        return {"available": False, "text": ""}
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio demasiado grande (máx 20 MB)")
+    text = voice.transcribe(data, file.filename or "audio.webm", file.content_type)
+    if text is None:
+        return {"available": True, "text": "", "detail": "No se pudo transcribir. Escríbelo, por favor."}
+    return {"available": True, "text": text}
+
+
+@router.post("/summary")
+def personal_summary(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    """
+    M6 — Resumen del día (a demanda) para el usuario que lo pide. Respeta la
+    privacidad de memoria (M1): solo usa lo que ese usuario puede conocer.
+    """
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    name = ""
+    if pid:
+        row = db.execute("SELECT display_name FROM persons WHERE id=?", (pid,)).fetchone()
+        name = (row["display_name"] if row else "") or ""
+    from app.assistant import summaries
+    result = summaries.build_personal_summary(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+        person_name=name,
+    )
+    return {"ok": True, "summary": result["summary"], "mode": result["mode"],
+            "response_type": "informacion"}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M7.A — Recordatorios programables + bandeja de notificaciones in-app.
+# Entrega PULL idempotente (sin cron): al consultar, los vencidos pasan a
+# 'delivered'. Privacidad estilo M1. Push real (Web Push) = M7.B (infra).
+# ---------------------------------------------------------------------------
+class ReminderCreateBody(BaseModel):
+    household_id: str
+    title: str
+    remind_at: str                        # ISO-8601 (UTC o con offset)
+    body: str | None = None
+    person_id: str | None = None          # None = para todo el hogar
+    visibility_scope: str = "household_shared"
+    dedupe_key: str | None = None
+
+
+@router.get("/reminders")
+def list_reminders(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import reminders as rem
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    data = rem.list_for_user(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    return {"ok": True, **data}
+
+
+@router.post("/reminders")
+def create_reminder(body: ReminderCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import reminders as rem
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.visibility_scope not in rem.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    # La persona destinataria (si se indica) DEBE pertenecer al hogar.
+    if body.person_id:
+        row = db.execute(
+            "SELECT id FROM persons WHERE id=? AND household_id=?",
+            (body.person_id, body.household_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    organization_id = get_household_organization_id(db, body.household_id)
+    try:
+        rid = rem.create_reminder(
+            db,
+            household_id=body.household_id,
+            organization_id=organization_id,
+            person_id=body.person_id,
+            created_by_user_id=user["user_id"],
+            title=body.title,
+            body=body.body,
+            remind_at=body.remind_at,
+            visibility_scope=body.visibility_scope,
+            dedupe_key=body.dedupe_key,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return {"ok": True, "id": rid, "response_type": "accion_ejecutada"}
+
+
+@router.post("/reminders/{reminder_id}/dismiss")
+def dismiss_reminder(reminder_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import reminders as rem
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = rem.dismiss(
+        db, household_id, reminder_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Recordatorio no encontrado o sin permiso")
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M7.B — Web Push (VAPID): avisos al teléfono aunque la app esté cerrada.
+# OPCIONAL y fail-closed: sin llaves VAPID / sin librería → deshabilitado y todo
+# sigue funcionando in-app (M7.A). El envío real lo dispara el Cron → /tick.
+# ---------------------------------------------------------------------------
+class PushSubscribeBody(BaseModel):
+    household_id: str
+    endpoint: str
+    p256dh: str
+    auth: str
+
+
+class PushUnsubscribeBody(BaseModel):
+    household_id: str
+    endpoint: str
+
+
+@router.get("/push/config")
+def push_config(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import web_push
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    return {"enabled": web_push.push_enabled(), "public_key": web_push.vapid_public_key()}
+
+
+@router.post("/push/subscribe")
+def push_subscribe(body: PushSubscribeBody, user=Depends(get_current_user), db=Depends(get_db),
+                   user_agent: str | None = Header(default=None)):
+    from app.assistant import web_push
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    if not web_push.push_enabled():
+        raise HTTPException(status_code=503, detail="Los avisos push no están habilitados en este momento")
+    pid = _current_person_id(db, user["user_id"], body.household_id)
+    try:
+        sid = web_push.save_subscription(
+            db, household_id=body.household_id, person_id=pid, user_id=user["user_id"],
+            endpoint=body.endpoint, p256dh=body.p256dh, auth=body.auth, ua=user_agent,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "id": sid}
+
+
+@router.post("/push/unsubscribe")
+def push_unsubscribe(body: PushUnsubscribeBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import web_push
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    web_push.delete_subscription(db, endpoint=body.endpoint, household_id=body.household_id)
+    return {"ok": True}
+
+
+@router.post("/reminders/tick")
+def reminders_tick(db=Depends(get_db), x_tick_secret: str | None = Header(default=None)):
+    """
+    Barrido de entrega para el Cron Job. NO usa sesión de usuario: se autentica
+    con un secreto compartido (env REMINDER_TICK_SECRET) en el header X-Tick-Secret.
+    Marca 'delivered' los recordatorios vencidos de todos los hogares y, si el push
+    está habilitado, envía el aviso al teléfono del destinatario. Idempotente.
+    """
+    expected = os.getenv("REMINDER_TICK_SECRET", "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Tick no configurado (falta REMINDER_TICK_SECRET)")
+    if (x_tick_secret or "").strip() != expected:
+        raise HTTPException(status_code=401, detail="Secreto de tick inválido")
+    from app.assistant import reminders as rem
+    from app.assistant import web_push
+    delivered_total, pushed_total = 0, 0
+    for hid in rem.households_with_pending(db):
+        newly = rem.deliver_due_detailed(db, hid)
+        delivered_total += len(newly)
+        if not web_push.push_enabled():
+            continue
+        for r in newly:
+            res = web_push.notify_person(
+                db, household_id=hid, person_id=r["person_id"],
+                title="Recordatorio", body=r["title"], url=f"/recordatorios/{hid}",
+            )
+            pushed_total += res.get("sent", 0)
+    return {"ok": True, "delivered": delivered_total, "pushed": pushed_total,
+            "push_enabled": web_push.push_enabled()}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M8 — Biblioteca de Domi (6 capas) + inferencias confirmables + export.
+# Una inferencia NO se vuelve hecho en silencio: se propone 'pending' y solo tras
+# confirmación humana entra al contexto de IA.
+# ---------------------------------------------------------------------------
+class InferenceCreateBody(BaseModel):
+    household_id: str
+    memory_type: str
+    content: str
+    person_id: str | None = None
+    confidence: float | None = 0.5
+    visibility_scope: str = "household_shared"
+
+
+class MemoryCorrectBody(BaseModel):
+    household_id: str
+    content: str
+
+
+@router.get("/memory/library")
+def memory_library(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    data = memory_store.library_view(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    return {"ok": True, **data, "layer_labels": memory_store.LAYER_LABELS}
+
+
+@router.get("/memory/inferences")
+def memory_inferences(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return {"items": memory_store.list_inferences(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )}
+
+
+@router.get("/memory/export")
+def memory_export(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return memory_store.export_for_user(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+
+
+@router.post("/memory/inference")
+def create_inference(body: InferenceCreateBody, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.memory_type not in memory_store.SAFE_MEMORY_TYPES:
+        raise HTTPException(status_code=400, detail="Tipo de memoria no permitido")
+    if body.visibility_scope not in memory_store.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    if body.person_id:
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (body.person_id, body.household_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    if not (body.content or "").strip():
+        raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
+    organization_id = get_household_organization_id(db, body.household_id)
+    try:
+        mid = memory_store.add_inference(
+            db, household_id=body.household_id, organization_id=organization_id,
+            person_id=body.person_id, memory_type=body.memory_type, content=body.content,
+            created_by_user_id=user["user_id"],
+            confidence=body.confidence if body.confidence is not None else 0.5,
+            visibility_scope=body.visibility_scope,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    return {"ok": True, "id": mid, "inference_status": "pending"}
+
+
+@router.post("/memory/inferences/{memory_id}/confirm")
+def confirm_inference_ep(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = memory_store.confirm_inference(
+        db, household_id, memory_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Inferencia no encontrada, ya resuelta o sin permiso")
+    db.commit()
+    return {"ok": True, "response_type": "accion_ejecutada"}
+
+
+@router.post("/memory/inferences/{memory_id}/dismiss")
+def dismiss_inference_ep(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = memory_store.dismiss_inference(
+        db, household_id, memory_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Inferencia no encontrada, ya resuelta o sin permiso")
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/memory/{memory_id}/correct")
+def correct_memory_ep(memory_id: str, body: MemoryCorrectBody, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    pid = _current_person_id(db, user["user_id"], body.household_id)
+    try:
+        ok = memory_store.correct_memory(
+            db, body.household_id, memory_id, body.content,
+            requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not ok:
+        raise HTTPException(status_code=404, detail="Memoria no encontrada o sin permiso")
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/memory/{memory_id}")
+def remove_memory(memory_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = memory_store.delete_memory(
+        db, household_id, memory_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Memoria no encontrada o sin permiso")
+    db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M9 — Documentos con trazabilidad + antivirus + anti-inyección.
+# Separa evidencia (documento) de memoria. Un documento no 'clean' no se sirve.
+# ---------------------------------------------------------------------------
+class DocValidityBody(BaseModel):
+    household_id: str
+    valid_until: str | None = None
+
+
+@router.post("/documents")
+async def upload_document(
+    household_id: str = Form(...),
+    file: UploadFile = File(...),
+    person_id: str | None = Form(default=None),
+    visibility_scope: str = Form(default="household_shared"),
+    valid_until: str | None = Form(default=None),
+    supersedes: str | None = Form(default=None),
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    from app.assistant import documents as docs
+    require_household_role(db, user["user_id"], household_id, "member")
+    if visibility_scope not in docs.ALLOWED_SCOPES:
+        raise HTTPException(status_code=400, detail="Ámbito de visibilidad no permitido")
+    if person_id:
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (person_id, household_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    data = await file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Documento demasiado grande (máx 20 MB)")
+    organization_id = get_household_organization_id(db, household_id)
+    try:
+        result = docs.register_document(
+            db, household_id=household_id, organization_id=organization_id,
+            person_id=person_id, uploaded_by_user_id=user["user_id"],
+            filename=file.filename or "documento", mime=file.content_type,
+            data=data, visibility_scope=visibility_scope,
+            valid_until=(valid_until or None), supersedes=(supersedes or None),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, **result}
+
+
+@router.get("/documents")
+def list_documents_ep(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    return {"items": docs.list_documents(
+        db, household_id,
+        requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role,
+    ), "antivirus_enabled": docs.antivirus_enabled()}
+
+
+@router.get("/documents/{document_id}/versions")
+def document_versions_ep(document_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], household_id, "viewer")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    # Autorización: debe poder ver el documento cabeza de cadena.
+    visible = {d["id"] for d in docs.list_documents(
+        db, household_id, requester_user_id=user["user_id"],
+        requester_person_id=pid, requester_role=role, include_deleted=True)}
+    if document_id not in visible:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
+    return {"items": docs.version_chain(db, household_id, document_id)}
+
+
+@router.post("/documents/{document_id}/validity")
+def set_document_validity(document_id: str, body: DocValidityBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], body.household_id, "member")
+    pid = _current_person_id(db, user["user_id"], body.household_id)
+    ok = docs.set_validity(db, body.household_id, document_id, body.valid_until,
+                           requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
+    return {"ok": True}
+
+
+@router.delete("/documents/{document_id}")
+def delete_document_ep(document_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import documents as docs
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    pid = _current_person_id(db, user["user_id"], household_id)
+    ok = docs.delete_document(db, household_id, document_id,
+                              requester_user_id=user["user_id"], requester_person_id=pid, requester_role=role)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o sin permiso")
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OPS-2 M10 — MUSIC-0: biblioteca musical familiar por enlaces (sin OAuth, sin
+# tokens; allowlist de dominios musicales; abrir = acción explícita del usuario).
+# ---------------------------------------------------------------------------
+class MusicLinkBody(BaseModel):
+    household_id: str
+    title: str
+    url: str
+    mood: str = "general"
+    person_id: str | None = None
+
+
+@router.get("/music")
+def list_music(household_id: str, mood: str | None = None, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import music
+    require_household_role(db, user["user_id"], household_id, "viewer")
+    return {"items": music.list_links(db, household_id, mood),
+            "moods": sorted(music.ALLOWED_MOODS)}
+
+
+@router.post("/music")
+def add_music(body: MusicLinkBody, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import music
+    require_household_role(db, user["user_id"], body.household_id, "member")
+    if body.person_id:
+        row = db.execute("SELECT id FROM persons WHERE id=? AND household_id=?",
+                         (body.person_id, body.household_id)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Persona no encontrada en este hogar")
+    try:
+        result = music.add_link(
+            db, household_id=body.household_id, person_id=body.person_id,
+            added_by_user_id=user["user_id"], title=body.title, url=body.url, mood=body.mood,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, **result}
+
+
+@router.delete("/music/{link_id}")
+def delete_music(link_id: str, household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    from app.assistant import music
+    role = require_household_role(db, user["user_id"], household_id, "member")
+    ok = music.delete_link(db, household_id, link_id,
+                           requester_user_id=user["user_id"], requester_role=role)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Enlace no encontrado o sin permiso")
+    return {"ok": True}

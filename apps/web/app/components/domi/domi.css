@@ -1,0 +1,203 @@
+/**
+ * domi.css — entry Tailwind v4 AISLADO al árbol Domi (CP1b Google Visual Port).
+ *
+ * Aislamiento deliberado:
+ *  - source(none) + @source "./": las utilidades se generan SOLO desde los
+ *    archivos de app/components/domi/ (evita colisiones tipo `.container`).
+ *  - Las utilidades se importan SIN capa (@layer): las reglas legacy de
+ *    globals.css no tienen capa y, por cascada, le ganarían a cualquier regla
+ *    dentro de @layer. Al dejarlas sin capa, este archivo (que carga después
+ *    de globals en la ruta) gana por orden de aparición — solo aquí.
+ *  - El preflight de Tailwind NO se importa global: se replica abajo ENCERRADO
+ *    en #vantdomus-app (@layer base), así el reset que el prototipo necesita
+ *    existe dentro del árbol Domi y el resto de VantDomus no cambia.
+ *  - Este archivo se importa desde los componentes Domi, no desde el layout
+ *    raíz → Next lo sirve solo en las rutas que montan Domi.
+ */
+@layer theme, base;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" source(none);
+@source "./";
+
+/* Tipografías del prototipo (se cargan vía next/font en la ruta; aquí solo
+   registramos los alias que usan las clases font-sans/font-display/font-mono). */
+@theme {
+  --font-sans: var(--domi-font-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--domi-font-grotesk, "Space Grotesk"), sans-serif;
+  --font-mono: var(--domi-font-jetbrains, "JetBrains Mono"), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ===== Preflight SCOPED al árbol Domi (réplica de tailwindcss/preflight,
+   solo dentro de #vantdomus-app). Va en @layer base para que TODA utilidad
+   (sin capa) pueda sobreescribirlo. El prototipo de Google corre con preflight
+   completo; sin esto los <button> muestran el gris nativo del navegador y las
+   clases `border-*` no pintan (falta border-style). ===== */
+@layer base {
+  #vantdomus-app, #vantdomus-app *, #vantdomus-app *::before, #vantdomus-app *::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: currentColor;
+  }
+  #vantdomus-app h1, #vantdomus-app h2, #vantdomus-app h3, #vantdomus-app h4,
+  #vantdomus-app h5, #vantdomus-app h6, #vantdomus-app p, #vantdomus-app figure,
+  #vantdomus-app blockquote, #vantdomus-app dl, #vantdomus-app dd, #vantdomus-app pre {
+    margin: 0;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  #vantdomus-app ol, #vantdomus-app ul, #vantdomus-app menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  #vantdomus-app button, #vantdomus-app input, #vantdomus-app optgroup,
+  #vantdomus-app select, #vantdomus-app textarea {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background-color: transparent;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+  }
+  #vantdomus-app button, #vantdomus-app [role="button"] {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  #vantdomus-app a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+  #vantdomus-app img, #vantdomus-app svg, #vantdomus-app video,
+  #vantdomus-app canvas, #vantdomus-app audio, #vantdomus-app iframe {
+    display: block;
+    vertical-align: middle;
+  }
+  #vantdomus-app img, #vantdomus-app video {
+    max-width: 100%;
+    height: auto;
+  }
+  #vantdomus-app input::placeholder, #vantdomus-app textarea::placeholder {
+    opacity: 1;
+    color: color-mix(in srgb, currentColor 50%, transparent);
+  }
+  #vantdomus-app small { font-size: 80%; }
+  #vantdomus-app table { border-collapse: collapse; border-color: inherit; }
+}
+
+/* ===== CSS custom del prototipo (port literal de src/index.css; el body
+   global se omite: el fondo lo pinta el root #vantdomus-app) ===== */
+/* Custom CSS for ambient cosmic backgrounds and glowing shadows */
+
+/* Cosmic grid background */
+.cosmic-bg {
+  background: 
+    radial-gradient(circle at 15% 15%, rgba(245, 158, 11, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 25%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+    #030712;
+  position: relative;
+  overflow: hidden;
+}
+
+.cosmic-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
+  background-size: 60px 60px, 120px 120px;
+  background-position: 0 0, 30px 30px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Sparkles / particles */
+.star-dust {
+  position: absolute;
+  pointer-events: none;
+  background: radial-gradient(circle, #f59e0b 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(1px);
+}
+
+/* Glowing effects */
+.glow-gold {
+  box-shadow: 0 0 25px 0px rgba(245, 158, 11, 0.25);
+}
+
+.glow-blue {
+  box-shadow: 0 0 25px 0px rgba(59, 130, 246, 0.25);
+}
+
+.glow-green {
+  box-shadow: 0 0 25px 0px rgba(16, 185, 129, 0.25);
+}
+
+.glow-purple {
+  box-shadow: 0 0 25px 0px rgba(139, 92, 246, 0.25);
+}
+
+.glow-red {
+  box-shadow: 0 0 25px 0px rgba(239, 68, 68, 0.25);
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Orbit animation */
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* Custom glow borders on hover */
+.glow-border-hover:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+/* Equalizer animation classes */
+@keyframes eq-wave {
+  0%, 100% { height: 4px; }
+  50% { height: 18px; }
+}
+
+.eq-bar {
+  animation: eq-wave 0.8s ease-in-out infinite;
+}
+.eq-bar:nth-child(2) { animation-delay: 0.15s; }
+.eq-bar:nth-child(3) { animation-delay: 0.3s; }
+.eq-bar:nth-child(4) { animation-delay: 0.45s; }
+.eq-bar:nth-child(5) { animation-delay: 0.2s; }
+

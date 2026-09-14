@@ -22,14 +22,97 @@ class StatusSet(BaseModel):
     text: str | None = None
 
 
+class ClassificationPatch(BaseModel):
+    # CP1d-1b.1: SOLO el owner clasifica; jamás desde una operación básica.
+    age_band: str | None = None
+    minor_privacy_profile: str | None = None
+
+
 # Límite defensivo para fotos en data-url (demo local, SQLite). ~700KB de base64.
 MAX_AVATAR_LEN = 700_000
+
+
+def _load_person(db, person_id: str):
+    from ..minor_guardian_policy import get_person
+    p = get_person(db, person_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Person not found")
+    return p
+
+
+def _guard_age_band_transition(db, person, target_band: str):
+    """CP1d-1b.1-R1: bloquea transiciones de banda que dejarían inconsistencias."""
+    from ..minor_guardian_policy import MAX_ROLE_BY_BAND, SUPERVISED_BANDS
+    hid = person["household_id"]
+    linked_user = person["user_id"]
+
+    # A. Ficha con CUENTA vinculada: no puede caer a bandas sin cuenta ni por
+    #    debajo de su rol de membresía actual.
+    if linked_user:
+        if target_band in ("unclassified", "child"):
+            raise HTTPException(
+                status_code=409,
+                detail="La ficha tiene una cuenta activa: primero revoca la cuenta antes de bajar la banda",
+            )
+        if target_band in SUPERVISED_BANDS:
+            membership = db.execute(
+                "SELECT role FROM household_memberships WHERE household_id=? AND user_id=?",
+                (hid, linked_user),
+            ).fetchone()
+            if membership:
+                rank = {"viewer": 0, "member": 1, "admin": 2, "owner": 3}
+                max_role = MAX_ROLE_BY_BAND[target_band]
+                if rank.get(membership["role"], 99) > rank[max_role]:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"La cuenta tiene rol {membership['role']}, incompatible con banda {target_band} (máx {max_role})",
+                    )
+
+    # B. La ficha actúa como GUARDIÁN activo: no puede dejar de ser adulto.
+    if target_band != "adult":
+        active_as_guardian = db.execute(
+            "SELECT 1 FROM guardian_relationships WHERE household_id=? AND guardian_person_id=? AND revoked_at IS NULL",
+            (hid, person["id"]),
+        ).fetchone()
+        if active_as_guardian:
+            raise HTTPException(
+                status_code=409,
+                detail="La ficha es guardiana en una relación activa: revoca las relaciones antes de cambiar su banda",
+            )
+
+    # C. Menor con tutela/consentimiento activo que pasa a adult: exige revocar antes.
+    if target_band == "adult":
+        active_as_minor = db.execute(
+            "SELECT 1 FROM guardian_relationships WHERE household_id=? AND minor_person_id=? AND revoked_at IS NULL",
+            (hid, person["id"]),
+        ).fetchone()
+        active_consent = db.execute(
+            "SELECT 1 FROM guardian_consents WHERE household_id=? AND minor_person_id=? AND revoked_at IS NULL",
+            (hid, person["id"]),
+        ).fetchone()
+        if active_as_minor or active_consent:
+            raise HTTPException(
+                status_code=409,
+                detail="El menor tiene tutela/consentimiento activo: revócalos antes de reclasificarlo como adulto",
+            )
+
+
+def _require_basic_edit(db, user, person):
+    """CP1d-1b.1: editar campos básicos = owner/admin, titular o guardián full."""
+    from ..minor_guardian_policy import can_edit_person_basic
+    role = require_household_role(db, user["user_id"], person["household_id"], "viewer")
+    if not can_edit_person_basic(db, editor_user_id=user["user_id"], editor_role=role, person=person):
+        raise HTTPException(status_code=403, detail="No puedes modificar esta ficha")
+    return role
+
 
 @router.post("")
 def create_person(household_id: str, display_name: str, relation: str = "", user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "member")
     pid = str(uuid.uuid4())
     organization_id = get_household_organization_id(db, household_id)
+    # age_band y minor_privacy_profile quedan en sus defaults FAIL-CLOSED
+    # ('unclassified'/'restricted', migración 281); solo el owner clasifica.
     db.execute("INSERT INTO persons (id, household_id, organization_id, display_name, relation, created_at) VALUES (?,?,?,?,?,?)",
                (pid, household_id, organization_id, display_name, relation, now()))
     db.commit()
@@ -38,13 +121,19 @@ def create_person(household_id: str, display_name: str, relation: str = "", user
 
 @router.get("/{person_id}")
 def get_person(person_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    p = db.execute(
-        "SELECT id, household_id, display_name, relation, created_at, avatar, status_emoji, status_text, status_set_at FROM persons WHERE id=?",
-        (person_id,),
-    ).fetchone()
-    if not p:
-        raise HTTPException(status_code=404, detail="Person not found")
-    require_household_role(db, user["user_id"], p["household_id"], "viewer")
+    from ..minor_guardian_policy import person_view_level
+    p = _load_person(db, person_id)
+    role = require_household_role(db, user["user_id"], p["household_id"], "viewer")
+    level = person_view_level(db, viewer_user_id=user["user_id"], viewer_role=role, person=p)
+    if level == "minimal":
+        # CP1d-1b.1: vista mínima para miembros no relacionados — sin estado
+        # privado, sin banda, sin guardianes/consentimientos, sin campos internos.
+        return {
+            "id": p["id"],
+            "display_name": p["display_name"],
+            "relation": p["relation"],
+            "view": "minimal",
+        }
     return {
         "id": p["id"],
         "household_id": p["household_id"],
@@ -55,15 +144,16 @@ def get_person(person_id: str, user=Depends(get_current_user), db=Depends(get_db
         "status_emoji": p["status_emoji"],
         "status_text": p["status_text"],
         "status_set_at": p["status_set_at"],
+        "age_band": p["age_band"],
+        "minor_privacy_profile": p["minor_privacy_profile"],
+        "view": "full",
     }
 
 
 @router.patch("/{person_id}")
 def update_person(person_id: str, patch: PersonPatch, user=Depends(get_current_user), db=Depends(get_db)):
-    p = db.execute("SELECT id, household_id FROM persons WHERE id=?", (person_id,)).fetchone()
-    if not p:
-        raise HTTPException(status_code=404, detail="Person not found")
-    require_household_role(db, user["user_id"], p["household_id"], "member")
+    p = _load_person(db, person_id)
+    _require_basic_edit(db, user, p)
     sets, params = [], []
     if patch.display_name is not None:
         sets.append("display_name=?"); params.append(patch.display_name.strip())
@@ -82,12 +172,65 @@ def update_person(person_id: str, patch: PersonPatch, user=Depends(get_current_u
     return {"ok": True}
 
 
+@router.patch("/{person_id}/classification")
+def classify_person(person_id: str, patch: ClassificationPatch, user=Depends(get_current_user), db=Depends(get_db)):
+    """CP1d-1b.1: SOLO el owner clasifica banda y perfil de privacidad. Auditado.
+
+    CP1d-1b.1-R1 (bloqueador 3): las transiciones de banda no pueden dejar el
+    sistema inconsistente — una cuenta activa nunca puede quedar en banda
+    child/unclassified ni por debajo de su rol; un guardián activo no puede
+    dejar de ser adulto; un menor con tutela activa no puede volverse adulto
+    sin revocar antes.
+    """
+    from ..audit import write_audit_log
+    from ..minor_guardian_policy import (
+        MAX_ROLE_BY_BAND, POLICY_VERSION, SUPERVISED_BANDS,
+        validate_age_band, validate_privacy_profile,
+    )
+    from ..security_events import write_security_event
+    p = _load_person(db, person_id)
+    hid = p["household_id"]
+    require_household_role(db, user["user_id"], hid, "owner")
+    sets, params, changes = [], [], {}
+    if patch.age_band is not None:
+        band = validate_age_band(patch.age_band)
+        _guard_age_band_transition(db, p, band)
+        sets.append("age_band=?"); params.append(band); changes["age_band"] = band
+    if patch.minor_privacy_profile is not None:
+        profile = validate_privacy_profile(patch.minor_privacy_profile)
+        sets.append("minor_privacy_profile=?"); params.append(profile); changes["minor_privacy_profile"] = profile
+    if not sets:
+        return {"ok": True, "unchanged": True}
+    params.append(person_id)
+    db.execute(f"UPDATE persons SET {', '.join(sets)} WHERE id=?", params)
+    write_audit_log(
+        db,
+        action="person_classified",
+        resource_type="person",
+        household_id=p["household_id"],
+        user_id=user["user_id"],
+        resource_id=person_id,
+        metadata={**changes, "policy_version": POLICY_VERSION},
+    )
+    write_security_event(
+        db,
+        event_type="person_classified",
+        severity="medium",
+        source="guardians",
+        household_id=p["household_id"],
+        user_id=user["user_id"],
+        metadata={"person_id": person_id, **changes, "policy_version": POLICY_VERSION},
+    )
+    db.commit()
+    return {"ok": True, **changes}
+
+
 @router.put("/{person_id}/status")
 def set_status(person_id: str, body: StatusSet, user=Depends(get_current_user), db=Depends(get_db)):
-    p = db.execute("SELECT id, household_id FROM persons WHERE id=?", (person_id,)).fetchone()
-    if not p:
-        raise HTTPException(status_code=404, detail="Person not found")
-    require_household_role(db, user["user_id"], p["household_id"], "member")
+    p = _load_person(db, person_id)
+    # CP1d-1b.1: el estado/avatar ya NO lo cambia cualquier member — solo
+    # titular, owner/admin o guardián full (misma regla de edición básica).
+    _require_basic_edit(db, user, p)
     emoji = (body.emoji or "").strip()[:8] or None
     text = (body.text or "").strip()[:120] or None
     db.execute(
@@ -100,10 +243,8 @@ def set_status(person_id: str, body: StatusSet, user=Depends(get_current_user), 
 
 @router.delete("/{person_id}/status")
 def clear_status(person_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    p = db.execute("SELECT id, household_id FROM persons WHERE id=?", (person_id,)).fetchone()
-    if not p:
-        raise HTTPException(status_code=404, detail="Person not found")
-    require_household_role(db, user["user_id"], p["household_id"], "member")
+    p = _load_person(db, person_id)
+    _require_basic_edit(db, user, p)
     db.execute(
         "UPDATE persons SET status_emoji=NULL, status_text=NULL, status_set_at=NULL WHERE id=?",
         (person_id,),
@@ -114,9 +255,7 @@ def clear_status(person_id: str, user=Depends(get_current_user), db=Depends(get_
 
 @router.get("/{person_id}/health-timeline")
 def health_timeline(person_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    p = db.execute("SELECT id, household_id, display_name FROM persons WHERE id=?", (person_id,)).fetchone()
-    if not p:
-        raise HTTPException(status_code=404, detail="Person not found")
+    p = _load_person(db, person_id)
     household_id = p["household_id"]
     from ..rbac import require_module_visible
     require_module_visible(db, user["user_id"], household_id, "health")

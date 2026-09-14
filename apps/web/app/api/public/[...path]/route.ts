@@ -7,6 +7,9 @@ const ALLOWED_PUBLIC_PATHS = new Set([
   "auth/email/verify",
   "auth/password/reset/request",
   "auth/password/reset/confirm",
+  // CP1d-1b.2 — alta de cuenta nueva por invitación (única ruta añadida).
+  // Solo POST, same-origin, sin cookies/Authorization reenviados, no-store.
+  "auth/register-with-invitation",
 ]);
 
 const HOP_BY_HOP_HEADERS = new Set([

@@ -23,6 +23,7 @@ from .routes import (
     finance,
     forensics,
     gerencia,
+    guardians,
     health,
     households,
     logbook,
@@ -101,6 +102,52 @@ app.add_middleware(
 )
 
 
+# CP1d-FAMILY-PILOT-1b.1-R1 — superficie enterprise/no-familiar bloqueada
+# fail-closed en family-pilot. Estos routers no forman parte de la experiencia
+# familiar y algunos exponen tablas sensibles (expenses, adherence, evidencia,
+# archivos privados) por vías transversales sin gate de módulo. Se bloquea el
+# PREFIJO completo; el export del hogar (vuelca expenses+adherence) también.
+# Superficie ENTERPRISE / no-familiar: cerrada en AMBOS perfiles familiares
+# (pilot y live). No forma parte de la experiencia familiar y expone tablas
+# sensibles (expenses, adherence, evidencia, archivos privados) por vías sin gate.
+_FAMILY_ENTERPRISE_BLOCKED_PREFIXES = (
+    "/ceo", "/gerencia", "/forensics", "/logbook", "/scores",
+    "/coupling", "/organizations", "/audio",
+    "/library/evidence", "/library/memory",
+)
+# Superficies de FUNCIÓN diferida: cerradas SOLO en el piloto sellado; en
+# family-live se ABREN porque son funciones de valor de OPS-1:
+#   - /vision       → OCR de documentos (fotos/PDF-imagen)
+#   - /unit_functions → motor de estudio (agenda, timeline, confirmación IA)
+_FAMILY_PILOT_ONLY_BLOCKED_PREFIXES = ("/vision", "/unit_functions")
+
+
+def _is_family_blocked_path(path: str, pilot: bool) -> bool:
+    prefixes = _FAMILY_ENTERPRISE_BLOCKED_PREFIXES
+    if pilot:
+        prefixes = prefixes + _FAMILY_PILOT_ONLY_BLOCKED_PREFIXES
+    for prefix in prefixes:
+        if path == prefix or path.startswith(prefix + "/"):
+            return True
+    # Export del hogar: /households/{id}/export vuelca tablas sensibles.
+    # Cerrado en ambos perfiles familiares.
+    if path.startswith("/households/") and path.endswith("/export"):
+        return True
+    return False
+
+
+@app.middleware("http")
+async def family_pilot_surface_lockdown(request, call_next):
+    from .config import is_family_profile, is_family_pilot
+    if is_family_profile() and _is_family_blocked_path(request.url.path, is_family_pilot()):
+        from starlette.responses import JSONResponse
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Esta sección no está disponible en el perfil familiar"},
+        )
+    return await call_next(request)
+
+
 @app.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)
@@ -110,6 +157,8 @@ async def security_headers(request, call_next):
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault("Cache-Control", "no-store")
+    # CP1d-FAMILY-PILOT-1a: la API del piloto familiar nunca debe indexarse.
+    response.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
     return response
 
 
@@ -133,6 +182,7 @@ def healthcheck():
 app.include_router(auth.router)
 app.include_router(auth_oauth.router)
 app.include_router(households.router)
+app.include_router(guardians.router)
 app.include_router(persons.router)
 app.include_router(health.router)
 app.include_router(tasks.router)

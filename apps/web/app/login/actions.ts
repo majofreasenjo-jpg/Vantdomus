@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { API_BASE, loginWithPassword } from "../../lib/public-api";
+import { getHouseholds } from "../../lib/api";
 import { CSRF_COOKIE, newCsrfToken } from "../../lib/csrf";
+import { cookieSecure } from "../../lib/runtimeEnv";
 
 /**
  * Nivel de vista (densidad de la UI): "simple" oculta KPIs técnicos, márgenes
@@ -24,9 +26,25 @@ export async function setViewLevelAction(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
-function cookieSecure() {
-  const env = (process.env.APP_ENV || process.env.VANTDOMUS_DEPLOY_ENV || "local").toLowerCase();
-  return env === "production" || env === "prod" || env === "staging";
+// OPS-2 M5 — Modos de Domi: un solo Domi con configuraciones de interacción
+// (visual + comportamiento + ACCESIBILIDAD). Senior tiene gate propio (letra
+// grande, contraste, botones grandes, menos densidad, lectura en voz alta).
+// NOTA: en un archivo "use server" solo se pueden exportar funciones async;
+// la lista canónica de modos vive en lib/domiModeTokens (DOMI_MODES). Aquí la
+// mantenemos como constante interna (no exportada) para validar el formData.
+const DOMI_MODES = ["clasico", "calma", "senior", "estudio", "protector", "noche"] as const;
+
+export async function setDomiModeAction(formData: FormData) {
+  const raw = String(formData.get("mode") || "clasico");
+  const mode = (DOMI_MODES as readonly string[]).includes(raw) ? raw : "clasico";
+  const store = await cookies();
+  store.set("domi_mode", mode, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/", "layout");
 }
 
 /**
@@ -39,7 +57,9 @@ function cookieSecure() {
  *  - anything that doesn't start with a single forward slash
  */
 function safeNextPath(raw: string): string {
-  const fallback = "/dashboard";
+  // Por defecto se aterriza en la home companion de Domi (vía /inicio, que
+  // resuelve el hogar), no en la pantalla técnica /dashboard.
+  const fallback = "/inicio";
   if (!raw || typeof raw !== "string") return fallback;
   const trimmed = raw.trim();
   if (!trimmed.startsWith("/")) return fallback;
@@ -55,7 +75,7 @@ export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
   const mfaCode = String(formData.get("mfa_code") || "").trim();
-  const nextPath = String(formData.get("next") || "/dashboard");
+  const nextPath = String(formData.get("next") || "/inicio");
   if (!email || !password) {
     redirect(`/login?error=${encodeURIComponent("Ingresa email y contrasena")}`);
   }
@@ -91,7 +111,22 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(message)}&email=${encodeURIComponent(email)}`);
   }
 
-  redirect(safeNextPath(nextPath));
+  // Aterrizaje: si el destino es el intermedio /inicio (default), resolvemos el
+  // hogar AQUÍ y redirigimos DIRECTO a /hogar/<hid> (que tiene loader cálido),
+  // saltándonos /inicio — así se elimina el flash del chrome antiguo en la
+  // transición. Si hay un `next` explícito distinto, se respeta.
+  const target = safeNextPath(nextPath);
+  if (target === "/inicio") {
+    let hid = "";
+    try {
+      const households = (await getHouseholds()) as { items?: Array<{ id?: string }> };
+      hid = households?.items?.[0]?.id || "";
+    } catch {
+      hid = "";
+    }
+    redirect(hid ? `/hogar/${hid}` : "/dashboard");
+  }
+  redirect(target);
 }
 
 export async function logoutAction() {

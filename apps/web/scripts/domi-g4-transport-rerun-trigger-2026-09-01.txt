@@ -1,0 +1,1 @@
+DOMI G4 transport/routing invariance exact rerun trigger after AI Gateway free-credit activation observed in owner dashboard. No logic change. Same harness, same prompt, same OpenAI model, same matched token budget. Date: 2026-09-01. Rerun sequence: 3.

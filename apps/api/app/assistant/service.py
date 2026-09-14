@@ -9,7 +9,21 @@ class AssistantProviderError(RuntimeError):
     pass
 
 
+def _legacy_direct_exec_enabled() -> bool:
+    """
+    CP1c-FUNC-MIN-3.1 — El camino legacy que ejecuta tools DIRECTAMENTE vía
+    OpenAI (sin confirmación humana) queda NEUTRALIZADO por defecto. Solo puede
+    reactivarse con ASSISTANT_LEGACY_DIRECT_EXEC=1 (dev flag), que NO se activa
+    en este checkpoint. El flujo vivo es el orquestador propose-first.
+    """
+    return os.getenv("ASSISTANT_LEGACY_DIRECT_EXEC", "").strip().lower() in ("1", "true", "yes")
+
+
 def run_agentic_chat(messages: list[dict], model: str, temperature: float, db, household_id: str, user_id: str | None = None) -> str:
+    # Legacy safety wrapper: sin el flag explícito, este camino NO corre. Así
+    # ningún proveedor externo ejecuta acciones sin permiso humano.
+    if not _legacy_direct_exec_enabled():
+        raise AssistantProviderError("legacy direct-exec disabled (propose-first orchestrator active)")
     api_key = os.getenv("OPENAI_API_KEY", "")
     if not api_key:
         raise AssistantProviderError("OPENAI_API_KEY missing")

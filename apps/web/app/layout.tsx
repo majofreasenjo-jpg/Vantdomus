@@ -1,12 +1,16 @@
 import "./globals.css";
+import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
 import { cookies } from "next/headers";
-import { logoutAction, setViewLevelAction } from "./login/actions";
+import { logoutAction, setViewLevelAction, setDomiModeAction } from "./login/actions";
+import { DOMI_MODES } from "../lib/domiModeTokens";
 import NavLink from "./components/NavLink";
 import Celebrate from "./components/Celebrate";
 import DomiIcon from "./components/domiIcons";
+import PwaRegister from "./components/PwaRegister";
+import ModeSwitcher from "./components/ModeSwitcher";
 
 // Tipografía humanista redondeada y cálida, coherente con "hogar".
 // Se expone como CSS var --font-family-warm y se aplica en modo familia.
@@ -16,6 +20,35 @@ const nunito = Nunito({
   variable: "--font-nunito",
   display: "swap",
 });
+
+// CP1d-FAMILY-PILOT-WEB-HARDENING: metadata robots global (genera el
+// <meta name="robots"> en TODAS las páginas). Tercera capa junto al header
+// X-Robots-Tag (next.config.js) y robots.txt (Disallow: /).
+export const metadata: Metadata = {
+  applicationName: "VantDomus Hogar",
+  title: { default: "VantDomus Hogar", template: "%s · VantDomus" },
+  // OPS-1 (PWA): instalable en iPhone/Android. El manifest lo genera app/manifest.ts.
+  appleWebApp: {
+    capable: true,
+    title: "VantDomus",
+    statusBarStyle: "black-translucent",
+  },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
+};
+
+// OPS-1 (PWA): color de la barra/tema del sistema cuando la app está instalada.
+export const viewport: Viewport = {
+  themeColor: "#F59E3C",
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   let hid = "";
@@ -27,6 +60,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieHid = store.get("hid")?.value || "";
   const envHid = process.env.NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID || "";
   const viewLevel = store.get("view_level")?.value === "full" ? "full" : "simple";
+  // M5 — modo de Domi (accesibilidad/comportamiento). Default clásico.
+  const rawMode = store.get("domi_mode")?.value || "clasico";
+  const domiMode = (DOMI_MODES as readonly string[]).includes(rawMode) ? rawMode : "clasico";
+  const MODE_LABEL: Record<string, string> = {
+    clasico: "Clásico", calma: "Calma", senior: "Senior",
+    estudio: "Estudio", protector: "Protector", noche: "Noche",
+  };
 
   // 1. Prefer the active client selected by the app.
   if (cookieHid) {
@@ -88,11 +128,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : `${tax.product_line || "Planificador de Unidades"} - ${tax.domain_label || "Cliente adaptable"}`;
 
   return (
-    <html lang="es" className={nunito.variable} suppressHydrationWarning>
+    <html lang="es" className={nunito.variable} data-mode={isFamily ? domiMode : undefined} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         data-theme={isFamily ? "family" : undefined}
         data-level={isFamily ? viewLevel : undefined}
+        data-mode={isFamily ? domiMode : undefined}
         style={{ '--bg': tax.theme?.bg || '#0b0f17', '--primary': tax.theme?.primary || '#5b7cfa' } as React.CSSProperties}
       >
         <div className="nav">
@@ -118,6 +159,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <div className="morePanel">
                       {hid ? <a href={`/avisos/${hid}`}>Mural</a> : null}
                       {hid ? <a href={`/compras/${hid}`}>Compras</a> : null}
+                      {hid ? <a href={`/musica/${hid}`}>Música</a> : null}
                       {canSee("health") && hid ? <a href={`/health/${hid}`}>Salud</a> : null}
                       {canSee("finance") && hid ? <a href={`/finance/${hid}`}>Presupuesto</a> : null}
                       <a href="/biblioteca">Biblioteca</a>
@@ -143,6 +185,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </div>
               )
             ) : null}
+            {isFamily && hasSession ? <ModeSwitcher current={domiMode} /> : null}
             {isFamily ? (
               <form action={setViewLevelAction}>
                 <input type="hidden" name="level" value={viewLevel === "simple" ? "full" : "simple"} />
@@ -170,6 +213,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </div>
         <div className="container">{children}</div>
+        <PwaRegister />
         {isFamily ? <Celebrate /> : null}
         {/* Bottom nav móvil (companion-first). Solo visible en pantallas chicas. */}
         {isFamily && hasSession && hid ? (

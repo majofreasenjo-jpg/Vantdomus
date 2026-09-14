@@ -174,7 +174,11 @@ def ensure_schema():
             "272_persons_user_link.sql", "273_document_route_candidates.sql",
             "274_family_board.sql", "275_household_shopping.sql",
             "276_daily_activities.sql", "277_persons_avatar_status.sql",
-            "278_family_post_comments.sql"
+            "278_family_post_comments.sql", "279_assistant_proposals.sql",
+            "280_invitation_person_link.sql", "281_minor_guardian_model.sql",
+            "282_memory_visibility_scope.sql", "283_family_reminders.sql",
+            "284_web_push_subscriptions.sql", "285_memory_library_metadata.sql",
+            "286_family_documents.sql", "287_family_music_links.sql"
         ]
 
         is_pg = isinstance(con, PostgresConnectionWrapper)
@@ -210,13 +214,30 @@ def ensure_schema():
                             f"Migration {name} failed on statement: {s[:200]} -- {exc}"
                         ) from exc
             else:
-                try:
-                    con.executescript(sql)
-                except Exception as exc:
-                    if _is_benign_migration_error(exc):
-                        logger.debug("Skipping idempotent SQLite migration %s: %s", name, exc)
+                # CP1d-1b.1-R1 — aplicar SQLite statement-by-statement (como
+                # Postgres) para RECUPERARSE de estados parciales: si una
+                # migración quedó a medias (p. ej. una columna ya creada), el
+                # error benigno de ESE statement se salta y los statements
+                # restantes (columnas, tablas, índices) sí se aplican.
+                # Se quitan los comentarios '--' (de línea completa e inline,
+                # algunos contienen ';') antes de dividir; verificado que
+                # ninguna migración usa triggers ni literales con ';'/'--'.
+                sql_no_comments = "\n".join(
+                    line.split("--", 1)[0] for line in sql.splitlines()
+                )
+                for statement in sql_no_comments.split(";"):
+                    s = statement.strip()
+                    if not s:
                         continue
-                    raise MigrationError(f"Migration {name} failed: {exc}") from exc
+                    try:
+                        con.execute(s)
+                    except Exception as exc:
+                        if _is_benign_migration_error(exc):
+                            logger.debug("Skipping idempotent SQLite statement in %s: %s", name, exc)
+                            continue
+                        raise MigrationError(
+                            f"Migration {name} failed on statement: {s[:200]} -- {exc}"
+                        ) from exc
 
         con.commit()
         logger.info("Schema migrations completed.")

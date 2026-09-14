@@ -210,6 +210,140 @@ export const assistantChat = (
     }),
   });
 
+// CP1c-FUNC-MIN-3.1 — Orchestrator propose-first. Domi propone; el humano confirma.
+export const domiListProposals = (hid: string, status = "pending") =>
+  apiFetch(`/assistant/proposals?household_id=${encodeURIComponent(hid)}&status=${encodeURIComponent(status)}`);
+
+export const domiConfirmProposal = (id: string, overrides: Record<string, unknown> = {}) =>
+  apiFetch(`/assistant/proposals/${encodeURIComponent(id)}/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ overrides }),
+  });
+
+export const domiRejectProposal = (id: string) =>
+  apiFetch(`/assistant/proposals/${encodeURIComponent(id)}/reject`, { method: "POST" });
+
+// OPS-2.A — Memoria por persona: la familia le enseña a Domi hechos de cada uno.
+export const listDomiMemories = (hid: string) =>
+  apiFetch(`/assistant/memory?household_id=${encodeURIComponent(hid)}`);
+
+export const createDomiMemory = (body: {
+  household_id: string;
+  memory_type: string;
+  content: string;
+  person_id?: string | null;
+  importance?: number;
+  visibility_scope?: string;
+}) => apiFetch("/assistant/memory", { method: "POST", body: JSON.stringify(body) });
+
+export const deleteDomiMemory = (id: string, hid: string) =>
+  apiFetch(`/assistant/memory/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, {
+    method: "DELETE",
+  });
+
+// OPS-2 M8 — Biblioteca de Domi (6 capas) + inferencias confirmables + export.
+export const getMemoryLibrary = (hid: string) =>
+  apiFetch(`/assistant/memory/library?household_id=${encodeURIComponent(hid)}`);
+
+export const listMemoryInferences = (hid: string) =>
+  apiFetch(`/assistant/memory/inferences?household_id=${encodeURIComponent(hid)}`);
+
+export const confirmMemoryInference = (id: string, hid: string) =>
+  apiFetch(`/assistant/memory/inferences/${encodeURIComponent(id)}/confirm?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
+
+export const dismissMemoryInference = (id: string, hid: string) =>
+  apiFetch(`/assistant/memory/inferences/${encodeURIComponent(id)}/dismiss?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
+
+export const correctDomiMemory = (id: string, hid: string, content: string) =>
+  apiFetch(`/assistant/memory/${encodeURIComponent(id)}/correct`, {
+    method: "POST", body: JSON.stringify({ household_id: hid, content }),
+  });
+
+export const exportMemory = (hid: string) =>
+  apiFetch(`/assistant/memory/export?household_id=${encodeURIComponent(hid)}`);
+
+// OPS-2 M6 — Resumen del día (a demanda) para el usuario actual.
+export const getDailySummary = (hid: string) =>
+  apiFetch(`/assistant/summary?household_id=${encodeURIComponent(hid)}`, { method: "POST" });
+
+// OPS-2 M9 — Documentos con trazabilidad + antivirus + vigencia.
+export const listFamilyDocuments = (hid: string) =>
+  apiFetch(`/assistant/documents?household_id=${encodeURIComponent(hid)}`);
+
+export const uploadFamilyDocument = (
+  hid: string, file: File,
+  opts: { person_id?: string; visibility_scope?: string; valid_until?: string; supersedes?: string } = {},
+) => {
+  const fd = new FormData();
+  fd.append("household_id", hid);
+  fd.append("file", file, file.name);
+  if (opts.person_id) fd.append("person_id", opts.person_id);
+  if (opts.visibility_scope) fd.append("visibility_scope", opts.visibility_scope);
+  if (opts.valid_until) fd.append("valid_until", opts.valid_until);
+  if (opts.supersedes) fd.append("supersedes", opts.supersedes);
+  return apiFetchMultipart("/assistant/documents", fd);
+};
+
+export const documentVersions = (id: string, hid: string) =>
+  apiFetch(`/assistant/documents/${encodeURIComponent(id)}/versions?household_id=${encodeURIComponent(hid)}`);
+
+export const setDocumentValidity = (id: string, hid: string, valid_until: string | null) =>
+  apiFetch(`/assistant/documents/${encodeURIComponent(id)}/validity`, {
+    method: "POST", body: JSON.stringify({ household_id: hid, valid_until }),
+  });
+
+export const deleteFamilyDocument = (id: string, hid: string) =>
+  apiFetch(`/assistant/documents/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, { method: "DELETE" });
+
+// OPS-2 M10 — MUSIC-0: biblioteca musical por enlaces (sin OAuth ni tokens).
+export const listFamilyMusic = (hid: string, mood?: string) =>
+  apiFetch(`/assistant/music?household_id=${encodeURIComponent(hid)}${mood ? `&mood=${encodeURIComponent(mood)}` : ""}`);
+
+export const addFamilyMusic = (body: {
+  household_id: string; title: string; url: string; mood?: string; person_id?: string | null;
+}) => apiFetch("/assistant/music", { method: "POST", body: JSON.stringify(body) });
+
+export const deleteFamilyMusic = (id: string, hid: string) =>
+  apiFetch(`/assistant/music/${encodeURIComponent(id)}?household_id=${encodeURIComponent(hid)}`, { method: "DELETE" });
+
+// OPS-2 M4 — Voz (STT): envía el audio grabado y devuelve el texto transcrito.
+export const transcribeAudio = (hid: string, blob: Blob, filename = "nota.webm") => {
+  const fd = new FormData();
+  fd.append("household_id", hid);
+  fd.append("file", blob, filename);
+  return apiFetchMultipart("/assistant/transcribe", fd);
+};
+
+// OPS-2 M7.A — Recordatorios programables + bandeja de notificaciones in-app.
+export const listReminders = (hid: string) =>
+  apiFetch(`/assistant/reminders?household_id=${encodeURIComponent(hid)}`);
+
+export const createReminder = (body: {
+  household_id: string;
+  title: string;
+  remind_at: string;
+  body?: string | null;
+  person_id?: string | null;
+  visibility_scope?: string;
+  dedupe_key?: string | null;
+}) => apiFetch("/assistant/reminders", { method: "POST", body: JSON.stringify(body) });
+
+export const dismissReminder = (id: string, hid: string) =>
+  apiFetch(`/assistant/reminders/${encodeURIComponent(id)}/dismiss?household_id=${encodeURIComponent(hid)}`, {
+    method: "POST",
+  });
+
+// OPS-2 M7.B — Web Push (avisos al teléfono). Todo opcional/fail-closed.
+export const getPushConfig = (hid: string) =>
+  apiFetch(`/assistant/push/config?household_id=${encodeURIComponent(hid)}`);
+
+export const subscribePush = (body: {
+  household_id: string; endpoint: string; p256dh: string; auth: string;
+}) => apiFetch("/assistant/push/subscribe", { method: "POST", body: JSON.stringify(body) });
+
+export const unsubscribePush = (body: { household_id: string; endpoint: string }) =>
+  apiFetch("/assistant/push/unsubscribe", { method: "POST", body: JSON.stringify(body) });
+
 // Missing endpoints for Panel compatibility
 export const getInbox = (hid: string) => apiFetch(`/notifications/outbox?household_id=${encodeURIComponent(hid)}`);
 export const getEventDetail = (eid: string) => apiFetch(`/alerts?event_id=${encodeURIComponent(eid)}`).then(res => ({
@@ -282,10 +416,10 @@ export const smartInboxAnalyze = (hid: string, pid: string, formData: FormData) 
 };
 export const smartInboxList = (hid: string, status = "pending") =>
   apiFetch(`/smart_inbox/candidates?household_id=${encodeURIComponent(hid)}&status=${encodeURIComponent(status)}`);
-export const smartInboxConfirm = (id: string, overrides: Record<string, any> = {}) =>
+export const smartInboxConfirm = (id: string, overrides: Record<string, any> = {}, allowDuplicate = false) =>
   apiFetch(`/smart_inbox/candidates/${encodeURIComponent(id)}/confirm`, {
     method: "POST",
-    body: JSON.stringify({ overrides }),
+    body: JSON.stringify({ overrides, allow_duplicate: allowDuplicate }),
   });
 export const smartInboxReject = (id: string, reason?: string) =>
   apiFetch(`/smart_inbox/candidates/${encodeURIComponent(id)}/reject`, {
@@ -638,6 +772,12 @@ export const shoppingCart = (hid: string) =>
 // Actividades del Día
 export const dailyActivitiesList = (hid: string, date?: string) =>
   apiFetch(`/daily_activities/${encodeURIComponent(hid)}${date ? `?date=${encodeURIComponent(date)}` : ''}`);
+// OPS-2 M11 — rango de fechas para la vista de calendario (YYYY-MM-DD inclusivo).
+export const dailyActivitiesRange = (hid: string, from: string, to: string) =>
+  apiFetch(`/daily_activities/${encodeURIComponent(hid)}?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`);
+// M11 — URL de descarga .ics (en navegador pasa por el proxy con cookie de sesión).
+export const calendarIcsUrl = (hid: string) =>
+  `/api/proxy/daily_activities/${encodeURIComponent(hid)}/calendar.ics`;
 export const dailyActivityCreate = (hid: string, body: Record<string, any>) =>
   apiFetch(`/daily_activities/${encodeURIComponent(hid)}`, { method: "POST", body: JSON.stringify(body) });
 export const dailyActivityComplete = (hid: string, activityId: string) =>

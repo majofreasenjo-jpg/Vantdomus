@@ -1,116 +1,143 @@
 /**
- * U1-COMPANION — Home companion-first.
+ * U1-COMPANION CP1b-INTEGRATION — Home companion-first (port Google AI Studio).
  *
- * La home YA NO es un dashboard de módulos: es una sola pantalla viva donde
- * Domi conversa y aparecen tarjetas. Este Server Component solo obtiene datos
- * reales (resumen del día, personas, conteos) y se los pasa a <DomiCompanion>,
- * que es la experiencia. Los módulos viven bajo "Más" (ver layout).
+ * Server Component: obtiene datos REALES del hogar (integrantes, compras) y los
+ * pasa al port aprobado (DomiCompanionHome). Si un endpoint falla, el componente
+ * usa su fallback demo del prototipo (marcado como demo) — la integración visual
+ * no se bloquea por datos.
+ *
+ * La experiencia visible es la diseñada por Google AI Studio; aquí no se
+ * rediseña nada, solo se conecta la arquitectura del repo.
  */
-import { cookies } from "next/headers";
-import {
-  getDashboard, familyBoardList, shoppingList, dailyActivitiesList, listUnitFunctions,
-} from "../../../lib/api";
-import DomiPremiumHome from "../../components/DomiPremiumHome";
-import DomiThemeShell from "../../components/DomiThemeShell";
+import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { getDashboard, shoppingList } from "../../../lib/api";
+import { isPurchased, isExcluded } from "../../../lib/shoppingContract";
+import DomiCompanionHome, { DomiHomeData } from "../../components/domi/DomiCompanionHome";
+import { getInitialTheme } from "../../components/domi/domiThemes";
+import type { DomiState } from "../../components/domi/domiTypes";
+
+const DOMI_STATES = [
+  "listo", "escuchando", "pensando", "proponiendo", "esperando_confirmacion",
+  "protector", "calma", "cercano", "alegre", "descanso",
+] as const;
+const DOMI_APPEARANCES = [
+  "original", "estudio", "calma", "protector", "cercano", "noche", "senior",
+  "chef", "astronaut", "detective", "wizard",
+] as const;
+
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+// Tipografías del prototipo aprobado, servidas por next/font (sin @import de
+// red en runtime). domi.css las consume vía --domi-font-*.
+const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--domi-font-inter", display: "swap" });
+const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--domi-font-grotesk", display: "swap" });
+const jetbrains = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--domi-font-jetbrains", display: "swap" });
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function pickGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 6) return "Buenas noches";
-  if (h < 12) return "Buenos días";
-  if (h < 19) return "Buenas tardes";
-  return "Buenas noches";
-}
-
-export default async function HomeCompanion({ params }: { params: Promise<{ householdId: string }> }) {
+export default async function HogarCompanionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ householdId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { householdId: hid } = await params;
-  const store = await cookies();
-  const userName = store.get("vd_user_first_name")?.value;
+  const sp = await searchParams;
 
-  const [dash, board, shopAll, activities, ufs] = await Promise.all([
-    getDashboard(hid).catch(() => null),
-    familyBoardList(hid).catch(() => ({ items: [] })),
-    shoppingList(hid).catch(() => ({ items: [] })),
-    dailyActivitiesList(hid, new Date().toISOString().slice(0, 10)).catch(() => ({ items: [] })),
-    listUnitFunctions({ household_id: hid, category: "medication", limit: 50 }).catch(() => ({ items: [] })),
+  // Estado inicial resuelto EN EL SERVIDOR desde los query params (y la hora del
+  // servidor para el tema por defecto). Se pasa como props para que el primer
+  // render de servidor y cliente sea idéntico → sin hydration mismatch. En la
+  // demo local servidor y navegador son la misma máquina, así que la hora
+  // coincide; el componente sigue permitiendo cambiar tema/estado tras montar.
+  const themeParam = first(sp.theme) ?? null;
+  const stateParam = first(sp.domiState);
+  const appearanceParam = first(sp.domiAppearance) ?? first(sp.domiCostume);
+  const devParam = first(sp.dev);
+
+  const initialTheme = getInitialTheme(themeParam);
+  const initialDomiState = (DOMI_STATES as readonly string[]).includes(stateParam ?? "")
+    ? (stateParam as DomiState)
+    : "listo";
+  const initialAppearance = (DOMI_APPEARANCES as readonly string[]).includes(appearanceParam ?? "")
+    ? (appearanceParam as string)
+    : "original";
+  const initialDev = devParam === "1" || devParam === "true";
+
+  // Capturamos el error para clasificar el estado de datos (MIN-2.2).
+  let dashErr: any = null;
+  let shopErr: any = null;
+  const [dash, shopping] = await Promise.all([
+    getDashboard(hid).catch((e) => { dashErr = e; return null; }),
+    shoppingList(hid).catch((e) => { shopErr = e; return null; }),
   ]);
 
-  if (!dash) {
-    return (
-      <div className="card" style={{ padding: 32, maxWidth: 520, margin: "24px auto" }}>
-        <div className="cardTitle">No pudimos cargar tu hogar</div>
-        <a className="btn" href="/login">Entrar de nuevo</a>
-      </div>
-    );
-  }
+  const data: DomiHomeData = {};
 
+  // Integrantes reales → FamilyMember del prototipo
   const persons = (dash?.persons || []) as any[];
-  const boardItems = (board?.items || []) as any[];
-  const alerts = boardItems.filter((p) => p.priority === "high" || p.priority === "urgent" || p.post_type === "alert");
-  const pinned = boardItems.filter((p) => p.pinned);
-  const schoolNotice = boardItems.find((p) => p.post_type === "school");
-  const shopping = (shopAll?.items || []) as any[];
-  const shoppingPending = shopping.filter((s) => s.status === "needed");
-  const shoppingInCart = shopping.filter((s) => s.status === "in_cart");
-  const acts = (activities?.items || []) as any[];
-  const plannedActs = acts.filter((a) => a.status === "planned").length;
-  const meds = (ufs?.items || []) as any[];
-  const tonightMeds = meds.filter((m) => ((m?.schedule?.times || []) as string[]).some((t) => /^(1[89]|2[0-3]):/.test(t)));
+  if (persons.length > 0) {
+    data.familyMembers = persons.map((p) => ({
+      id: String(p.id),
+      name: p.display_name || "Integrante",
+      role: p.relation || "Integrante del hogar",
+      avatar: (p.display_name || "?").trim().charAt(0).toUpperCase(),
+      status: p.status_text || "En casa",
+    }));
+  }
 
-  // Resumen real del día (mismas señales que antes, ahora como tarjeta de Domi).
-  const lines: string[] = [];
-  if (pinned[0]?.title) lines.push(`📌 ${pinned[0].title}`);
-  if (tonightMeds.length > 0) lines.push(`Hay ${tonightMeds.length === 1 ? "un medicamento" : `${tonightMeds.length} medicamentos`} con horario para esta noche (la toma la confirma una persona).`);
-  if (schoolNotice?.title) lines.push(`Aviso del colegio: ${schoolNotice.title}`);
-  if (shoppingPending.length > 0) lines.push(`Faltan ${shoppingPending.length} productos por comprar (${shoppingInCart.length} ya en carro tentativo).`);
-  if (plannedActs > 0) lines.push(`${plannedActs} actividad(es) planificada(s) para hoy.`);
-  if (persons.length === 0) lines.push("Aún no hay integrantes. Pídeme “configurar mi hogar” y te guío.");
-  if (lines.length === 0) lines.push("Todo tranquilo en casa. Buen momento para un respiro o planificar la semana.");
+  // Compras reales → ShoppingItem del prototipo.
+  // MIN-3.3a: la clasificación usa el CONTRATO CANÓNICO (lib/shoppingContract,
+  // espejo del backend shopping_contract.py) — este archivo ya no define
+  // criterios propios de estados.
+  const items = (shopping?.items || []) as any[];
+  if (items.length > 0) {
+    data.shoppingItems = items
+      .filter((s) => !isExcluded(s.status))
+      .map((s) => ({
+        id: String(s.id),
+        name: s.item_name || "Producto",
+        checked: isPurchased(s.status),
+        qty: `${s.quantity ?? 1}${s.unit ? ` ${s.unit}` : " ud"}`,
+        category: s.place_hint || s.category || "Supermercado",
+      }));
+  }
 
-  const summary = { title: "Esto es lo importante hoy", lines };
-
-  // Tarjetas de ACCIÓN (propuestas de Domi por categoría) desde datos reales.
-  const personName = new Map(persons.map((p: any) => [p.id, p.display_name]));
-  const medPerson = tonightMeds[0]?.person_id ? (personName.get(tonightMeds[0].person_id) || "tu familiar") : "tu familiar";
-  const studyNote = boardItems.find((p) => /prueba|examen|estudi|tarea|colegio|circular/i.test(`${p.title || ""} ${p.body || ""}`));
-  const cards: any[] = [];
-  if (persons.length === 0) {
-    cards.push({ kind: "action", cat: "config", color: "#4A7A6B", icon: "users", kicker: "Empezar", title: "Configura tu hogar", text: "Aún no hay integrantes. Domi te guía para agregar a tu familia en un minuto.", primary: { label: "Configurar hogar", send: "configurar mi hogar" } });
+  // CP1c-FUNC-MIN-2.2 — estado de datos honesto (fallback demo NO silencioso).
+  // Clasifica: real | session (401/expirada) | api (backend caído) | demo (sin datos).
+  // "real" si el hogar resolvió al menos integrantes reales; si no, se clasifica
+  // por el error para explicar HONESTAMENTE al usuario qué está viendo.
+  const gotReal = persons.length > 0;
+  const errMsg = String(dashErr?.message || shopErr?.message || "");
+  let dataState: "real" | "session" | "api" | "demo" = "real";
+  if (gotReal) {
+    dataState = "real";
+  } else if (/401|unauthorized|authentication|forbidden|403|expir|sesi[oó]n/i.test(errMsg)) {
+    dataState = "session";
+  } else if (/econnrefused|fetch failed|network|timeout|enotfound|econnreset|50[0-9]/i.test(errMsg)) {
+    dataState = "api";
+  } else {
+    dataState = "demo";
   }
-  if (tonightMeds.length > 0) {
-    cards.push({ kind: "action", cat: "cuidado", color: "#E2856F", icon: "health", kicker: "Cuidado", title: `Cuidado de ${medPerson}`, text: "Hay una toma de medicamento con horario esta noche. Domi la recuerda, pero una persona debe confirmarla.", primary: { label: "Revisar cuidado", send: `medicamento de ${medPerson}` }, secondary: { label: "Avisar a la familia", send: "avisar a la familia" } });
+  if (dataState !== "real") {
+    // Log operacional para QA (sin exponer token ni IDs largos).
+    console.warn(`[hogar] estado de datos = ${dataState} (sin datos reales del hogar)`);
   }
-  if (studyNote?.title) {
-    cards.push({ kind: "action", cat: "estudio", color: "#6E97DA", icon: "clipboard", kicker: "Estudio", title: "Estudio en casa", text: `${studyNote.title}. Domi puede crear bloques de repaso y un paquete para revisar.`, primary: { label: "Preparar estudio", send: "prepara estudio para Diego" } });
-  }
-  if (shoppingPending.length > 0) {
-    cards.push({ kind: "action", cat: "compras", color: "#5FA088", icon: "shopping", kicker: "Compras", title: "Compras del hogar", text: `Faltan ${shoppingPending.length} productos (${shoppingInCart.length} en carro tentativo). Domi los organiza por lugar.`, primary: { label: "Preparar compras", send: "agrega leche, pan y paracetamol" } });
-  }
-  if (schoolNotice?.title) {
-    cards.push({ kind: "action", cat: "colegio", color: "#C29A57", icon: "file", kicker: "Colegio", title: "Circular del colegio", text: `${schoolNotice.title}. Domi puede leerla y proponer qué hacer con ella.`, primary: { label: "Leer con Domi", send: "subir documento" } });
-  }
-  // Bienestar siempre disponible (apoyo, no clínico).
-  cards.push({ kind: "action", cat: "bienestar", color: "#79B49F", icon: "calm", kicker: "Bienestar", title: "Un momento de calma", text: "Domi puede acompañarte con una respiración de 1 minuto o un sonido suave.", primary: { label: "Respirar 1 minuto", send: "respiración" }, secondary: { label: "Música tranquila", send: "música tranquila" } });
-
-  const suggestions = [
-    { label: "Ordenar mi día", send: "ordenar mi día" },
-    { label: "Preparar compras", send: "agrega leche, pan y paracetamol" },
-    { label: "Confirmar salud", send: `medicamento de ${medPerson}` },
-    { label: "Leer un documento", send: "subir documento" },
-    { label: "Un momento de calma", send: "pon música tranquila" },
-  ];
 
   return (
-    <DomiThemeShell>
-      <DomiPremiumHome
-        userName={userName}
-        greeting={pickGreeting()}
-        cards={cards}
-        suggestions={suggestions}
+    <div className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}>
+      <DomiCompanionHome
+        data={data}
         hid={hid}
+        dataState={dataState}
+        initialTheme={initialTheme}
+        initialDomiState={initialDomiState}
+        initialAppearance={initialAppearance}
+        initialDev={initialDev}
       />
-    </DomiThemeShell>
+    </div>
   );
 }

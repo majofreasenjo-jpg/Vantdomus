@@ -18,6 +18,8 @@ def add_expense(household_id: str, amount: float, currency: str="USD", category:
     if amount <= 0:
         raise HTTPException(status_code=400, detail="amount must be > 0")
     require_household_role(db, user["user_id"], household_id, "member")
+    # CP1d-1b.1-R1: el gate de módulo también en ESCRITURA (antes solo GET).
+    require_module_visible(db, user["user_id"], household_id, "finance")
     require_person_in_household(db, person_id, household_id)
     eid = str(uuid.uuid4())
     created = now()

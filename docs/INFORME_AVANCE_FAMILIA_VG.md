@@ -372,3 +372,22 @@ audit log en compartir ubicación exacta; menores en modo estado por defecto.
 
 *Generado por Claude Code. Detalle por commit disponible en el historial de git
 (`git log a096a49..HEAD`).*
+
+---
+
+## CP1b Google Visual Port — companion-first Domi (2026-07-02)
+
+- **Qué se portó:** la experiencia visual completa aprobada por el owner desde
+  el prototipo de Google AI Studio a `apps/web/app/components/domi/`
+  (DomiCompanionHome + DomiOrb + StatusCards + Modals + DomiChat +
+  EquilibrioChart + tokens de 10 estados + temas dawn/day/sunset/night), casi
+  literal (regla: Google diseñó, aquí solo se adaptó a Next).
+- **Qué NO se portó:** server.ts/Express, @google/genai, dotenv, vite,
+  metadata de AI Studio, .env.example. El chat se resuelve con reglas locales.
+- **Dependencias nuevas:** tailwindcss@4 + @tailwindcss/postcss (build-only,
+  aprobadas por el owner), AISLADAS al árbol Domi (sin preflight global,
+  source() restringido). `motion` NO se instaló: shim local con Web Animations
+  API (`domiMotion.tsx`).
+- **Estado:** integración técnica lista en branch `u1-cp1b-google-visual-port`;
+  **pendiente revisión visual de Manuel en repo real** (desktop day/night,
+  mobile, dev panel). No hay deploy.

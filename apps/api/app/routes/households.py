@@ -18,8 +18,15 @@ router = APIRouter(prefix="/households", tags=["Households"])
 @router.get("")
 def list_households(user=Depends(get_current_user), db=Depends(get_db)):
     try:
-        backfill_user_households(db, user["user_id"])
-        db.commit()
+        # CP1d-1b.2 (deuda 9C): en family-pilot se OMITE el backfill por
+        # completo. backfill_user_households autoprovisiona organizaciones
+        # empresariales; el hogar del piloto llega por bootstrap con su
+        # organization_id válido, así que no hay nada honesto que "reparar".
+        from app.config import is_family_profile
+        family_pilot = is_family_profile()
+        if not family_pilot:
+            backfill_user_households(db, user["user_id"])
+            db.commit()
         cur = db.cursor()
         cur.execute(
             """
@@ -32,6 +39,10 @@ def list_households(user=Depends(get_current_user), db=Depends(get_db)):
             (user["user_id"],)
         )
         rows = cur.fetchall()
+        # CP1d-1b.2 (deuda 9B): en family-pilot no se expone organization_id a
+        # los integrantes familiares (dato operativo/empresarial innecesario).
+        if family_pilot:
+            return {"items": [{"id": r[0], "name": r[1]} for r in rows]}
         return {"items": [{"id": r[0], "name": r[1], "organization_id": r[2]} for r in rows]}
     except Exception as e:
         print(f"ERROR list_households: {e}")
@@ -63,6 +74,14 @@ class InvitationCreate(BaseModel):
     email: str
     role: str = "viewer"
     ttl_hours: int = 168
+    # CP1d-FAMILY-PILOT-1a: vínculo opcional a una persona ya creada del hogar;
+    # al aceptar, el nuevo usuario queda enlazado a esa ficha (persons.user_id).
+    person_id: str | None = None
+
+
+class HouseholdBackupRequest(BaseModel):
+    # Reautenticación obligatoria: el backup toca la base completa del servidor.
+    password: str
 
 class HouseholdProfileUpdate(BaseModel):
     family_name: str | None = None
@@ -420,7 +439,12 @@ def _presence_status(last_seen_at: str | None) -> str:
 
 @router.get("/{household_id}/members")
 def list_members(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
-    require_household_role(db, user["user_id"], household_id, "viewer")
+    viewer_role = require_household_role(db, user["user_id"], household_id, "viewer")
+    # CP1d-1b.1-R2 (hallazgo 2): minimización. Solo owner/admin reciben la vista
+    # administrativa (email, sesiones, last_seen exacto). El resto — incluidos
+    # menores viewer — reciben nombre visible + rol + presencia simplificada, y
+    # su PROPIO email; jamás el email/sesiones de otros integrantes.
+    is_admin_view = viewer_role in ("owner", "admin")
     rows = db.execute(
         """
         SELECT
@@ -439,25 +463,52 @@ def list_members(household_id: str, user=Depends(get_current_user), db=Depends(g
         """.replace("ROLE_RANK(m.role)", "CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END"),
         (now(), household_id),
     ).fetchall()
-    return {
-        "items": [
-            {
-                "user_id": row["user_id"],
-                "email": row["email"],
-                "role": row["role"],
-                "created_at": row["created_at"],
-                "last_seen_at": row["last_seen_at"],
-                "active_sessions": int(row["active_sessions"] or 0),
-                "presence": _presence_status(row["last_seen_at"]),
-            }
-            for row in rows
-        ]
+    # Nombre visible por ficha (persons.user_id), nunca el email como nombre.
+    display_by_user = {
+        r["user_id"]: r["display_name"]
+        for r in db.execute(
+            "SELECT user_id, display_name FROM persons WHERE household_id=? AND user_id IS NOT NULL",
+            (household_id,),
+        ).fetchall()
     }
+    from app.config import is_family_profile
+    family_pilot = is_family_profile()
+    items = []
+    for row in rows:
+        is_self = row["user_id"] == user["user_id"]
+        entry = {
+            "display_name": display_by_user.get(row["user_id"]),
+            "role": row["role"],
+            "presence": _presence_status(row["last_seen_at"]),
+            "is_self": is_self,
+        }
+        # CP1d-1b.2 (deuda 9A): en family-pilot los integrantes NO
+        # administrativos no reciben el user_id interno de terceros. Owner/admin
+        # conservan los IDs necesarios para administrar; cada uno recibe el suyo.
+        if is_admin_view or is_self or not family_pilot:
+            entry["user_id"] = row["user_id"]
+        if is_admin_view or is_self:
+            # Vista administrativa completa, o el propio integrante sobre sí mismo.
+            entry["email"] = row["email"]
+            entry["created_at"] = row["created_at"]
+            entry["last_seen_at"] = row["last_seen_at"]
+            entry["active_sessions"] = int(row["active_sessions"] or 0)
+        items.append(entry)
+    return {"items": items}
 
 
 @router.post("/{household_id}/members")
 def add_member(household_id: str, payload: MemberCreate, user=Depends(get_current_user), db=Depends(get_db)):
     require_household_role(db, user["user_id"], household_id, "admin")
+    # CP1d-1b.1-R1 — bloqueador 1: en family-pilot esta vía DIRECTA evadiría el
+    # modelo de menores (sin ficha/banda/tutela/consentimiento). La única vía
+    # para incorporar una cuenta preexistente es POST /invitations/{token}/accept.
+    from app.config import is_family_profile
+    if is_family_profile():
+        raise HTTPException(
+            status_code=403,
+            detail="El alta directa está deshabilitada en el perfil familiar. Incorpora integrantes por invitación.",
+        )
     require_verified_email_for_sensitive_action(db, user["user_id"])
     role = _validate_member_role(payload.role)
     _require_owner_for_owner_role(db, user["user_id"], household_id, role)
@@ -471,6 +522,10 @@ def add_member(household_id: str, payload: MemberCreate, user=Depends(get_curren
     ).fetchone()
     if existing:
         raise HTTPException(status_code=400, detail="User is already a household member")
+    # Tope de rol por banda de la ficha vinculada (compat: fuera de family-pilot
+    # no exige ficha; si existe, se respeta).
+    from app.minor_guardian_policy import validate_membership_role_for_person
+    validate_membership_role_for_person(db, household_id=household_id, user_id=target["id"], proposed_role=role)
 
     db.execute(
         "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
@@ -539,6 +594,21 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
     if not h:
         raise HTTPException(status_code=404, detail="Household not found")
     email = payload.email.strip().lower()
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("invitation_create", user["user_id"])
+    person_id = (payload.person_id or "").strip() or None
+    # CP1d-1b.1 — validador COMPARTIDO (etapa de creación): banda, tutela y
+    # consentimiento se validan aquí y SE RE-VALIDAN en cada aceptación.
+    # En family-pilot la ficha es obligatoria.
+    from app.config import is_family_profile
+    from app.minor_guardian_policy import validate_invitation_person_policy
+    policy = validate_invitation_person_policy(
+        db,
+        household_id=household_id,
+        person_id=person_id,
+        role=role,
+        require_person=is_family_profile(),
+    )
     ttl_hours = max(1, min(int(payload.ttl_hours or 168), 24 * 30))
     expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).isoformat()
     raw_token = secrets.token_urlsafe(32)
@@ -547,9 +617,9 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
         """
         INSERT INTO household_invitations (
           id, household_id, organization_id, email, role, token_hash, invited_by_user_id,
-          created_at, expires_at, accepted_at, revoked_at
+          created_at, expires_at, accepted_at, revoked_at, person_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)
         """,
         (
             invitation_id,
@@ -561,8 +631,10 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
             user["user_id"],
             now(),
             expires_at,
+            person_id,
         ),
     )
+    # CP1d-1b.1 — auditoría SIN PII: fingerprint en lugar de email en claro.
     write_audit_log(
         db,
         action="create_invitation",
@@ -570,7 +642,15 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
         household_id=household_id,
         user_id=user["user_id"],
         resource_id=invitation_id,
-        metadata={"email": email, "role": role, "expires_at": expires_at},
+        metadata={
+            "email_fingerprint": _email_fingerprint(email),
+            "role": role,
+            "expires_at": expires_at,
+            "person_id": person_id,
+            "age_band": policy.get("age_band"),
+            "relationship_id": policy.get("relationship_id"),
+            "consent_id": policy.get("consent_id"),
+        },
     )
     write_security_event(
         db,
@@ -598,12 +678,16 @@ def create_invitation(household_id: str, payload: InvitationCreate, user=Depends
     }
 
 
-@router.post("/invitations/{token}/accept")
-def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get_db)):
+def _accept_invitation_core(db, user, token: str):
+    """CP1d-1b.2 — núcleo transaccional COMPARTIDO por ambas rutas de aceptación
+    (token en pathname legacy y token en body). Reusa la política central; nunca
+    registra el token en claro."""
+    from app.rate_limit import enforce_action_limit
+    enforce_action_limit("invitation_accept", user["user_id"])
     token_hash = _hash_invitation_token(token)
     invitation = db.execute(
         """
-        SELECT id, household_id, organization_id, email, role, expires_at, accepted_at, revoked_at
+        SELECT id, household_id, organization_id, email, role, expires_at, accepted_at, revoked_at, person_id
         FROM household_invitations
         WHERE token_hash=?
         """,
@@ -625,24 +709,69 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
     if existing:
         raise HTTPException(status_code=400, detail="User is already a household member")
 
-    db.execute(
-        "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
-        (invitation["household_id"], user["user_id"], invitation["role"], now()),
-    )
-    accepted_at = now()
-    db.execute(
-        "UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=? WHERE id=?",
-        (user["user_id"], accepted_at, invitation["id"]),
-    )
-    write_audit_log(
-        db,
-        action="accept_invitation",
-        resource_type="household_invitation",
-        household_id=invitation["household_id"],
-        user_id=user["user_id"],
-        resource_id=invitation["id"],
-        metadata={"email": invitation["email"], "role": invitation["role"]},
-    )
+    # CP1d-1b.1 — MISMA política que register_with_invitation (una cuenta
+    # preexistente NO puede evadir banda/tutela/consentimiento/rol/aislamiento).
+    # Se RE-VALIDA TODO dentro de la transacción: las condiciones pueden haber
+    # cambiado desde que se creó la invitación. El rol usado es SIEMPRE el
+    # persistido en la invitación.
+    from app.config import is_family_profile
+    from app.minor_guardian_policy import validate_invitation_person_policy
+    linked_person_id = None
+    try:
+        policy = validate_invitation_person_policy(
+            db,
+            household_id=invitation["household_id"],
+            person_id=invitation["person_id"],
+            role=invitation["role"],
+            require_person=is_family_profile(),
+        )
+        # Guardia de concurrencia: solo UNA transacción consuma la invitación.
+        accepted_at = now()
+        cur = db.execute(
+            """
+            UPDATE household_invitations SET accepted_by_user_id=?, accepted_at=?
+            WHERE id=? AND accepted_at IS NULL AND revoked_at IS NULL
+            """,
+            (user["user_id"], accepted_at, invitation["id"]),
+        )
+        if cur.rowcount != 1:
+            raise HTTPException(status_code=400, detail="Invitation already accepted")
+        db.execute(
+            "INSERT INTO household_memberships (household_id, user_id, role, created_at) VALUES (?, ?, ?, ?)",
+            (invitation["household_id"], user["user_id"], invitation["role"], now()),
+        )
+        # Ficha ligada: DEBE poder enlazarse; si está ocupada, FALLO ATÓMICO
+        # (jamás se enlaza en silencio ni se consume la invitación a medias).
+        if invitation["person_id"]:
+            cur = db.execute(
+                "UPDATE persons SET user_id=? WHERE id=? AND household_id=? AND user_id IS NULL",
+                (user["user_id"], invitation["person_id"], invitation["household_id"]),
+            )
+            if cur.rowcount != 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail="La invitación no pudo completarse. Pide una nueva al administrador del hogar.",
+                )
+            linked_person_id = invitation["person_id"]
+        write_audit_log(
+            db,
+            action="accept_invitation",
+            resource_type="household_invitation",
+            household_id=invitation["household_id"],
+            user_id=user["user_id"],
+            resource_id=invitation["id"],
+            metadata={
+                "email_fingerprint": _email_fingerprint(invitation["email"]),
+                "role": invitation["role"],
+                "linked_person_id": linked_person_id,
+                "age_band": policy.get("age_band"),
+                "relationship_id": policy.get("relationship_id"),
+                "consent_id": policy.get("consent_id"),
+            },
+        )
+    except Exception:
+        db.rollback()
+        raise
     write_security_event(
         db,
         event_type="household_invitation_accepted",
@@ -659,7 +788,35 @@ def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get
         },
     )
     db.commit()
-    return {"ok": True, "household_id": invitation["household_id"], "role": invitation["role"]}
+    return {
+        "ok": True,
+        "household_id": invitation["household_id"],
+        "role": invitation["role"],
+        "linked_person_id": linked_person_id,
+    }
+
+
+class InvitationAcceptBody(BaseModel):
+    token: str
+
+
+@router.post("/invitations/accept")
+def accept_invitation_by_body(payload: InvitationAcceptBody, user=Depends(get_current_user), db=Depends(get_db)):
+    """CP1d-1b.2 — aceptacion con token en el BODY (no en el pathname): evita
+    que el token aparezca en logs de Next/CDN/Render. Reusa el nucleo comun."""
+    return _accept_invitation_core(db, user, (payload.token or "").strip())
+
+
+@router.post("/invitations/{token}/accept")
+def accept_invitation(token: str, user=Depends(get_current_user), db=Depends(get_db)):
+    # CP1d-1b.2 — ruta legacy con token en pathname: en family-pilot responde
+    # fail-closed ANTES de consultar la invitacion (no se registra el pathname
+    # con el token, no se redirige, no se expone el token). El flujo del piloto
+    # usa exclusivamente POST /invitations/accept (token en body).
+    from app.config import is_family_profile
+    if is_family_profile():
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    return _accept_invitation_core(db, user, token)
 
 
 @router.post("/{household_id}/invitations/{invitation_id}/revoke")
@@ -682,7 +839,7 @@ def revoke_invitation(household_id: str, invitation_id: str, user=Depends(get_cu
         household_id=household_id,
         user_id=user["user_id"],
         resource_id=invitation_id,
-        metadata={"email": invitation["email"], "role": invitation["role"], "revoked_at": revoked_at},
+        metadata={"email_fingerprint": _email_fingerprint(invitation["email"]), "role": invitation["role"], "revoked_at": revoked_at},
     )
     write_security_event(
         db,
@@ -716,6 +873,10 @@ def update_member_role(
     _require_owner_for_owner_role(db, user["user_id"], household_id, role)
     _require_owner_to_change_owner(db, user["user_id"], household_id, target_user_id)
     _prevent_last_owner_change(db, household_id, target_user_id, next_role=role)
+    # CP1d-1b.1-R1 — bloqueador 2: el tope de rol por banda se aplica también
+    # DESPUÉS del alta. Un menor no puede ser promovido a member/admin/owner.
+    from app.minor_guardian_policy import validate_membership_role_for_person
+    validate_membership_role_for_person(db, household_id=household_id, user_id=target_user_id, proposed_role=role)
     current = db.execute(
         "SELECT role FROM household_memberships WHERE household_id=? AND user_id=?",
         (household_id, target_user_id),
@@ -791,6 +952,16 @@ def remove_member(household_id: str, target_user_id: str, user=Depends(get_curre
 
 @router.post("")
 def create_household(name: str, user=Depends(get_current_user), db=Depends(get_db)):
+    # CP1d-1b.1-R2 (hallazgo 1): en family-pilot la creación interactiva de
+    # hogares queda bloqueada (creaba household+organization+membership owner
+    # sin política de banda). El hogar del piloto se crea solo por el bootstrap
+    # administrativo autorizado de 1b.3.
+    from app.config import is_family_profile
+    if is_family_profile():
+        raise HTTPException(
+            status_code=403,
+            detail="El hogar se crea exclusivamente mediante el bootstrap administrativo autorizado.",
+        )
     hid = str(uuid.uuid4())
     organization_id = ensure_user_default_organization(db, user["user_id"], name=f"{name} Organization")
     db.execute("INSERT INTO households (id,name,meta,created_at,organization_id) VALUES (?,?,?,?,?)",
@@ -980,3 +1151,180 @@ def dashboard(household_id: str, user=Depends(get_current_user), db=Depends(get_
         "alerts": [{"id": a["id"], "severity": a["severity"], "title": a["title"], "message": a["message"], "status": a["status"], "created_at": a["created_at"]} for a in alerts],
         "events": [{"id": e["id"], "domain": e["domain"], "event_type": e["event_type"], "summary": e["summary"], "occurred_at": e["occurred_at"]} for e in events],
     }
+
+
+# ---------------------------------------------------------------------------
+# CP1d-FAMILY-PILOT-1a — Backup consistente del servidor (SQLite VACUUM INTO)
+# Reglas: owner + reautenticación con contraseña; snapshot server-side en
+# DB_PATH.parent/backups; verificación por restauración aislada (integrity_check
+# + conteos); retención de los 10 más recientes; SIN endpoint de descarga y
+# SIN rutas físicas en la respuesta.
+# ---------------------------------------------------------------------------
+
+_BACKUP_VERIFY_TABLES = [
+    "users",
+    "households",
+    "household_memberships",
+    "persons",
+    "household_invitations",
+]
+_BACKUP_KEEP = 10
+
+
+def _backups_dir() -> Path:
+    from ..config import settings
+    return Path(settings.DB_PATH).resolve().parent / "backups"
+
+
+def _require_backup_admin(db, user, household_id: str, password: str) -> None:
+    require_household_role(db, user["user_id"], household_id, "owner")
+    require_verified_email_for_sensitive_action(db, user["user_id"])
+    from ..security import verify_password
+    row = db.execute("SELECT password_hash FROM users WHERE id=?", (user["user_id"],)).fetchone()
+    if not row or not verify_password(password or "", row["password_hash"]):
+        write_security_event(
+            db,
+            event_type="household_backup_reauth_failed",
+            severity="high",
+            source="household_backup",
+            household_id=household_id,
+            user_id=user["user_id"],
+            metadata={},
+            commit=True,
+        )
+        raise HTTPException(status_code=403, detail="Reautenticación fallida: contraseña incorrecta")
+
+
+@router.post("/{household_id}/admin/backup")
+def create_household_backup(
+    household_id: str,
+    payload: HouseholdBackupRequest,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    _require_backup_admin(db, user, household_id, payload.password)
+    from ..rate_limit import enforce_action_limit
+    enforce_action_limit("backup", user["user_id"])
+    from ..config import settings
+    if settings.DATABASE_URL:
+        raise HTTPException(
+            status_code=501,
+            detail="El backup VACUUM INTO aplica solo a SQLite; con Postgres se usa el backup gestionado del proveedor",
+        )
+    import sqlite3
+    db_path = Path(settings.DB_PATH).resolve()
+    if not db_path.exists():
+        raise HTTPException(status_code=500, detail="Base de datos no encontrada en el servidor")
+    backups = _backups_dir()
+    backups.mkdir(parents=True, exist_ok=True)
+    created_at = datetime.now(timezone.utc)
+    backup_id = f"vantdomus_{created_at.strftime('%Y%m%dT%H%M%SZ')}_{secrets.token_hex(4)}"
+    snapshot_path = backups / f"{backup_id}.db"
+
+    source_counts = {
+        table: int(db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+        for table in _BACKUP_VERIFY_TABLES
+    }
+
+    # VACUUM INTO exige una conexión sin transacción abierta: usar una propia.
+    src = sqlite3.connect(str(db_path))
+    try:
+        src.execute("VACUUM INTO ?", (str(snapshot_path),))
+    finally:
+        src.close()
+
+    # Restauración aislada: abrir el snapshot como base independiente y verificar.
+    snap = sqlite3.connect(str(snapshot_path))
+    try:
+        integrity = str(snap.execute("PRAGMA integrity_check").fetchone()[0])
+        snapshot_counts = {
+            table: int(snap.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+            for table in _BACKUP_VERIFY_TABLES
+        }
+    finally:
+        snap.close()
+
+    if integrity.lower() != "ok":
+        snapshot_path.unlink(missing_ok=True)
+        write_security_event(
+            db,
+            event_type="household_backup_integrity_failed",
+            severity="high",
+            source="household_backup",
+            household_id=household_id,
+            user_id=user["user_id"],
+            metadata={"backup_id": backup_id, "integrity": integrity[:200]},
+            commit=True,
+        )
+        raise HTTPException(status_code=500, detail="El snapshot no pasó integrity_check y fue descartado")
+
+    counts_match = snapshot_counts == source_counts
+    sha256 = hashlib.sha256(snapshot_path.read_bytes()).hexdigest()
+    size_bytes = snapshot_path.stat().st_size
+
+    metadata = {
+        "backup_id": backup_id,
+        "created_at": created_at.isoformat(),
+        "size_bytes": size_bytes,
+        "sha256": sha256,
+        "integrity": "ok",
+        "verified": counts_match,
+        "tables": snapshot_counts,
+        "source_tables": source_counts,
+    }
+    (backups / f"{backup_id}.json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    # Retención: conservar los N snapshots más recientes (nombre = timestamp UTC).
+    existing = sorted(backups.glob("vantdomus_*.db"))
+    for old in existing[:-_BACKUP_KEEP] if len(existing) > _BACKUP_KEEP else []:
+        old.unlink(missing_ok=True)
+        old.with_suffix(".json").unlink(missing_ok=True)
+
+    write_audit_log(
+        db,
+        action="household_backup_created",
+        resource_type="household_backup",
+        household_id=household_id,
+        user_id=user["user_id"],
+        resource_id=backup_id,
+        metadata={"sha256": sha256, "size_bytes": size_bytes, "verified": counts_match},
+    )
+    write_security_event(
+        db,
+        event_type="household_backup_created",
+        severity="medium",
+        source="household_backup",
+        household_id=household_id,
+        user_id=user["user_id"],
+        metadata={"backup_id": backup_id, "sha256": sha256, "verified": counts_match},
+    )
+    db.commit()
+    # Sin ruta física: el snapshot vive solo en el disco del servidor.
+    return metadata
+
+
+@router.get("/{household_id}/admin/backup")
+def list_household_backups(household_id: str, user=Depends(get_current_user), db=Depends(get_db)):
+    require_household_role(db, user["user_id"], household_id, "owner")
+    backups = _backups_dir()
+    items = []
+    if backups.exists():
+        for meta_file in sorted(backups.glob("vantdomus_*.json"), reverse=True):
+            try:
+                data = json.loads(meta_file.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            items.append(
+                {
+                    "backup_id": data.get("backup_id"),
+                    "created_at": data.get("created_at"),
+                    "size_bytes": data.get("size_bytes"),
+                    "sha256": data.get("sha256"),
+                    "integrity": data.get("integrity"),
+                    "verified": data.get("verified"),
+                    "tables": data.get("tables"),
+                }
+            )
+    return {"items": items, "keep": _BACKUP_KEEP}

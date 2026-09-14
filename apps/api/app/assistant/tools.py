@@ -219,6 +219,16 @@ TOOL_DEFINITIONS = [
 
 
 def execute_tool_call(db, household_id: str, tool_name: str, args: dict, user_id: str | None = None) -> str:
+    # CP1c-FUNC-MIN-3.1 — NEUTRALIZACIÓN DE EJECUCIÓN DIRECTA.
+    # Estas tools legacy tienen side-effects (crean gastos, tareas, alertas). El
+    # canon MIN-3 exige que NADA se ejecute sin confirmación humana vía el
+    # orquestador propose-first. Salvo el dev flag explícito (apagado por
+    # defecto), esta vía queda deshabilitada y no toca la base de datos.
+    if os.getenv("ASSISTANT_LEGACY_DIRECT_EXEC", "").strip().lower() not in ("1", "true", "yes"):
+        return (
+            "BLOCKED: la ejecución directa de herramientas está deshabilitada. "
+            "Usa el flujo propose-first (proponer → confirmación humana → ejecutar)."
+        )
     # Pre-declare result so that an unhandled exception path inside any branch
     # below cannot leave `result` unbound when the audit-log call references it.
     result: str = f"ERROR: Tool {tool_name} is not implemented or invalid."

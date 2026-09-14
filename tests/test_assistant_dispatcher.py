@@ -31,6 +31,11 @@ def tools_module(monkeypatch, tmp_path):
     monkeypatch.setenv("DB_PATH", str(tmp_path / "dispatcher.db"))
     monkeypatch.setenv("JWT_SECRET", "dispatcher-test-secret-32-chars-long")
     monkeypatch.setenv("VANTDOMUS_MFA_SECRET_KEY", "dispatcher-test-mfa-secret-32-chars")
+    # CP1c-FUNC-MIN-3.1 — la ejecución directa legacy quedó neutralizada por
+    # defecto. Estos tests validan la CORRECCIÓN INTERNA de ese dispatcher
+    # (mutua exclusión, result nunca sin asignar), así que habilitamos el dev
+    # flag explícitamente para ejercitar la máquina legacy que sigue existiendo.
+    monkeypatch.setenv("ASSISTANT_LEGACY_DIRECT_EXEC", "1")
     sys.path.insert(0, str(API_ROOT))
     for name in list(sys.modules):
         if name == "app" or name.startswith("app."):
@@ -56,7 +61,7 @@ def test_unknown_tool_returns_error_without_unbound_result(tools_module, monkeyp
     # dispatcher leaves `result` unbound (the previous bug), the audit-log
     # call would raise UnboundLocalError BEFORE we get a chance to assert.
     monkeypatch.setattr(
-        tools_module, "write_assistant_action_log", lambda **_kw: None
+        tools_module, "write_assistant_action_log", lambda *a, **_kw: None
     )
     result = tools_module.execute_tool_call(
         db=_FakeDb(),
@@ -99,7 +104,7 @@ def test_known_tool_branches_are_mutually_exclusive(tools_module, monkeypatch):
         lambda *a, **kw: (calls.append("letter"), "SUCCESS: letter")[-1],
     )
     monkeypatch.setattr(
-        tools_module, "write_assistant_action_log", lambda **_kw: None
+        tools_module, "write_assistant_action_log", lambda *a, **_kw: None
     )
 
     out = tools_module.execute_tool_call(
@@ -121,7 +126,7 @@ def test_inner_handler_exception_does_not_leave_result_unbound(tools_module, mon
 
     monkeypatch.setattr(tools_module, "_create_operational_task", _boom)
     monkeypatch.setattr(
-        tools_module, "write_assistant_action_log", lambda **_kw: None
+        tools_module, "write_assistant_action_log", lambda *a, **_kw: None
     )
 
     out = tools_module.execute_tool_call(

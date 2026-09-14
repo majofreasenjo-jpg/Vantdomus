@@ -1,0 +1,41 @@
+name: DOMI G5 R3 G12 Final Adjudication
+
+on:
+  push:
+    branches:
+      - domi-g5-r3-autobiographical-history
+    paths:
+      - apps/web/scripts/domi-g5-r3-g12-adjudicate.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  g12-final-adjudication:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frozen R3 branch
+        uses: actions/checkout@v4
+        with:
+          ref: domi-g5-r3-autobiographical-history
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Adjudicate frozen G11-R1 outcomes without subject execution
+        working-directory: apps/web
+        run: node scripts/domi-g5-r3-g12-adjudicate.mjs
+
+      - name: Commit immutable G12 final adjudication receipt
+        run: |
+          if [ ! -f apps/web/scientific/r3/G12_FINAL_ADJUDICATION_R3_2026_09_14.json ]; then
+            echo "G12 adjudication receipt missing"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/scientific/r3/G12_FINAL_ADJUDICATION_R3_2026_09_14.json
+          git commit -m "freeze R3 G12 final adjudication"
+          git push origin HEAD:domi-g5-r3-autobiographical-history
