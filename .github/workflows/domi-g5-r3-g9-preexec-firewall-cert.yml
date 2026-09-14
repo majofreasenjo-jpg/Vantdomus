@@ -1,0 +1,26 @@
+name: DOMI G5 R3 G9 Pre-Execution Firewall Certification
+
+on:
+  push:
+    branches:
+      - domi-g5-r3-autobiographical-history
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  g9-preexec-firewall-cert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify frozen R3 pre-execution firewall and provenance manifest
+        working-directory: apps/web
+        run: node --test tests/domi-g5-r3-preexec-firewall.test.mjs
