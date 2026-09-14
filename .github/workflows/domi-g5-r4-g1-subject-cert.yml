@@ -1,0 +1,23 @@
+name: DOMI G5 R4 G1 Subject Certification
+
+on:
+  push:
+    branches:
+      - domi-g5-r4-history-dependence-replication
+  workflow_dispatch:
+
+jobs:
+  g1-subject-cert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify frozen R4 subject
+        working-directory: apps/web
+        run: node --test tests/domi-g5-r4-history-dependence-subject.test.mjs
