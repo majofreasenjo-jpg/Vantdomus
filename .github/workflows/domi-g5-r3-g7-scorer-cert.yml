@@ -1,0 +1,26 @@
+name: DOMI G5 R3 G7 Scorer Certification
+
+on:
+  push:
+    branches:
+      - domi-g5-r3-autobiographical-history
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  g7-scorer-cert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify frozen R3 scorer and fail-closed semantics
+        working-directory: apps/web
+        run: node --test tests/domi-g5-r3-scorer-freeze.test.mjs
