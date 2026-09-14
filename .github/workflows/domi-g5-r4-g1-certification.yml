@@ -1,0 +1,29 @@
+name: DOMI G5 R4 G1 Prospective Admission Certification
+
+on:
+  push:
+    branches:
+      - domi-g5-r4-delayed-history-transfer
+    paths:
+      - 'apps/web/lib/domiG5R4ProspectiveAdmission.mjs'
+      - 'apps/web/lib/domiG5R4ProspectiveLongitudinalState.mjs'
+      - 'apps/web/scientific/r4/g1/**'
+      - 'apps/web/tests/domi-g5-r4-g1-prospective-admission.test.mjs'
+      - '.github/workflows/domi-g5-r4-g1-certification.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  certify-r4-g1:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run frozen R4 G1 admission tests
+        run: node --test tests/domi-g5-r4-g1-prospective-admission.test.mjs
