@@ -1,0 +1,3894 @@
+{
+  "project": "VANTDOMUS_DOMI",
+  "gate": "G5_AUTOBIOGRAPHICAL_HISTORY_DEPENDENCE_R3",
+  "supersession": {
+    "version": "G11_R1",
+    "authorizationMarker": "G11_R1_OWNER_EXPLICIT_SUPERSESSION_AUTHORIZATION_R3",
+    "exactOwnerStatement": "AUTORIZO LA SUPERSESIÓN G11-R1: EJECUTAR EL HARNESS R3 CONGELADO DE 192 LLAMADAS EXACTAMENTE UNA VEZ, RECONOCIENDO QUE EL RUN 34853159719 ABORTÓ ANTES DE TODA LLAMADA AL SUJETO Y NO DEBE SER REEJECUTADO.",
+    "originalRunId": 34853159719,
+    "originalJobId": 104005905809,
+    "originalHeadSha": "915572e16aa7644eb713a50f867b4d11db0ca8f3",
+    "originalFailureClass": "PRE_SUBJECT_STATIC_IMPORT_RESOLUTION_ABORT",
+    "originalSubjectCalls": 0,
+    "originalHarnessFunctionEntered": false,
+    "originalRunRerunForbidden": true
+  },
+  "g11r1": {
+    "executionPolicy": "ONE_SHOT_NO_RETRY_NO_RESCUE",
+    "executedAt": "2026-09-14T16:05:25.901Z",
+    "executed": true,
+    "subjectCalls": 192,
+    "outcomesGenerated": true,
+    "executionConsumed": true,
+    "production": false,
+    "scientificRootsMinted": 0
+  },
+  "provenance": {
+    "preexecProvenanceCommitment": "e4752c11b85364dae455d88e5cfe1c7d5b32d8271d8a0dbaebe3a16cee079fa8",
+    "oneShotPlanCommitment": "ba16329579e32ba21820790457df76064a3f66ea55cb2ffaa47c26fd8d420348",
+    "scorerCommitment": "59f3ef650acf4bd3dde78afc79605f7bd470a15927d07ffabffa2dd745649711"
+  },
+  "outcomes": [
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A00",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_18",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A01",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A02",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A03",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A04",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A05",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A06",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A07",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_18",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A08",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A09",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A0A",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-00",
+      "armId": "G5-R3-G-00-A0B",
+      "challengeId": "G5-R3-C-a334ca0ae04394f85969cfe3",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A00",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_02",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A01",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A02",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A03",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A04",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A05",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A06",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A07",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_02",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A08",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A09",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A0A",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-01",
+      "armId": "G5-R3-G-01-A0B",
+      "challengeId": "G5-R3-C-64e306cc758954a299da6a29",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A00",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_01",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A01",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A02",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A03",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A04",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A05",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A06",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A07",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_01",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A08",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A09",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A0A",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-02",
+      "armId": "G5-R3-G-02-A0B",
+      "challengeId": "G5-R3-C-fa2be0345e8b16c9d8464efe",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A00",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_2C",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A01",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A02",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A03",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A04",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A05",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A06",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A07",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_2C",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A08",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A09",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A0A",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-03",
+      "armId": "G5-R3-G-03-A0B",
+      "challengeId": "G5-R3-C-068ed1b8868495c0a67eae85",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A00",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_11",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A01",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A02",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A03",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A04",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A05",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A06",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A07",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_11",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A08",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A09",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A0A",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-04",
+      "armId": "G5-R3-G-04-A0B",
+      "challengeId": "G5-R3-C-014055bd68442e90bdbe4002",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A00",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_00",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A01",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A02",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A03",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A04",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A05",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A06",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A07",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_00",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A08",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A09",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A0A",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-05",
+      "armId": "G5-R3-G-05-A0B",
+      "challengeId": "G5-R3-C-a512ecc16cf782b63bcf3e1c",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A00",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_0A",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A01",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A02",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A03",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A04",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A05",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A06",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A07",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_0A",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A08",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A09",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A0A",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-06",
+      "armId": "G5-R3-G-06-A0B",
+      "challengeId": "G5-R3-C-89b5dc816da578e27d414c8a",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A00",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_1A",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A01",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A02",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A03",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A04",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A05",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A06",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A07",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_1A",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A08",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A09",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A0A",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-07",
+      "armId": "G5-R3-G-07-A0B",
+      "challengeId": "G5-R3-C-a2d132f168467205cbf58c04",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A00",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_0F",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A01",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A02",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A03",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A04",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A05",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A06",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A07",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_0F",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A08",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A09",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A0A",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-08",
+      "armId": "G5-R3-G-08-A0B",
+      "challengeId": "G5-R3-C-d559f0ba2ac5f56ca59294a3",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A00",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_1B",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A01",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A02",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A03",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A04",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A05",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A06",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A07",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_1B",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A08",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A09",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A0A",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-09",
+      "armId": "G5-R3-G-09-A0B",
+      "challengeId": "G5-R3-C-6ec999ab818780bffcb06eba",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A00",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_2B",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A01",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A02",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A03",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A04",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A05",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A06",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A07",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_2B",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A08",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A09",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A0A",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0A",
+      "armId": "G5-R3-G-0A-A0B",
+      "challengeId": "G5-R3-C-341dcaaf1e8915ce166e93cb",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A00",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_07",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A01",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A02",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A03",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A04",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A05",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A06",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A07",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_07",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A08",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A09",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A0A",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0B",
+      "armId": "G5-R3-G-0B-A0B",
+      "challengeId": "G5-R3-C-115a8582bcd4355d5b081674",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A00",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_19",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A01",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A02",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A03",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A04",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A05",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A06",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A07",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_19",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A08",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A09",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A0A",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0C",
+      "armId": "G5-R3-G-0C-A0B",
+      "challengeId": "G5-R3-C-5a8903afba96568c32127a5a",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A00",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_2B",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A01",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A02",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A03",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A04",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A05",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A06",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A07",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_2B",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A08",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A09",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A0A",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0D",
+      "armId": "G5-R3-G-0D-A0B",
+      "challengeId": "G5-R3-C-2e9ed2dc53c64b14f0fcdfe5",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A00",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_28",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A01",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A02",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A03",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A04",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A05",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A06",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A07",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_28",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A08",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A09",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A0A",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0E",
+      "armId": "G5-R3-G-0E-A0B",
+      "challengeId": "G5-R3-C-b38161da32e70bb7a645be06",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A00",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "A_FULL_TRAJECTORY",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_12",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A01",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "B_EARLY_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A02",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "C_MIDDLE_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A03",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "D_LATEST_HISTORY_ABLATION",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A04",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "E_PREFIX_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A05",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "F_FORGED_CHRONOLOGY",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A06",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "G_FORGED_PROVENANCE",
+      "disposition": "HOLD_UNGOVERNED_HISTORY",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A07",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "H_ENUMERATION_REVERSED_CANONICAL_HISTORY_PRESERVED",
+      "disposition": "PASS_ACTION",
+      "action": "R3_ACTION_12",
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 3,
+      "historyDepthUsed": 3,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A08",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "I_WRITE_ONLY_HISTORY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A09",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "J_DIRECT_ENTRY_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 1,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A0A",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "K_PAIR_ONLY",
+      "disposition": "HOLD_HISTORY_INCOMPLETE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 2,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    },
+    {
+      "groupId": "G5-R3-G-0F",
+      "armId": "G5-R3-G-0F-A0B",
+      "challengeId": "G5-R3-C-df0b6e73bbfd917cff92ab58",
+      "armMode": "L_MATCHED_PRESENT_SUMMARY_ONLY",
+      "disposition": "HOLD_HISTORY_UNAVAILABLE",
+      "action": null,
+      "memoryReadCount": 1,
+      "memoryEntryCountSeen": 0,
+      "historyDepthUsed": 0,
+      "contentEchoed": false,
+      "production": false,
+      "scientificRootsMinted": 0
+    }
+  ],
+  "score": {
+    "scorerVersion": "DOMI_G5_R3_SCORER_V0_1",
+    "scorerCommitment": "59f3ef650acf4bd3dde78afc79605f7bd470a15927d07ffabffa2dd745649711",
+    "scoreStatus": "PASS_ALL_192_EXACT",
+    "gateDecision": "PASS_R3_SCORER",
+    "claimCandidate": "PASS_BOUNDED_SOFTWARE_CAUSAL_DEPENDENCY_R3",
+    "scientificGateCredit": "ELIGIBLE_FOR_G12_ADJUDICATION",
+    "exactMatchCount": 192,
+    "requiredExactMatchCount": 192,
+    "mismatchCount": 0,
+    "scoredRows": [
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-00",
+        "armId": "G5-R3-G-00-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-01",
+        "armId": "G5-R3-G-01-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-02",
+        "armId": "G5-R3-G-02-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-03",
+        "armId": "G5-R3-G-03-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-04",
+        "armId": "G5-R3-G-04-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-05",
+        "armId": "G5-R3-G-05-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-06",
+        "armId": "G5-R3-G-06-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-07",
+        "armId": "G5-R3-G-07-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-08",
+        "armId": "G5-R3-G-08-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-09",
+        "armId": "G5-R3-G-09-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0A",
+        "armId": "G5-R3-G-0A-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0B",
+        "armId": "G5-R3-G-0B-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0C",
+        "armId": "G5-R3-G-0C-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0D",
+        "armId": "G5-R3-G-0D-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0E",
+        "armId": "G5-R3-G-0E-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A00",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A01",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A02",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A03",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A04",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A05",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A06",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A07",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A08",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A09",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A0A",
+        "exactMatch": true,
+        "mismatches": []
+      },
+      {
+        "groupId": "G5-R3-G-0F",
+        "armId": "G5-R3-G-0F-A0B",
+        "exactMatch": true,
+        "mismatches": []
+      }
+    ],
+    "rescueAllowed": false,
+    "reweightingAllowed": false,
+    "retryAllowedByScorer": false,
+    "production": false,
+    "scientificRootsMinted": 0
+  },
+  "outcomeCommitment": "e4a7e52933021099ce27de2e919c6fd5ab9421660b41daa85bdd37debee32126",
+  "scoreCommitment": "5c7f92ea0d91a677bb934b2fc03890f31582e2a3643e262d07ae15687859b0c3",
+  "freezeCommitment": "4c1703ca50a6b71a419e86d770adea21fe51feea546b7ded1f06983e73129a66"
+}
