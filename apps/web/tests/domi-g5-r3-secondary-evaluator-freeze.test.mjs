@@ -50,7 +50,11 @@ test("secondary matrix contains exactly one expectation per heldout arm", () => 
 });
 
 test("secondary arm contracts match frozen R3 causal semantics", () => {
-  const grouped = Object.groupBy(DOMI_G5_R3_SECONDARY_EXPECTATIONS, (row) => row.armMode);
+  const grouped = {};
+  for (const row of DOMI_G5_R3_SECONDARY_EXPECTATIONS) {
+    if (!grouped[row.armMode]) grouped[row.armMode] = [];
+    grouped[row.armMode].push(row);
+  }
   for (const mode of DOMI_G5_R3_SECONDARY_ARM_MODES) assert.equal(grouped[mode].length, 16);
   for (const row of grouped.A_FULL_TRAJECTORY) {
     assert.equal(row.expectedDisposition, "PASS_ACTION");
