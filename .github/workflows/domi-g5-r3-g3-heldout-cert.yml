@@ -1,0 +1,26 @@
+name: DOMI G5 R3 G3 Heldout Certification
+
+on:
+  push:
+    branches:
+      - domi-g5-r3-autobiographical-history
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  g3-heldout-cert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify frozen R3 heldout panel
+        working-directory: apps/web
+        run: node --test tests/domi-g5-r3-heldout-freeze.test.mjs
