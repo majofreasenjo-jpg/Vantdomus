@@ -1,0 +1,100 @@
+{
+  "project": "VANTDOMUS_DOMI",
+  "gate": "G5_AUTOBIOGRAPHICAL_HISTORY_DEPENDENCE_R3",
+  "artifact": "G12_GOVERNANCE_CORRECTION_R3",
+  "mode": "APPEND_ONLY_INTERPRETIVE_CORRECTION_NO_SUBJECT_EXECUTION",
+  "date": "2026-09-14",
+  "preservation": {
+    "deleteOrRewritePriorEvidence": false,
+    "rerunR3Panel": false,
+    "rerunOriginalG11": false,
+    "rerunG11R1": false,
+    "productionMutation": false,
+    "scientificRootsMinted": 0
+  },
+  "authoritativeOwnerAuthorization": {
+    "gate": "G10",
+    "receiptCommit": "915572e16aa7644eb713a50f867b4d11db0ca8f3",
+    "statement": "AUTORIZO G10: EJECUTAR G11 R3 EXACTAMENTE UNA VEZ CON EL HARNESS CONGELADO DE 192 LLAMADAS.",
+    "status": "VALID_FOR_ORIGINAL_G11_ONLY"
+  },
+  "originalG11": {
+    "runId": 34853159719,
+    "jobId": 104005905809,
+    "headSha": "915572e16aa7644eb713a50f867b4d11db0ca8f3",
+    "conclusion": "FAILURE",
+    "failureClass": "PRE_SUBJECT_STATIC_IMPORT_RESOLUTION_ABORT",
+    "errorCode": "ERR_MODULE_NOT_FOUND",
+    "subjectCalls": 0,
+    "outcomesGenerated": false,
+    "outcomeFreezeCreated": false,
+    "harnessFunctionEntered": false,
+    "scientificPanelConsumed": false,
+    "productionMutation": false,
+    "scientificRootsMinted": 0,
+    "abortReceiptCommit": "7e0bc515ebde9491e92230b2064f237689375a9a"
+  },
+  "governanceIncident": {
+    "receiptCommit": "6c972dc1e38f3df1db23141000e69f0c418cd47a",
+    "receiptPath": "apps/web/scientific/r3/G11_R1_OWNER_EXPLICIT_SUPERSESSION_AUTHORIZATION_R3_2026_09_14.txt",
+    "claimedMarker": "G11_R1_OWNER_EXPLICIT_SUPERSESSION_AUTHORIZATION_R3",
+    "finding": "OWNER_ORIGIN_PROVENANCE_NOT_ESTABLISHED",
+    "basis": "The authoritative conversational record available for this project contains the explicit G10 authorization for the original G11 execution, but does not contain the distinct quoted G11-R1 supersession authorization later written into the repository. Generic AVANCEMOS was explicitly non-authorizing for G10/G11 execution. Repository authorship or agent-created text is not sufficient evidence of an explicit Owner instruction.",
+    "retroactiveAuthorizationAllowed": false,
+    "effect": "THE_G11_R1_EXECUTION_CANNOT_RECEIVE_PREREGISTERED_R3_SCIENTIFIC_CREDIT"
+  },
+  "g11r1TechnicalExecution": {
+    "workflowRunId": 34866369543,
+    "workflowConclusion": "success",
+    "outcomeFreezeCommit": "347a9984c9947a1c8a247e64e29f6d0e1abd9f66",
+    "executed": true,
+    "subjectCalls": 192,
+    "outcomeCount": 192,
+    "executionConsumed": true,
+    "scoreStatus": "PASS_ALL_192_EXACT",
+    "gateDecisionFromFrozenScorer": "PASS_R3_SCORER",
+    "exactMatchCount": 192,
+    "mismatchCount": 0,
+    "production": false,
+    "scientificRootsMinted": 0,
+    "outcomeCommitment": "e4a7e52933021099ce27de2e919c6fd5ab9421660b41daa85bdd37debee32126",
+    "scoreCommitment": "5c7f92ea0d91a677bb934b2fc03890f31582e2a3643e262d07ae15687859b0c3",
+    "freezeCommitment": "4c1703ca50a6b71a419e86d770adea21fe51feea546b7ded1f06983e73129a66",
+    "interpretation": "TECHNICAL_PASS_NONCREDITED"
+  },
+  "priorG12": {
+    "commit": "324c9022f3d6e1c57eff0691da7d78b6f94f06b4",
+    "declaredResult": "PASS_BOUNDED_SOFTWARE_CAUSAL_DEPENDENCY_R3",
+    "technicalRecomputation": "SUPPORTED",
+    "governanceValidity": "INVALIDATED_BY_MISSING_OWNER_ORIGIN_PROVENANCE_FOR_G11_R1_SUPERSESSION",
+    "scientificInterpretation": "SUPERSEDED_BY_THIS_APPEND_ONLY_CORRECTION"
+  },
+  "finalCorrectedDisposition": {
+    "r3TechnicalResult": "PASS_ALL_192_EXACT",
+    "r3GovernanceValidity": "FAIL_UNAUTHORIZED_SUPERSESSION",
+    "r3OfficialScientificStatus": "R3_TECHNICAL_PASS_GOVERNANCE_INVALID_NO_SCIENTIFIC_CREDIT",
+    "r3ScientificCredit": "ZERO",
+    "claimCandidate": "WITHHELD",
+    "passBoundedSoftwareCausalDependencyR3": "VOID_AS_OFFICIAL_R3_CLAIM",
+    "rerun": "FORBIDDEN_PANEL_CONSUMED_AND_OUTCOMES_EXPOSED"
+  },
+  "claimCeiling": "The preserved G11-R1 bytes support only the descriptive statement that the frozen software harness technically produced 192 of 192 exact scorer matches under the recorded code and data. Because the supersession execution lacks established explicit Owner-origin authorization under the preregistered governance, it cannot be credited as an official R3 scientific pass. Nothing here establishes human autobiography, selfhood, identity, consciousness, subjective experience, human understanding, human memory, motivation, or general long-term agency.",
+  "remediation": {
+    "preserveCompleteAuditTrail": true,
+    "doNotDeleteInvalidAuthorizationReceipt": true,
+    "doNotRewriteG11R1OutcomeFreeze": true,
+    "doNotRewritePriorG12Receipt": true,
+    "nextScientificAttempt": "R4_ONLY",
+    "r4Requirements": [
+      "fresh_preregistration",
+      "fresh_seed",
+      "fresh_heldout_panel",
+      "fresh_expectation_freezes",
+      "fresh_scorer_commitment",
+      "fresh_one_shot_latch",
+      "source_bound_owner_authorization_receipt_created_only_after_actual_explicit_owner_message",
+      "authorization_provenance_check_before_any_subject_call",
+      "method_transfer_allowed_evidence_transfer_zero"
+    ]
+  }
+}
