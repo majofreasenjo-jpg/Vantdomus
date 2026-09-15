@@ -3,6 +3,7 @@ import OwnerAlphaCrossDeviceHarness from "./OwnerAlphaCrossDeviceHarness";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const DOMI_P5_FIELD_BETA_ROUTE_VERSION = "P5_FIELD_BETA_ACCESS_V0_1";
 
 export default function OwnerAlphaCrossDevicePage() {
   const isolatedPreview =
