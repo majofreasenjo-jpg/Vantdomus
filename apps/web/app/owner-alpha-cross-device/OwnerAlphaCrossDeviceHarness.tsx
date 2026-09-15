@@ -59,6 +59,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
   const [copied, setCopied] = useState(false);
   const [deviceLabel, setDeviceLabel] = useState("detectando...");
   const [fieldAccess, setFieldAccess] = useState<any | null>(null);
+  const [temporaryAccessLink, setTemporaryAccessLink] = useState("");
 
   useEffect(() => {
     const coarse = `${navigator.platform || "platform?"} · ${window.innerWidth}x${window.innerHeight}`;
@@ -85,9 +86,26 @@ export default function OwnerAlphaCrossDeviceHarness() {
     }
   }, []);
 
+  const refreshFieldAccess = (candidate: string) => {
+    try {
+      const access = inspectCrossDeviceFieldAccess({
+        currentUrl: window.location.href,
+        explicitBridge: candidate,
+      });
+      setFieldAccess(access);
+      setLastError("ninguno");
+    } catch (error: any) {
+      setFieldAccess(inspectCrossDeviceFieldAccess({ currentUrl: window.location.href }));
+      setLastError(error?.message || String(error));
+    }
+  };
+
   const createTransport = () => {
     try {
-      const access = inspectCrossDeviceFieldAccess({ currentUrl: window.location.href });
+      const access = inspectCrossDeviceFieldAccess({
+        currentUrl: window.location.href,
+        explicitBridge: temporaryAccessLink,
+      });
       setFieldAccess(access);
       if (!access.fieldAccessReady) throw new Error("CROSS_DEVICE_FIELD_ACCESS_BRIDGE_REQUIRED");
 
@@ -110,6 +128,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
       const link = buildCrossDeviceFieldHandoffUrl({
         currentUrl: window.location.href,
         encodedEnvelope: encoded,
+        explicitBridge: temporaryAccessLink,
       });
       setReceipt(created);
       setEnvelope(wrapped);
@@ -214,11 +233,30 @@ export default function OwnerAlphaCrossDeviceHarness() {
             <section style={{ ...card, marginTop: 16 }}>
               <h2 style={{ marginTop: 0 }}>ORIGEN · computador</h2>
               {!fieldAccess?.fieldAccessReady && (
-                <p style={{ padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fdba74" }}>
-                  Este Preview está protegido. Para una prueba física válida, abre primero el enlace temporal compartible del despliegue; el handoff conservará sólo ese bridge de acceso y el payload sintético.
-                </p>
+                <div style={{ padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fdba74" }}>
+                  <p style={{ margin: "0 0 10px" }}>
+                    Vercel consume el bridge del Preview antes de que esta página pueda leerlo. Pega aquí el enlace temporal compartible original. Se mantiene sólo en memoria de esta pestaña y no se persiste ni se muestra en diagnósticos.
+                  </p>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={temporaryAccessLink}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setTemporaryAccessLink(value);
+                      if (value.trim()) refreshFieldAccess(value);
+                    }}
+                    placeholder="Pega aquí el enlace temporal de Vercel"
+                    aria-label="Enlace temporal de acceso Vercel"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d6b27a", borderRadius: 10, padding: "12px 13px", font: "inherit" }}
+                  />
+                  <div style={{ marginTop: 8, fontSize: 12, color: "#765d3d" }}>
+                    Estado del bridge: <strong>{fieldAccess?.vercelShareBridgePresent ? "PRESENT" : "MISSING"}</strong>. El token nunca se imprime en pantalla.
+                  </div>
+                </div>
               )}
-              <button type="button" onClick={createTransport} style={{ border: 0, borderRadius: 14, background: "#173b29", color: "white", padding: "14px 18px", fontWeight: 900, cursor: "pointer" }}>
+              <button type="button" onClick={createTransport} style={{ marginTop: 14, border: 0, borderRadius: 14, background: "#173b29", color: "white", padding: "14px 18px", fontWeight: 900, cursor: "pointer" }}>
                 1 · Crear receipt transportable a teléfono
               </button>
 
@@ -238,9 +276,9 @@ export default function OwnerAlphaCrossDeviceHarness() {
             {transportLink && (
               <section style={{ ...card, marginTop: 16, borderColor: "#93c5fd", background: "#eff6ff" }}>
                 <h2 style={{ marginTop: 0 }}>2 · Llevar al teléfono</h2>
-                <p>Este enlace debe abrirse desde un teléfono físico distinto. Conserva el bridge temporal de acceso del Preview protegido.</p>
+                <p>Este enlace debe abrirse desde un teléfono físico distinto. Conserva el bridge temporal de acceso del Preview protegido junto al payload sintético.</p>
                 <div style={{ padding: 12, background: "white", borderRadius: 12, border: "1px solid #bfdbfe" }}>
-                  <code style={codeStyle}>{transportLink}</code>
+                  <code style={codeStyle}>Enlace listo para copiar/compartir. El valor completo no se muestra para evitar exponer el bridge temporal.</code>
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
                   <button type="button" onClick={copyTransport} style={{ border: 0, borderRadius: 999, background: "#1d4ed8", color: "white", padding: "10px 15px", fontWeight: 900, cursor: "pointer" }}>
