@@ -7,6 +7,8 @@ Branch: `domi-p5-cross-device-field-beta`
 
 - `P5_CONTROLLED_TRANSPORT_HARNESS = PASS_3_OF_3` (pre-existing controlled transport evidence)
 - `CROSS_DEVICE_FIELD_ACCESS_LAYER = IMPLEMENTED_V0_2`
+- `V0_2_BUILD_CERTIFICATION = PASS`
+- `V0_2_PREVIEW_DEPLOYMENT = READY`
 - `CROSS_DEVICE_REAL_WORLD = NOT_YET_ADJUDICATED`
 - `CROSS_DEVICE_REAL_E2E_PASS = NOT_YET_DECLARED`
 - `DOMI_FIELD_BETA_READY = FALSE`
@@ -57,6 +59,18 @@ The field status exposes only `PRESENT/MISSING`. The generated handoff URL is no
 - insecure transport => `CROSS_DEVICE_HTTPS_REQUIRED`
 - no bridge/token value is emitted by diagnostics
 
+## Build and deployment readback
+
+GitHub Actions certification run `34982249493`, head `80e171bfe5f85e582c1da0cc8af1e5911e81aa0f`, completed `SUCCESS`.
+
+- install: PASS
+- build + deterministic postbuild gates: PASS
+- bounded P5 field pair re-run: PASS
+
+Vercel Preview deployment `dpl_2TQYYKF2tmUVKERQ98M8DbPaf5sn` for the same head reached `READY`. It is a Preview (`target=null`), not a production deployment.
+
+A fresh temporary Vercel share route was generated only for the next bounded physical test. The share bridge value itself is intentionally not recorded in this receipt.
+
 ## Adjudication boundary
 
 This receipt does **not** certify a real physical cross-device pass. A new physical device observation remains required before any `CROSS_DEVICE_REAL_E2E_PASS` can be recorded.
@@ -67,14 +81,14 @@ A generic `AVANCEMOS` authorizes continued safe preparation/build verification o
 
 ```text
 PROJECT=VANTDOMUS_DOMI_P5
-CURRENT=P5_CROSS_DEVICE_FIELD_ACCESS_V0_2_PREPHYSICAL
+CURRENT=P5_CROSS_DEVICE_FIELD_ACCESS_V0_2_BUILD_CERTIFIED_PREPHYSICAL
 BRANCH=domi-p5-cross-device-field-beta
 
 P5_CONTROLLED_TRANSPORT_HARNESS=PASS_3_OF_3
 DESKTOP_PROTECTED_PREVIEW_ENTRY=PASS
 HTTPS=PASS
 APP_VISIBLE_SHARE_BRIDGE=MISSING
-FIELD_ACCESS_READY=PENDING
+FIELD_ACCESS_READY=PENDING_PHYSICAL_RETEST
 FAIL_CLOSED=PASS
 ROOT_CAUSE=VERCEL_UPSTREAM_SHARE_PARAMETER_CONSUMPTION
 RECEIPT_FAILURE=FALSE
@@ -84,25 +98,32 @@ TOKEN_DIAGNOSTIC_DISCLOSURE=FALSE
 TOKEN_PERSISTENCE=FALSE
 UNRELATED_QUERY_PROPAGATION=FALSE
 
+V0_2_BUILD_CERTIFICATION=PASS
+GITHUB_ACTION_RUN=34982249493
+CERTIFIED_HEAD=80e171bfe5f85e582c1da0cc8af1e5911e81aa0f
+V0_2_PREVIEW_DEPLOYMENT=READY
+VERCEL_DEPLOYMENT=dpl_2TQYYKF2tmUVKERQ98M8DbPaf5sn
+PRODUCTION_DEPLOYMENT=FALSE
+
 CROSS_DEVICE_REAL_WORLD=NOT_YET_ADJUDICATED
 CROSS_DEVICE_REAL_E2E_PASS=NOT_YET_DECLARED
 DOMI_FIELD_BETA_READY=FALSE
 PRODUCTION_MUTATION=FALSE
 SCIENTIFIC_ROOTS_MINTED=0
 
-NEXT=BUILD_CI_AND_PREVIEW_DEPLOYMENT_READBACK_THEN_ONE_NEW_PHYSICAL_PHONE_TEST
+NEXT=ONE_NEW_PHYSICAL_PHONE_TEST_USING_TEMPORARY_SHARE_LINK_IN_DESKTOP_INPUT
 ```
 
 ## Exact prompt restart
 
 ```text
-Retomar VANTDOMUS / DOMI P5 desde CROSS_DEVICE_FIELD_ACCESS_V0_2_PREPHYSICAL en la rama domi-p5-cross-device-field-beta.
+Retomar VANTDOMUS / DOMI P5 desde CROSS_DEVICE_FIELD_ACCESS_V0_2_BUILD_CERTIFIED_PREPHYSICAL en la rama domi-p5-cross-device-field-beta.
 
-Preservar como evidencia negativa el intento físico anterior: DESKTOP_PROTECTED_PREVIEW_ENTRY=PASS, HTTPS=PASS, APP_VISIBLE_SHARE_BRIDGE=MISSING, FIELD_ACCESS_READY=PENDING, FAIL_CLOSED=PASS, ROOT_CAUSE=VERCEL_UPSTREAM_SHARE_PARAMETER_CONSUMPTION, RECEIPT_FAILURE=FALSE.
+Preservar como evidencia negativa el intento físico anterior: DESKTOP_PROTECTED_PREVIEW_ENTRY=PASS, HTTPS=PASS, APP_VISIBLE_SHARE_BRIDGE=MISSING, FAIL_CLOSED=PASS, ROOT_CAUSE=VERCEL_UPSTREAM_SHARE_PARAMETER_CONSUMPTION, RECEIPT_FAILURE=FALSE.
 
 La corrección V0_2 permite pegar en el computador el enlace temporal original de Vercel o su bridge; debe permanecer sólo en memoria de la pestaña, sin persistencia ni diagnóstico del token. El handoff debe conservar únicamente _vercel_share + #handoff sintético.
 
-Verificar tests/build/Preview antes de pedir una nueva prueba física. No declarar CROSS_DEVICE_REAL_E2E_PASS hasta observar consumo válido en un teléfono físico distinto.
+Build certification run 34982249493 = SUCCESS. Preview dpl_2TQYYKF2tmUVKERQ98M8DbPaf5sn = READY. El siguiente paso es exactamente una nueva prueba física computador -> teléfono con el enlace temporal vigente.
 
-Mantener PRODUCTION_MUTATION=FALSE y SCIENTIFIC_ROOTS_MINTED=0. AVANCEMOS no autoriza producción, one-shot científico ni minting.
+No declarar CROSS_DEVICE_REAL_E2E_PASS hasta observar consumo válido en un teléfono físico distinto. Mantener PRODUCTION_MUTATION=FALSE y SCIENTIFIC_ROOTS_MINTED=0. AVANCEMOS no autoriza producción, one-shot científico ni minting.
 ```
