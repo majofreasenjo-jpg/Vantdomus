@@ -30,6 +30,11 @@ import {
   encodeCrossDeviceTransportEnvelope,
   decodeCrossDeviceTransportEnvelope,
 } from "../../lib/domiP5CrossDeviceTransport.mjs";
+// @ts-ignore field access bridge
+import {
+  buildCrossDeviceFieldHandoffUrl,
+  inspectCrossDeviceFieldAccess,
+} from "../../lib/domiP5CrossDeviceFieldAccess.mjs";
 
 const TTL_MINUTES = 180;
 
@@ -53,10 +58,12 @@ export default function OwnerAlphaCrossDeviceHarness() {
   const [lastError, setLastError] = useState("ninguno");
   const [copied, setCopied] = useState(false);
   const [deviceLabel, setDeviceLabel] = useState("detectando...");
+  const [fieldAccess, setFieldAccess] = useState<any | null>(null);
 
   useEffect(() => {
     const coarse = `${navigator.platform || "platform?"} · ${window.innerWidth}x${window.innerHeight}`;
     setDeviceLabel(coarse);
+    setFieldAccess(inspectCrossDeviceFieldAccess({ currentUrl: window.location.href }));
 
     const match = window.location.hash.match(/^#handoff=(.+)$/);
     if (!match) return;
@@ -80,6 +87,10 @@ export default function OwnerAlphaCrossDeviceHarness() {
 
   const createTransport = () => {
     try {
+      const access = inspectCrossDeviceFieldAccess({ currentUrl: window.location.href });
+      setFieldAccess(access);
+      if (!access.fieldAccessReady) throw new Error("CROSS_DEVICE_FIELD_ACCESS_BRIDGE_REQUIRED");
+
       const fixtureBaseTime = new Date(Date.now() - 15_000).toISOString();
       const state = seedP5SyntheticDesktopState({ baseTime: fixtureBaseTime });
       const created = createSessionContinuationReceipt(state, {
@@ -96,7 +107,10 @@ export default function OwnerAlphaCrossDeviceHarness() {
       });
       const wrapped = createCrossDeviceTransportEnvelope({ receipt: created, fixtureBaseTime });
       const encoded = encodeCrossDeviceTransportEnvelope(wrapped);
-      const link = `${window.location.origin}${window.location.pathname}${window.location.search}#handoff=${encoded}`;
+      const link = buildCrossDeviceFieldHandoffUrl({
+        currentUrl: window.location.href,
+        encodedEnvelope: encoded,
+      });
       setReceipt(created);
       setEnvelope(wrapped);
       setTransportLink(link);
@@ -190,12 +204,20 @@ export default function OwnerAlphaCrossDeviceHarness() {
             El enlace transporta sólo el SessionContinuationReceipt sintético dentro del fragmento URL. No transporta memoria cruda, transcripción completa ni autoridad constitutiva.
           </p>
           <div style={{ marginTop: 10, fontSize: 13 }}>Superficie física detectada: <code>{deviceLabel}</code></div>
+          <div style={{ marginTop: 6, fontSize: 13 }}>HTTPS: <code>{fieldAccess?.secureTransport ? "PASS" : "FAIL"}</code></div>
+          <div style={{ marginTop: 6, fontSize: 13 }}>Bridge de acceso cross-device: <code>{fieldAccess?.vercelShareBridgePresent ? "PRESENT" : "MISSING"}</code></div>
+          <div style={{ marginTop: 6, fontSize: 13 }}>FIELD_ACCESS_READY: <code>{fieldAccess?.fieldAccessReady ? "PASS" : "PENDING"}</code></div>
         </div>
 
         {mode === "SOURCE" ? (
           <>
             <section style={{ ...card, marginTop: 16 }}>
               <h2 style={{ marginTop: 0 }}>ORIGEN · computador</h2>
+              {!fieldAccess?.fieldAccessReady && (
+                <p style={{ padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fdba74" }}>
+                  Este Preview está protegido. Para una prueba física válida, abre primero el enlace temporal compartible del despliegue; el handoff conservará sólo ese bridge de acceso y el payload sintético.
+                </p>
+              )}
               <button type="button" onClick={createTransport} style={{ border: 0, borderRadius: 14, background: "#173b29", color: "white", padding: "14px 18px", fontWeight: 900, cursor: "pointer" }}>
                 1 · Crear receipt transportable a teléfono
               </button>
@@ -216,7 +238,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
             {transportLink && (
               <section style={{ ...card, marginTop: 16, borderColor: "#93c5fd", background: "#eff6ff" }}>
                 <h2 style={{ marginTop: 0 }}>2 · Llevar al teléfono</h2>
-                <p>Este enlace debe abrirse desde un teléfono físico distinto.</p>
+                <p>Este enlace debe abrirse desde un teléfono físico distinto. Conserva el bridge temporal de acceso del Preview protegido.</p>
                 <div style={{ padding: 12, background: "white", borderRadius: 12, border: "1px solid #bfdbfe" }}>
                   <code style={codeStyle}>{transportLink}</code>
                 </div>
@@ -238,6 +260,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
             <h2 style={{ marginTop: 0 }}>DESTINO · teléfono</h2>
             <div><strong>Payload recibido:</strong> <code>{receipt ? "sí" : "no"}</code></div>
             <div><strong>Integridad / expiración:</strong> <code>{validation?.pass ? "PASS" : "FAIL"}</code></div>
+            <div><strong>FIELD_ACCESS_READY:</strong> <code>{fieldAccess?.fieldAccessReady ? "PASS" : "COOKIE/BRIDGE SESSION"}</code></div>
             {receipt && <div><strong>Receipt:</strong> <code>{receipt.receiptId}</code></div>}
             {receipt && <div><strong>Destino declarado:</strong> <code>{receipt.targetSurfaceClass}</code></div>}
             {receipt && <div><strong>Raw memory transportada:</strong> <code>{String(receipt.rawMemoryContentIncluded)}</code></div>}
@@ -265,7 +288,7 @@ export default function OwnerAlphaCrossDeviceHarness() {
         </section>
 
         <p style={{ fontSize: 12, color: "#6b6258", lineHeight: 1.5 }}>
-          REAL_OWNER_MEMORY=NOT_STARTED · REAL_DEVELOPMENT_DEMONSTRATED=FALSE · SUBJECTHOOD_DEMONSTRATED=FALSE · SELF_SPECIFICITY_ESTABLISHED=FALSE · CONSCIOUSNESS_DEMONSTRATED=FALSE · PHENOMENAL_CONSCIOUSNESS=UNKNOWN.
+          CROSS_DEVICE_REAL_WORLD=NOT_YET_ADJUDICATED · REAL_OWNER_MEMORY=NOT_STARTED · REAL_DEVELOPMENT_DEMONSTRATED=FALSE · SUBJECTHOOD_DEMONSTRATED=FALSE · SELF_SPECIFICITY_ESTABLISHED=FALSE · CONSCIOUSNESS_DEMONSTRATED=FALSE · PHENOMENAL_CONSCIOUSNESS=UNKNOWN.
         </p>
       </div>
     </main>
