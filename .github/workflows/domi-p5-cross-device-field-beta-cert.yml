@@ -1,0 +1,32 @@
+name: DOMI P5 Cross-Device Field Beta Certification
+
+on:
+  push:
+    branches:
+      - domi-p5-cross-device-field-beta
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Build plus deterministic postbuild gates
+        run: npm run build
+      - name: Re-run bounded P5 field pair
+        run: node --test tests/domi-p5-cross-device-transport.test.mjs tests/domi-p5-cross-device-field-access.test.mjs
