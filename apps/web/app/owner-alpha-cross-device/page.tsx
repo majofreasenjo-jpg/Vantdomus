@@ -7,7 +7,9 @@ export const revalidate = 0;
 export default function OwnerAlphaCrossDevicePage() {
   const isolatedPreview =
     process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "domi-owner-live-precheck";
+    ["domi-owner-live-precheck", "domi-p5-cross-device-field-beta"].includes(
+      process.env.VERCEL_GIT_COMMIT_REF || "",
+    );
 
   if (!isolatedPreview) notFound();
   return <OwnerAlphaCrossDeviceHarness />;
