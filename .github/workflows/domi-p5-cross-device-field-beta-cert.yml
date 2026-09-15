@@ -28,5 +28,5 @@ jobs:
         run: npm ci
       - name: Build plus deterministic postbuild gates
         run: npm run build
-      - name: Re-run bounded P5 field pair
-        run: node --test tests/domi-p5-cross-device-transport.test.mjs tests/domi-p5-cross-device-field-access.test.mjs
+      - name: Re-run bounded P5 field gates
+        run: node --test tests/domi-p5-cross-device-transport.test.mjs tests/domi-p5-cross-device-field-access.test.mjs tests/domi-p5-field-beta-round-trip.test.mjs
