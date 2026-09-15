@@ -1,4 +1,4 @@
-export const DOMI_P5_CROSS_DEVICE_FIELD_ACCESS_VERSION = "DOMI_P5_CROSS_DEVICE_FIELD_ACCESS_V0_2";
+export const DOMI_P5_CROSS_DEVICE_FIELD_ACCESS_VERSION = "DOMI_P5_CROSS_DEVICE_FIELD_ACCESS_V0_3";
 export const VERCEL_SHARE_QUERY_KEY = "_vercel_share";
 
 function parseUrl(value, code) {
@@ -34,6 +34,12 @@ function readEmbeddedBridge(url) {
   return raw ? validateBridgeToken(raw) : null;
 }
 
+function assertSecureTransport(url) {
+  const secure = url.protocol === "https:" || url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  if (!secure) throw new Error("CROSS_DEVICE_HTTPS_REQUIRED");
+  return true;
+}
+
 export function inspectCrossDeviceFieldAccess({ currentUrl, explicitBridge = "" }) {
   const url = parseUrl(currentUrl, "CURRENT_URL_INVALID");
   const embeddedBridge = readEmbeddedBridge(url);
@@ -63,6 +69,18 @@ export function buildCrossDeviceFieldHandoffUrl({ currentUrl, encodedEnvelope, e
   const bridge = extractVercelShareBridge(explicitBridge) || readEmbeddedBridge(url);
   url.search = "";
   url.searchParams.set(VERCEL_SHARE_QUERY_KEY, bridge);
+  url.hash = `handoff=${encodedEnvelope.trim()}`;
+  return url.toString();
+}
+
+export function buildAuthorizedBrowserReturnHandoffUrl({ currentUrl, encodedEnvelope }) {
+  if (typeof encodedEnvelope !== "string" || encodedEnvelope.trim() === "") {
+    throw new Error("TRANSPORT_PAYLOAD_REQUIRED");
+  }
+
+  const url = parseUrl(currentUrl, "CURRENT_URL_INVALID");
+  assertSecureTransport(url);
+  url.search = "";
   url.hash = `handoff=${encodedEnvelope.trim()}`;
   return url.toString();
 }
