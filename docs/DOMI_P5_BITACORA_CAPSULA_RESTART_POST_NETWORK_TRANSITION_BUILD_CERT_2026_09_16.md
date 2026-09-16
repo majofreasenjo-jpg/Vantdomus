@@ -1,0 +1,127 @@
+# DOMI P5 — Bitácora Rectora + Cápsula + Exact Prompt Restart
+
+DATE=2026-09-16
+PROJECT=VANTDOMUS_DOMI
+TRACK=PRODUCT_FIELD_BETA
+BRANCH=domi-p5-cross-device-field-beta
+
+## BITÁCORA RECTORA — APPEND-ONLY CHECKPOINT
+
+PREVIOUS_CURRENT=P5_REPEATABILITY_RELOAD_RECONNECT_PASS_BOUNDED
+CURRENT=P5_NETWORK_TRANSITION_ROBUSTNESS_BUILD_CERTIFIED_PHYSICAL_PENDING
+
+PRESERVED_PASS_BOUNDED=
+PC_TO_MOBILE_REAL_E2E_PASS,
+MOBILE_TO_PC_REAL_E2E_PASS,
+P5_BIDIRECTIONAL_PHYSICAL_CONTINUITY,
+SAME_PAIR_REPEATABILITY,
+MINIMAL_RESUME_ARTIFACT_PERSISTENCE,
+RELOAD_RECONNECT,
+CLOSE_REOPEN_SESSION_RECOVERY,
+P5_REPEATABILITY_RELOAD_RECONNECT
+
+NETWORK_TRANSITION_IMPLEMENTATION_COMMIT=908a6eeacce84b169c8e9957692a17be8ace5aa7
+NETWORK_TRANSITION_ROUTE=/owner-alpha-network-transition
+NETWORK_PROBE_ROUTE=/api/p5-network-probe
+FIELD_CARRIER_PROJECT=vantdomus-family-pilot
+FIELD_CARRIER_DEPLOYMENT=dpl_4YjuZeUF91yfFyukVMLeGBf2Y3Y2
+FIELD_CARRIER_STATE=READY
+
+GITHUB_ACTIONS_RUN=35130678772
+GITHUB_ACTIONS_RESULT=SUCCESS
+BUILD_PLUS_POSTBUILD=SUCCESS
+P5_BOUNDED_GATE_RERUN=SUCCESS
+NETWORK_TRANSITION_TESTS=12/12_PASS
+
+NETWORK_GATE_PROTOCOL=
+Owner physically confirms network class -> fresh no-store server round-trip with nonce -> reconstruct same minimal artifact -> physically switch network -> independent fresh round-trip with new probe id/nonce -> reconstruct same artifact again -> adjudicate only if receipt digest, artifact digest, continuity key and expected recovered references remain stable.
+
+NETWORK_INFORMATION_API_AUTHORITY=FALSE
+NETWORK_INFORMATION_API_ROLE=INFORMATIVE_HINT_ONLY
+OWNER_PHYSICAL_CONFIRMATION_REQUIRED=TRUE
+FRESH_SERVER_PROBE_REQUIRED=TRUE
+FRESH_PROBE_ID_REQUIRED=TRUE
+FRESH_NONCE_REQUIRED=TRUE
+RECONSTRUCTION_BEFORE_REQUIRED=TRUE
+RECONSTRUCTION_AFTER_REQUIRED=TRUE
+
+FAIL_CLOSED_CLASSES=
+MISSING_PHYSICAL_CONFIRMATION,
+SAME_DECLARED_NETWORK_CLASS,
+REUSED_PROBE_ID_OR_NONCE,
+RECEIPT_DIGEST_DRIFT,
+CONTINUITY_KEY_DRIFT,
+FAILED_RECONSTRUCTION,
+WRONG_RECOVERED_REFERENCES,
+HANDOFF_REAPPEARANCE,
+RAW_MEMORY_PERSISTENCE,
+UNSUPPORTED_DIRECTION
+
+WIFI_TO_MOBILE_DATA_SWITCH=BUILD_CERTIFIED_PHYSICAL_PENDING
+MOBILE_DATA_TO_WIFI_SWITCH=BUILD_CERTIFIED_PHYSICAL_PENDING
+NETWORK_TRANSITION_ROBUSTNESS=BUILD_CERTIFIED_PHYSICAL_PENDING
+
+REAL_OWNER_MEMORY=NOT_STARTED
+PRODUCTION_MUTATION=FALSE
+SCIENTIFIC_ROOTS_MINTED=0
+R4_EXECUTION_AUTHORIZATION=FALSE
+EXTERNAL_OUTREACH_AUTHORIZATION=FALSE
+
+CLAIM_CEILING=
+This checkpoint establishes implementation, deterministic fail-closed coverage and build certification for bounded synthetic continuity across an explicitly observed physical network transition. It does not establish either physical network direction as PASS until the real Android field observation is completed. It does not establish universal network/browser/device compatibility, production readiness, real owner memory, autobiographical memory, selfhood, subjecthood or consciousness.
+
+## CÁPSULA DE REHIDRATACIÓN
+
+PROJECT=VANTDOMUS_DOMI
+DATE=2026-09-16
+CURRENT=P5_NETWORK_TRANSITION_ROBUSTNESS_BUILD_CERTIFIED_PHYSICAL_PENDING
+REPO=majofreasenjo-jpg/Vantdomus
+BRANCH=domi-p5-cross-device-field-beta
+IMPLEMENTATION_COMMIT=908a6eeacce84b169c8e9957692a17be8ace5aa7
+GITHUB_ACTIONS_RUN=35130678772
+GITHUB_ACTIONS_RESULT=SUCCESS
+FIELD_CARRIER_DEPLOYMENT=dpl_4YjuZeUF91yfFyukVMLeGBf2Y3Y2
+FIELD_CARRIER_STATE=READY
+ROUTE=/owner-alpha-network-transition
+NETWORK_TRANSITION_TESTS=12/12_PASS
+
+Preserve all prior physical PASS_BOUNDED facts. The new gate is physical network transition robustness. Network API hints are not authority. The owner must explicitly confirm the physical network class, and DOMI must additionally obtain a fresh server probe and reconstruct the same governed minimal artifact both before and after the switch.
+
+NEXT_PHYSICAL_SEQUENCE=
+WIFI -> PRE probe/reconstruction -> physically disable Wi-Fi and confirm 4G/5G/LTE -> POST probe/reconstruction -> adjudicate WIFI_TO_MOBILE_DATA_SWITCH -> then select MOBILE_DATA_TO_WIFI -> PRE on mobile data -> physically enable Wi-Fi -> POST on Wi-Fi -> adjudicate reverse direction.
+
+Do not delete the synthetic network artifact between both directions.
+
+## EXACT PROMPT RESTART
+
+RETOMA VANTDOMUS / DOMI EXACTAMENTE DESDE:
+P5_NETWORK_TRANSITION_ROBUSTNESS_BUILD_CERTIFIED_PHYSICAL_PENDING
+
+Preserva como cerrados:
+P5_BIDIRECTIONAL_PHYSICAL_CONTINUITY=PASS_BOUNDED
+SAME_PAIR_REPEATABILITY=PASS_BOUNDED
+MINIMAL_RESUME_ARTIFACT_PERSISTENCE=PASS_BOUNDED
+RELOAD_RECONNECT=PASS_BOUNDED
+CLOSE_REOPEN_SESSION_RECOVERY=PASS_BOUNDED
+P5_REPEATABILITY_RELOAD_RECONNECT=PASS_BOUNDED
+
+Network transition implementation:
+COMMIT=908a6eeacce84b169c8e9957692a17be8ace5aa7
+CI_RUN=35130678772=SUCCESS
+VERCEL=dpl_4YjuZeUF91yfFyukVMLeGBf2Y3Y2=READY
+ROUTE=/owner-alpha-network-transition
+TESTS=12/12_PASS
+
+NEXT_ACTIVE_GATE=WIFI_TO_MOBILE_DATA_SWITCH
+Then MOBILE_DATA_TO_WIFI_SWITCH.
+
+Physical PASS requires explicit observed network change plus distinct fresh server probes, successful before/after reconstruction, stable receiptDigest/artifactDigest/continuityKey, recovered P5-M-PRIVATE + P5-M-SHARED, no handoff, no raw memory/transcript/full-state/authority persistence and no failures.
+
+AVANCEMOS != R4_EXECUTION_AUTHORIZATION
+AVANCEMOS != PRODUCTION_MUTATION_AUTHORIZATION
+AVANCEMOS != EXTERNAL_CONTACT_AUTHORIZATION
+AVANCEMOS != SCIENTIFIC_ROOT_MINTING_AUTHORIZATION
+
+REAL_OWNER_MEMORY=NOT_STARTED
+PRODUCTION_MUTATION=FALSE
+SCIENTIFIC_ROOTS_MINTED=0
