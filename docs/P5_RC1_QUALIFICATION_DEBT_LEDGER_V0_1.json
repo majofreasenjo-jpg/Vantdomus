@@ -1,0 +1,203 @@
+{
+  "version": "DOMI_P5_RC1_QUALIFICATION_DEBT_LEDGER_V0_1",
+  "date": "2026-09-21",
+  "packageId": "DOMI_P5_FIELD_BETA_RC1_2026_09_21",
+  "rcFreezeCommit": "fcecf5c787f21f7a621b7829aaa8fc1fb2e07cf1",
+  "sealedAnchorBranch": "domi-p5-field-beta-rc1-sealed",
+  "receiptBranch": "domi-p5-rc1-certification-receipts",
+  "currentState": "P5_FIELD_BETA_RC1_SEALED_INTERNAL_PREVIEW_ONLY",
+  "invariants": {
+    "productionReady": false,
+    "productionMutation": false,
+    "realOwnerMemory": "NOT_STARTED",
+    "externalOutreachAuthorized": false,
+    "universalCompatibilityClaim": false,
+    "scientificRootsMinted": 0
+  },
+  "debts": [
+    {
+      "id": "QD-01",
+      "domain": "SUPPORTED_CELL_EXPANSION",
+      "item": "WINDOWS_CHROME_SOURCE",
+      "status": "UNQUALIFIED_NOT_SUPPORTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "physical Windows + Chrome environment",
+        "device-matrix BASELINE with fresh probe",
+        "real page reload",
+        "device-matrix POST with stable receipt/artifact/continuity key",
+        "expected projected references P5-M-PRIVATE,P5-M-SHARED",
+        "no raw memory/transcript/full-state/authority persistence",
+        "operational wrapper PRE/POST dry-run in Vercel Preview"
+      ],
+      "exitCriterion": "WINDOWS_CHROME_SOURCE=PASS_BOUNDED plus operational dry-run PASS_BOUNDED"
+    },
+    {
+      "id": "QD-02",
+      "domain": "SUPPORTED_CELL_EXPANSION",
+      "item": "IOS_SAFARI_DESTINATION",
+      "status": "UNQUALIFIED_NOT_SUPPORTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "physical iPhone/iPad + Safari environment",
+        "device-matrix BASELINE with fresh probe",
+        "full browser close/reopen",
+        "device-matrix POST with stable receipt/artifact/continuity key",
+        "expected recovered references P5-M-PRIVATE,P5-M-SHARED",
+        "no raw memory/transcript/full-state/authority persistence",
+        "operational wrapper PRE/POST dry-run in Vercel Preview",
+        "separate network-transition qualification if iOS network-switch robustness is to be claimed"
+      ],
+      "exitCriterion": "IOS_SAFARI_DESTINATION=PASS_BOUNDED plus operational dry-run PASS_BOUNDED"
+    },
+    {
+      "id": "PRD-01",
+      "domain": "PRODUCTION_READINESS",
+      "item": "PRODUCTION_ENVIRONMENT_CONTRACT",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "separate production contract replacing Preview-only admission logic",
+        "explicit production AuthN/AuthZ and least-privilege authorization",
+        "no protected-preview share-token dependency",
+        "production configuration inventory and immutable deployment receipt",
+        "production rollback plan and tested rollback path"
+      ],
+      "exitCriterion": "PRODUCTION_ENVIRONMENT_CONTRACT=PASS_BOUNDED"
+    },
+    {
+      "id": "PRD-02",
+      "domain": "PRODUCTION_READINESS",
+      "item": "SECURITY_AND_ACCESS_CONTROL",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "identity/session management",
+        "authorization boundaries per role/surface",
+        "secret lifecycle and rotation",
+        "rate limiting and abuse controls",
+        "dependency/security scanning",
+        "security review of memory/continuity artifacts"
+      ],
+      "exitCriterion": "PRODUCTION_SECURITY_GATE=PASS_BOUNDED"
+    },
+    {
+      "id": "PRD-03",
+      "domain": "PRODUCTION_READINESS",
+      "item": "OBSERVABILITY_AND_SLO",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "operational SLO/SLI definitions",
+        "error and latency telemetry without raw memory/transcript",
+        "alert thresholds",
+        "incident ownership and escalation",
+        "cost/usage guardrails",
+        "retention policy for operational telemetry"
+      ],
+      "exitCriterion": "PRODUCTION_OBSERVABILITY_GATE=PASS_BOUNDED"
+    },
+    {
+      "id": "PRD-04",
+      "domain": "PRODUCTION_READINESS",
+      "item": "RESILIENCE_AND_RECOVERY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "production-like rollback drill",
+        "artifact/session corruption recovery",
+        "network/intermittency failure drills",
+        "backup/restore requirements if durable state is introduced",
+        "fail-closed verification under dependency outage"
+      ],
+      "exitCriterion": "PRODUCTION_RESILIENCE_GATE=PASS_BOUNDED"
+    },
+    {
+      "id": "ROM-01",
+      "domain": "REAL_OWNER_MEMORY",
+      "item": "CONSENT_AND_SCOPE_CONTRACT",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "explicit opt-in consent",
+        "memory classes and allowed purposes",
+        "sensitive-data exclusions and policy",
+        "scope minimization",
+        "revocation/disable mechanism",
+        "owner-visible provenance and correction path"
+      ],
+      "exitCriterion": "REAL_OWNER_MEMORY_CONSENT_SCOPE_GATE=PASS_BOUNDED"
+    },
+    {
+      "id": "ROM-02",
+      "domain": "REAL_OWNER_MEMORY",
+      "item": "DATA_LIFECYCLE_AND_PRIVACY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "encryption in transit and at rest for any durable owner memory",
+        "retention and expiration rules",
+        "delete/export/correction semantics",
+        "auditability without exposing raw content unnecessarily",
+        "cross-device access-control model",
+        "privacy failure/rollback plan"
+      ],
+      "exitCriterion": "REAL_OWNER_MEMORY_DATA_LIFECYCLE_GATE=PASS_BOUNDED"
+    },
+    {
+      "id": "ROM-03",
+      "domain": "REAL_OWNER_MEMORY",
+      "item": "EVALUATION_AND_SAFETY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "synthetic-to-real transition test plan",
+        "false-recall and wrong-owner isolation tests",
+        "sensitive-memory red-team cases",
+        "memory poisoning/conflict handling",
+        "owner correction/retraction verification",
+        "defined stop criteria before first real-owner trial"
+      ],
+      "exitCriterion": "REAL_OWNER_MEMORY_PREPHYSICAL_READINESS=PASS_BOUNDED"
+    },
+    {
+      "id": "EXT-01",
+      "domain": "EXTERNAL_CLOSED_BETA",
+      "item": "PARTICIPANT_AND_ACCESS_GOVERNANCE",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "explicit authorization for external outreach",
+        "bounded participant cohort",
+        "invite/revoke access control",
+        "participant consent/privacy notice",
+        "supported-device disclosure",
+        "withdrawal and support path"
+      ],
+      "exitCriterion": "EXTERNAL_BETA_ACCESS_GOVERNANCE=PASS_BOUNDED"
+    },
+    {
+      "id": "EXT-02",
+      "domain": "EXTERNAL_CLOSED_BETA",
+      "item": "SUPPORT_INCIDENT_AND_TELEMETRY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "support channel and owner",
+        "incident response SLA",
+        "privacy-preserving telemetry",
+        "beta stop/rollback authority",
+        "feedback classification and triage",
+        "participant-facing known-limitations statement"
+      ],
+      "exitCriterion": "EXTERNAL_BETA_OPERATIONS_GATE=PASS_BOUNDED"
+    }
+  ],
+  "safeInternalNextActions": [
+    "qualify WINDOWS_CHROME_SOURCE on an available physical Windows Chrome surface",
+    "prepare IOS_SAFARI_DESTINATION qualification only when a physical iOS Safari device is available",
+    "design production-readiness gates without executing production promotion",
+    "design real-owner-memory prephysical gate without using real owner data",
+    "design external closed-beta package without contacting users"
+  ]
+}
