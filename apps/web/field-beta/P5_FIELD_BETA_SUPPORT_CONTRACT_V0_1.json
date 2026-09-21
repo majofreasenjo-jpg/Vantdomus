@@ -1,0 +1,30 @@
+{
+  "version": "DOMI_P5_FIELD_BETA_SUPPORT_CONTRACT_V0_1",
+  "date": "2026-09-21",
+  "fieldBetaReady": "PASS_BOUNDED",
+  "environment": "VERCEL_PREVIEW_ONLY",
+  "dataClass": "SYNTHETIC_ONLY",
+  "canonicalContinuityKey": "fnv1a32:2b7f23b7",
+  "supportedCells": {
+    "ANDROID_CHROME_DESTINATION": {
+      "role": "DESTINATION",
+      "physicalQualification": "PASS_BOUNDED"
+    },
+    "WINDOWS_EDGE_SOURCE": {
+      "role": "SOURCE",
+      "physicalQualification": "PASS_BOUNDED"
+    }
+  },
+  "untestedNotSupported": [
+    "WINDOWS_CHROME_SOURCE",
+    "IOS_SAFARI_DESTINATION"
+  ],
+  "realOwnerMemoryAllowed": false,
+  "productionMutationAllowed": false,
+  "externalOutreachAuthorized": false,
+  "universalCompatibilityClaim": false,
+  "rawMemoryPersistenceAllowed": false,
+  "rawTranscriptPersistenceAllowed": false,
+  "fullStatePersistenceAllowed": false,
+  "authorityPersistenceAllowed": false
+}

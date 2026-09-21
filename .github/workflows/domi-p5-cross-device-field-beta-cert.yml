@@ -29,4 +29,4 @@ jobs:
       - name: Build plus deterministic postbuild gates
         run: npm run build
       - name: Re-run bounded P5 field gates
-        run: node --test tests/domi-p5-cross-device-transport.test.mjs tests/domi-p5-cross-device-field-access.test.mjs tests/domi-p5-field-beta-round-trip.test.mjs tests/domi-p5-mobile-to-desktop-return.test.mjs tests/domi-p5-continuity-resume-artifact.test.mjs tests/domi-p5-network-transition.test.mjs tests/domi-p5-device-matrix.test.mjs
+        run: node --test tests/domi-p5-cross-device-transport.test.mjs tests/domi-p5-cross-device-field-access.test.mjs tests/domi-p5-field-beta-round-trip.test.mjs tests/domi-p5-mobile-to-desktop-return.test.mjs tests/domi-p5-continuity-resume-artifact.test.mjs tests/domi-p5-network-transition.test.mjs tests/domi-p5-device-matrix.test.mjs tests/domi-p5-field-beta-ops.test.mjs
