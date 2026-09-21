@@ -289,7 +289,7 @@ test("supported matrix requires at least one source and one destination cell", (
   };
   const result = adjudicateP5SupportedMatrix([sourceResult, destinationResult]);
   assert.equal(result.pass, true);
-  assert.deepEqual(result.supportedCells.sort(), [
+  assert.deepEqual([...result.supportedCells].sort(), [
     P5_DEVICE_MATRIX_CELLS.ANDROID_CHROME_DESTINATION,
     P5_DEVICE_MATRIX_CELLS.WINDOWS_EDGE_SOURCE,
   ].sort());
