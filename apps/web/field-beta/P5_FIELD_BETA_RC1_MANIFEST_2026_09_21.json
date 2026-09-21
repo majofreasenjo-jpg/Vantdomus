@@ -1,0 +1,269 @@
+{
+  "packageId": "DOMI_P5_FIELD_BETA_RC1_2026_09_21",
+  "packageClass": "INTERNAL_PREVIEW_ONLY_RELEASE_CANDIDATE",
+  "status": "FROZEN_NOT_RELEASED_NOT_PRODUCTION",
+  "frozenAt": "2026-09-21",
+  "branch": "domi-p5-cross-device-field-beta",
+  "rcSourceHead": "016c4c736d60826df1b7dde17976becb4f6b463b",
+  "runtimeAnchorCommit": "a82bf60d6d9bff5a6fbfba91850c3bef023fd4a5",
+  "rollbackAnchorCommit": "a82bf60d6d9bff5a6fbfba91850c3bef023fd4a5",
+  "evidenceAnchorHead": "016c4c736d60826df1b7dde17976becb4f6b463b",
+  "finalFieldBetaAdjudicationCommit": "2498bf47830a242b97c778df87dcccd071160a8d",
+  "operationalizationReadyCommit": "b9c62bc80094143a7f321c7fd5ac1d1b717c6896",
+  "androidOperationalDryRunCommit": "9f97380f97e873a506c6c1bb0896c46be7267592",
+  "operationalWrapperValidatedCommit": "016c4c736d60826df1b7dde17976becb4f6b463b",
+  "githubCi": {
+    "runId": 35598248590,
+    "conclusion": "success",
+    "certifiedRuntimeCommit": "a82bf60d6d9bff5a6fbfba91850c3bef023fd4a5"
+  },
+  "previewCarrier": {
+    "deploymentId": "dpl_6fjYTtxcW9DRWMfRcygo74GnixDW",
+    "state": "READY",
+    "target": "preview",
+    "runtimeCommit": "a82bf60d6d9bff5a6fbfba91850c3bef023fd4a5",
+    "route": "/owner-alpha-field-beta-ops"
+  },
+  "supportedOperationalCells": [
+    "ANDROID_CHROME_DESTINATION",
+    "WINDOWS_EDGE_SOURCE"
+  ],
+  "notTestedNotSupported": [
+    "WINDOWS_CHROME_SOURCE",
+    "IOS_SAFARI_DESTINATION"
+  ],
+  "canonicalContinuityKey": "fnv1a32:2b7f23b7",
+  "expectedSyntheticReferences": [
+    "P5-M-PRIVATE",
+    "P5-M-SHARED"
+  ],
+  "closedGates": {
+    "bidirectionalPhysicalContinuity": "PASS_BOUNDED",
+    "repeatabilityReloadReconnect": "PASS_BOUNDED",
+    "networkTransitionRobustness": "PASS_BOUNDED",
+    "supportedBrowserOsDeviceMatrix": "PASS_BOUNDED",
+    "fieldBetaReady": "PASS_BOUNDED",
+    "operationalizationReady": "PASS_BOUNDED",
+    "operationalWrapperValidated": "PASS_BOUNDED"
+  },
+  "boundaries": {
+    "previewOnly": true,
+    "syntheticOnly": true,
+    "productionReady": false,
+    "productionMutation": false,
+    "realOwnerMemory": "NOT_STARTED",
+    "externalOutreachAuthorized": false,
+    "universalCompatibilityClaim": false,
+    "scientificRootsMinted": 0
+  },
+  "physicalOperationalWitnesses": {
+    "androidChrome": {
+      "preProbeId": "d384c803-2e64-467d-9263-3400757115ce",
+      "postProbeId": "c121eb79-3c53-4ab2-8ea0-6f642998e10f",
+      "sessionDecision": "SESSION_PASS_BOUNDED",
+      "incidentLevel": "NONE",
+      "receiptStable": true,
+      "artifactStable": true,
+      "continuityKeyStable": true
+    },
+    "windowsEdge": {
+      "preProbeId": "1cb49ccc-2387-45b8-878c-3e427adb1147",
+      "postProbeId": "edc4bc22-fab7-411a-a8c4-ffc5a5199a32",
+      "sessionDecision": "SESSION_PASS_BOUNDED",
+      "incidentLevel": "NONE",
+      "receiptStable": true,
+      "artifactStable": true,
+      "continuityKeyStable": true
+    }
+  },
+  "frozenP5Assets": [
+    {
+      "path": ".github/workflows/domi-p5-cross-device-field-beta-cert.yml",
+      "gitBlobSha": "0be5490c0beb187c50f5bb4f5fad22d34ba2a2cc",
+      "size": 1076
+    },
+    {
+      "path": "apps/web/app/api/p5-field-beta-preflight/route.ts",
+      "gitBlobSha": "be9368e64d1207ce0fad0f93ce64a660195bffef",
+      "size": 1447
+    },
+    {
+      "path": "apps/web/app/api/p5-network-probe/route.ts",
+      "gitBlobSha": "8c8bf3c8d6a17752a73db69a9cb2b0187b6aecfd",
+      "size": 799
+    },
+    {
+      "path": "apps/web/app/owner-alpha-continuity-resume/OwnerAlphaContinuityResumeHarness.tsx",
+      "gitBlobSha": "12f3530231428f4068674cff53059c1b234210e2",
+      "size": 22010
+    },
+    {
+      "path": "apps/web/app/owner-alpha-continuity-resume/page.tsx",
+      "gitBlobSha": "70e1640748b88b9ba059a008cf2f72b688ccef7a",
+      "size": 195
+    },
+    {
+      "path": "apps/web/app/owner-alpha-cross-device-return/OwnerAlphaCrossDeviceReturnHarness.tsx",
+      "gitBlobSha": "a251501c7f47228f76bada8aae4bb0c5ca199971",
+      "size": 9431
+    },
+    {
+      "path": "apps/web/app/owner-alpha-cross-device-return/page.tsx",
+      "gitBlobSha": "7254b45eaf4da5f4ed5305a29887c54f5e91fd43",
+      "size": 286
+    },
+    {
+      "path": "apps/web/app/owner-alpha-device-matrix/OwnerAlphaDeviceMatrixHarness.tsx",
+      "gitBlobSha": "60fa2373779a3f15bc8c3efdb6796462cda5dff6",
+      "size": 19417
+    },
+    {
+      "path": "apps/web/app/owner-alpha-device-matrix/page.tsx",
+      "gitBlobSha": "e000a8b1325f0af54b751995fc9f606932efe256",
+      "size": 179
+    },
+    {
+      "path": "apps/web/app/owner-alpha-field-beta-ops/OwnerAlphaFieldBetaOpsHarness.tsx",
+      "gitBlobSha": "addc41960464b0404ee1ebdce2049d5ceab79aef",
+      "size": 19213
+    },
+    {
+      "path": "apps/web/app/owner-alpha-field-beta-ops/page.tsx",
+      "gitBlobSha": "983853db46a5e45634a327d7b8bbd914ebe88049",
+      "size": 179
+    },
+    {
+      "path": "apps/web/app/owner-alpha-network-transition/OwnerAlphaNetworkTransitionHarness.tsx",
+      "gitBlobSha": "a387b0a336519f759140a511ff57bd9e9d3319a4",
+      "size": 17022
+    },
+    {
+      "path": "apps/web/app/owner-alpha-network-transition/page.tsx",
+      "gitBlobSha": "877b3973bd4c5e861b165282ec1b3940501323ea",
+      "size": 199
+    },
+    {
+      "path": "apps/web/field-beta/P5_CROSS_DEVICE_FIELD_ACCESS_PREPHYSICAL_RECEIPT_2026_09_15.md",
+      "gitBlobSha": "6f0fffc885d0ba3b3a18bfd3832fac95d0ec1ba7",
+      "size": 6118
+    },
+    {
+      "path": "apps/web/field-beta/P5_FIELD_BETA_RUNBOOK_V0_1.md",
+      "gitBlobSha": "933b7961d2edbb72102da993e9ea204c2d0cf532",
+      "size": 5498
+    },
+    {
+      "path": "apps/web/field-beta/P5_FIELD_BETA_SUPPORT_CONTRACT_V0_1.json",
+      "gitBlobSha": "aca89c00f745788cbe96635f00b974792700f29c",
+      "size": 898
+    },
+    {
+      "path": "apps/web/field-beta/P5_MOBILE_TO_PC_BUILD_STATUS_2026_09_15.md",
+      "gitBlobSha": "f388e1943beb5d103bce073cab840b962b4d0db3",
+      "size": 1218
+    },
+    {
+      "path": "apps/web/field-beta/P5_MOBILE_TO_PC_REAL_E2E_FINAL_ADJUDICATION_2026_09_15.md",
+      "gitBlobSha": "c8323bffb3ebf2c687662054ac6a9de3cb0219db",
+      "size": 5643
+    },
+    {
+      "path": "apps/web/field-beta/P5_PHYSICAL_DESTINATION_PRECONSUMPTION_OBSERVATION_2026_09_15.md",
+      "gitBlobSha": "b5acfd0ae2bf1e4a16d3ce26f1c2e927f2282273",
+      "size": 1727
+    },
+    {
+      "path": "apps/web/lib/domiP5ContinuityResumeArtifact.mjs",
+      "gitBlobSha": "789e6ad0bc599126498ee9533a7e00c7d88b7a3d",
+      "size": 13096
+    },
+    {
+      "path": "apps/web/lib/domiP5CrossDeviceFieldAccess.mjs",
+      "gitBlobSha": "c0fb8df380c9a6f1b0b9a5bd20080bb6024e34e6",
+      "size": 3319
+    },
+    {
+      "path": "apps/web/lib/domiP5CrossDeviceTransport.mjs",
+      "gitBlobSha": "a2d48ed505da82769beda09d1545861617d50185",
+      "size": 3287
+    },
+    {
+      "path": "apps/web/lib/domiP5DeviceMatrix.mjs",
+      "gitBlobSha": "2806a2c6bdb47d275911fbc56796aae97b87b850",
+      "size": 9607
+    },
+    {
+      "path": "apps/web/lib/domiP5FieldBetaOps.mjs",
+      "gitBlobSha": "ab569eaf89f27e520a3385eb41ccc25afc7e4cfc",
+      "size": 10142
+    },
+    {
+      "path": "apps/web/lib/domiP5FieldBetaRoundTrip.mjs",
+      "gitBlobSha": "c6ecf52b9f20a214bacf567b36f3c06add746cb5",
+      "size": 4718
+    },
+    {
+      "path": "apps/web/lib/domiP5MobileToDesktopReturn.mjs",
+      "gitBlobSha": "90c717debd1064eaa06a1dcb3b54c2f88cd6dea4",
+      "size": 3372
+    },
+    {
+      "path": "apps/web/lib/domiP5NetworkTransition.mjs",
+      "gitBlobSha": "1ffd363df60c8a19a2fb3ff999bfa9e0b938bb21",
+      "size": 6375
+    },
+    {
+      "path": "apps/web/lib/domiP5SyntheticFixture.mjs",
+      "gitBlobSha": "9733e34d318ea0101ca8d651fba0920a53095829",
+      "size": 3430
+    },
+    {
+      "path": "apps/web/tests/domi-p5-continuity-resume-artifact.test.mjs",
+      "gitBlobSha": "566b6825f3fad35ba150137afb6aa60ac16db40e",
+      "size": 6587
+    },
+    {
+      "path": "apps/web/tests/domi-p5-cross-device-field-access.test.mjs",
+      "gitBlobSha": "2fb03b0722e823c3a0391ffdcfaadea0475cb1cc",
+      "size": 4386
+    },
+    {
+      "path": "apps/web/tests/domi-p5-cross-device-transport.test.mjs",
+      "gitBlobSha": "ccb7efd33aa8ceb663e431aeada80eb9d22d534e",
+      "size": 4332
+    },
+    {
+      "path": "apps/web/tests/domi-p5-device-matrix.test.mjs",
+      "gitBlobSha": "94c1bbf484e8cf941ed421277bb40f6a2ec959dc",
+      "size": 9512
+    },
+    {
+      "path": "apps/web/tests/domi-p5-field-beta-ops.test.mjs",
+      "gitBlobSha": "1481afd6d5dd062653ccb4459631c1b439a845a1",
+      "size": 5925
+    },
+    {
+      "path": "apps/web/tests/domi-p5-field-beta-round-trip.test.mjs",
+      "gitBlobSha": "083a319bed1d14c21fb1ba1bd3268f701913be4a",
+      "size": 1646
+    },
+    {
+      "path": "apps/web/tests/domi-p5-mobile-to-desktop-return.test.mjs",
+      "gitBlobSha": "df91a9d1c55940f93fb438a06de37561e4ea26cb",
+      "size": 1436
+    },
+    {
+      "path": "apps/web/tests/domi-p5-network-transition.test.mjs",
+      "gitBlobSha": "ee6463e2c2310608de4bcd6b0b5ef5608fd6b9f9",
+      "size": 6565
+    }
+  ],
+  "assetCount": 36,
+  "identityRule": "rcSourceHead freezes the complete repository dependency closure; frozenP5Assets records the explicit P5 overlay by Git blob SHA.",
+  "releaseActions": {
+    "githubReleaseCreated": false,
+    "gitTagCreated": false,
+    "productionPromoted": false,
+    "externalUsersContacted": false
+  }
+}
