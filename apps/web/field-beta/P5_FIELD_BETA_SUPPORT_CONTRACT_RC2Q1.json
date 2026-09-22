@@ -1,0 +1,32 @@
+{
+  "version": "DOMI_P5_FIELD_BETA_SUPPORT_CONTRACT_RC2Q1",
+  "date": "2026-09-21",
+  "status": "RC2_CANDIDATE_OPERATIONAL_QUALIFICATION_PENDING",
+  "baseRc1": "DOMI_P5_FIELD_BETA_RC1_2026_09_21",
+  "baseRc1FreezeCommit": "fcecf5c787f21f7a621b7829aaa8fc1fb2e07cf1",
+  "supportedCandidateCells": {
+    "ANDROID_CHROME_DESTINATION": {
+      "role": "DESTINATION",
+      "physicalQualification": "PASS_BOUNDED",
+      "operationalQualification": "PASS_BOUNDED"
+    },
+    "WINDOWS_EDGE_SOURCE": {
+      "role": "SOURCE",
+      "physicalQualification": "PASS_BOUNDED",
+      "operationalQualification": "PASS_BOUNDED"
+    },
+    "WINDOWS_CHROME_SOURCE": {
+      "role": "SOURCE",
+      "physicalQualification": "PASS_BOUNDED",
+      "operationalQualification": "PENDING"
+    }
+  },
+  "notTestedNotSupported": [
+    "IOS_SAFARI_DESTINATION"
+  ],
+  "productionReady": false,
+  "productionMutationAllowed": false,
+  "realOwnerMemoryAllowed": false,
+  "externalOutreachAuthorized": false,
+  "universalCompatibilityClaim": false
+}

@@ -64,8 +64,22 @@ test("supported Windows Edge source session admits only inside preview synthetic
   assert.equal(result.decision, "ADMIT_SYNTHETIC_BOUNDED_BETA");
 });
 
-test("unsupported cell fails closed", () => {
-  const result = admission({ cell: "WINDOWS_CHROME_SOURCE", detectedBrowserClass: "CHROME" });
+test("physically qualified Windows Chrome source admits on RC2 qualification branch", () => {
+  const result = admission({
+    cell: "WINDOWS_CHROME_SOURCE",
+    detectedBrowserClass: "CHROME",
+  });
+  assert.equal(result.pass, true);
+  assert.equal(result.decision, "ADMIT_SYNTHETIC_BOUNDED_BETA");
+});
+
+test("still-unqualified iOS Safari destination fails closed", () => {
+  const result = admission({
+    cell: "IOS_SAFARI_DESTINATION",
+    detectedPlatformClass: "IOS",
+    detectedBrowserClass: "SAFARI",
+    role: "DESTINATION",
+  });
   assert.equal(result.pass, false);
   assert.equal(result.failures.includes("UNSUPPORTED_BROWSER_OS_DEVICE_CELL"), true);
 });

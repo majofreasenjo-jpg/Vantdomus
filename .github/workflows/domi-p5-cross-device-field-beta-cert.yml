@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - domi-p5-cross-device-field-beta
+      - domi-p5-rc2-windows-chrome-qualification
   workflow_dispatch:
 
 permissions:

@@ -1,10 +1,10 @@
-export const DOMI_P5_FIELD_BETA_OPS_VERSION = "DOMI_P5_FIELD_BETA_OPS_V0_1";
+export const DOMI_P5_FIELD_BETA_OPS_VERSION = "DOMI_P5_FIELD_BETA_OPS_RC2Q1";
 export const P5_FIELD_BETA_SESSION_STORAGE_KEY = "domi:p5:field-beta-session:v0.1";
 export const P5_FIELD_BETA_ARTIFACT_STORAGE_KEY = "domi:p5:field-beta-artifact:v0.1";
 export const P5_FIELD_BETA_CANONICAL_CONTINUITY_KEY = "fnv1a32:2b7f23b7";
 
 export const P5_FIELD_BETA_SUPPORT_CONTRACT = Object.freeze({
-  version: "DOMI_P5_FIELD_BETA_SUPPORT_CONTRACT_V0_1",
+  version: "DOMI_P5_FIELD_BETA_SUPPORT_CONTRACT_RC2Q1",
   fieldBetaReady: true,
   productionReady: false,
   previewOnly: true,
@@ -26,9 +26,15 @@ export const P5_FIELD_BETA_SUPPORT_CONTRACT = Object.freeze({
       browserClass: "EDGE",
       physicalQualification: "PASS_BOUNDED",
     }),
+    WINDOWS_CHROME_SOURCE: Object.freeze({
+      role: "SOURCE",
+      platformClass: "WINDOWS",
+      browserClass: "CHROME",
+      physicalQualification: "PASS_BOUNDED",
+      candidatePackage: "RC2",
+    }),
   }),
   untestedNotSupportedCells: Object.freeze([
-    "WINDOWS_CHROME_SOURCE",
     "IOS_SAFARI_DESTINATION",
   ]),
 });
