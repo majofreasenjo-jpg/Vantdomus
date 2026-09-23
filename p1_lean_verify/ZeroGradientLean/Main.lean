@@ -4,6 +4,7 @@ import ZeroGradientLean.TraceP3
 import ZeroGradientLean.Nitsche
 import ZeroGradientLean.MainTheorem
 import ZeroGradientLean.SharpConstants
+import ZeroGradientLean.PressureWitness
 namespace ZeroGradientLean
 theorem selected_core_inventory_anchor : True := by trivial
 #print axioms ZeroGradientLean.three_halves_pow_four
@@ -15,4 +16,7 @@ theorem selected_core_inventory_anchor : True := by trivial
 #print axioms ZeroGradientLean.nitsche_continuity_sharp
 #print axioms ZeroGradientLean.sharp_residual_forces_velocity
 #print axioms ZeroGradientLean.sharp_no_universal_h32_rate
+#print axioms ZeroGradientLean.beta_integral_exact
+#print axioms ZeroGradientLean.beta_sq_integral_exact
+#print axioms ZeroGradientLean.local_pressure_moment_factor_21
 end ZeroGradientLean
