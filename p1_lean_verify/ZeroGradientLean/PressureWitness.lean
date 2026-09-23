@@ -23,13 +23,13 @@ theorem beta_integral_exact :
     (∫ t : ℝ in 0..1, beta t) = (1/30 : ℝ) := by
   simp_rw [beta_expand]
   norm_num [intervalIntegral.integral_add, intervalIntegral.integral_sub,
-    intervalIntegral.integral_const_mul, intervalIntegral.integral_pow]
+    intervalIntegral.integral_const_mul, integral_pow]
 
 theorem beta_sq_integral_exact :
     (∫ t : ℝ in 0..1, beta t ^ 2) = (1/630 : ℝ) := by
   simp_rw [beta_sq_expand]
   norm_num [intervalIntegral.integral_add, intervalIntegral.integral_sub,
-    intervalIntegral.integral_const_mul, intervalIntegral.integral_pow]
+    intervalIntegral.integral_const_mul, integral_pow]
 
 theorem local_pressure_moment_factor_21
     (ell m : ℝ) :
@@ -37,7 +37,7 @@ theorem local_pressure_moment_factor_21
   ring
 
 theorem sum_successive_differences (y : ℕ → ℝ) (N : ℕ) :
-    (∑ j in Finset.range N, (y (j+1) - y j)) = y N - y 0 := by
+    Finset.sum (Finset.range N) (fun j => y (j+1) - y j) = y N - y 0 := by
   induction N with
   | zero => simp
   | succ N ih =>
@@ -46,13 +46,13 @@ theorem sum_successive_differences (y : ℕ → ℝ) (N : ℕ) :
 
 theorem cyclic_successive_differences_zero
     (y : ℕ → ℝ) (N : ℕ) (hclose : y N = y 0) :
-    (∑ j in Finset.range N, (y (j+1) - y j)) = 0 := by
+    Finset.sum (Finset.range N) (fun j => y (j+1) - y j) = 0 := by
   rw [sum_successive_differences, hclose]
   ring
 
 theorem polygon_flux_telescopes
     (c : ℝ) (y : ℕ → ℝ) (N : ℕ) (hclose : y N = y 0) :
-    (∑ j in Finset.range N, c * (y (j+1) - y j)) = 0 := by
+    Finset.sum (Finset.range N) (fun j => c * (y (j+1) - y j)) = 0 := by
   rw [← Finset.mul_sum]
   rw [cyclic_successive_differences_zero y N hclose]
   ring
