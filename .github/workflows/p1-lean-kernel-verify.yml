@@ -18,19 +18,19 @@ jobs:
         with:
           auto-config: false
           use-mathlib-cache: true
-      - name: Toolchain and build
+          lake-package-directory: p1_lean_verify
+      - name: Toolchain and build receipt
         shell: bash
         run: |
           set -euo pipefail
           lean --version | tee lean-version.txt
           lake --version | tee lake-version.txt
-          lake update
           lake build 2>&1 | tee lake-build.log
       - name: Static source firewall
         shell: bash
         run: |
           set -euo pipefail
-          if grep -R -nE '\\b(sorry|admit|axiom|opaque)\\b' ZeroGradientLean ZeroGradientLean.lean; then
+          if grep -R -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean ZeroGradientLean.lean; then
             echo UNSOUND_DECLARATION_TOKEN_FOUND=TRUE
             exit 1
           fi
