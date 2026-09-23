@@ -5,4 +5,5 @@ import ZeroGradientLean.Nitsche
 import ZeroGradientLean.MainTheorem
 import ZeroGradientLean.SharpConstants
 import ZeroGradientLean.PressureWitness
+import ZeroGradientLean.FunctionalResidual
 import ZeroGradientLean.Main
