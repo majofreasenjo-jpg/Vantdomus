@@ -1,5 +1,7 @@
 import ZeroGradientLean.Geometry
 import ZeroGradientLean.Argyris
+import ZeroGradientLean.ArgyrisMatrixCertificate
+import ZeroGradientLean.ArgyrisC1Bridge
 import ZeroGradientLean.TraceP3
 import ZeroGradientLean.Nitsche
 import ZeroGradientLean.MainTheorem
