@@ -14,17 +14,26 @@ jobs:
         working-directory: p1_lean_verify
     steps:
       - uses: actions/checkout@v4
-      - uses: leanprover/lean-action@v1
-        with:
-          auto-config: false
-          use-mathlib-cache: true
-          lake-package-directory: p1_lean_verify
-      - name: Toolchain and build receipt
+      - name: Install exact Lean toolchain
         shell: bash
         run: |
           set -euo pipefail
-          lean --version | tee lean-version.txt
-          lake --version | tee lake-version.txt
+          curl -sSf https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.24.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/lean" --version | tee lean-version.txt
+          "$HOME/.elan/bin/lake" --version | tee lake-version.txt
+      - name: Resolve exact mathlib and cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake update
+          lake exe cache get
+      - name: Kernel build receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
           lake build 2>&1 | tee lake-build.log
       - name: Static source firewall
         shell: bash
@@ -39,6 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
           lake env lean ZeroGradientLean/Main.lean 2>&1 | tee axiom-audit.log
           if grep -q 'sorryAx' axiom-audit.log; then
             echo SORRY_AXIOM_FOUND=TRUE
@@ -51,6 +61,7 @@ jobs:
           set -euo pipefail
           find ZeroGradientLean -type f -name '*.lean' -print0 | sort -z | xargs -0 sha256sum > source-sha256.txt
           sha256sum ZeroGradientLean.lean lean-toolchain lakefile.toml >> source-sha256.txt
+          sha256sum lake-manifest.json >> source-sha256.txt
           cat source-sha256.txt
       - name: Preserve verification receipt
         if: always()
@@ -64,5 +75,6 @@ jobs:
             p1_lean_verify/static-audit.txt
             p1_lean_verify/axiom-audit.log
             p1_lean_verify/source-sha256.txt
+            p1_lean_verify/lake-manifest.json
           if-no-files-found: warn
           retention-days: 30
