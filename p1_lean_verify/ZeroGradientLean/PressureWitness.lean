@@ -36,5 +36,25 @@ theorem local_pressure_moment_factor_21
     ell * m^2 * (1/30 : ℝ) = 21 * (ell * m^2 * (1/630 : ℝ)) := by
   ring
 
+theorem sum_successive_differences (y : ℕ → ℝ) (N : ℕ) :
+    (∑ j in Finset.range N, (y (j+1) - y j)) = y N - y 0 := by
+  induction N with
+  | zero => simp
+  | succ N ih =>
+      rw [Finset.sum_range_succ, ih]
+      ring
+
+theorem cyclic_successive_differences_zero
+    (y : ℕ → ℝ) (N : ℕ) (hclose : y N = y 0) :
+    (∑ j in Finset.range N, (y (j+1) - y j)) = 0 := by
+  rw [sum_successive_differences, hclose]
+  ring
+
+theorem polygon_flux_telescopes
+    (c : ℝ) (y : ℕ → ℝ) (N : ℕ) (hclose : y N = y 0) :
+    (∑ j in Finset.range N, c * (y (j+1) - y j)) = 0 := by
+  rw [← Finset.mul_sum]
+  rw [cyclic_successive_differences_zero y N hclose]
+  ring
 
 end ZeroGradientLean
