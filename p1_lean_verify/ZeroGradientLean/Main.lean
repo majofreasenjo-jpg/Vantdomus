@@ -5,6 +5,7 @@ import ZeroGradientLean.Nitsche
 import ZeroGradientLean.MainTheorem
 import ZeroGradientLean.SharpConstants
 import ZeroGradientLean.PressureWitness
+import ZeroGradientLean.FunctionalResidual
 namespace ZeroGradientLean
 theorem selected_core_inventory_anchor : True := by trivial
 #print axioms ZeroGradientLean.three_halves_pow_four
@@ -21,4 +22,6 @@ theorem selected_core_inventory_anchor : True := by trivial
 #print axioms ZeroGradientLean.local_pressure_moment_factor_21
 #print axioms ZeroGradientLean.cyclic_successive_differences_zero
 #print axioms ZeroGradientLean.polygon_flux_telescopes
+#print axioms ZeroGradientLean.dual_norm_lower_from_witness
+#print axioms ZeroGradientLean.residual_response_lower
 end ZeroGradientLean
