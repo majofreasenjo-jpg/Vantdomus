@@ -3,4 +3,5 @@ import ZeroGradientLean.Argyris
 import ZeroGradientLean.TraceP3
 import ZeroGradientLean.Nitsche
 import ZeroGradientLean.MainTheorem
+import ZeroGradientLean.SharpConstants
 import ZeroGradientLean.Main
