@@ -1,5 +1,6 @@
 import Mathlib
 import ZeroGradientLean.TraceP3
+import ZeroGradientLean.MainTheorem
 
 noncomputable section
 
@@ -8,11 +9,11 @@ namespace ZeroGradientLean
 def gStar : ℝ := 0.0705914396
 
 def residualSharp : ℝ :=
-  0.0028181773716792577886826718492807433953672794434469706827800053706446640921360635
+  0.0028181773716792577886826718492807433953672794434469706827800053706446640921360633
 
-def aSharp : ℝ := 0.547805128625438971623309156
+def aSharp : ℝ := 0.547805128625438971623309157
 
-def mSharp : ℝ := 1.547805128625438971623309156
+def mSharp : ℝ := 1.547805128625438971623309157
 
 def velocitySharp : ℝ := 0.00182075722554427747183594
 
@@ -39,7 +40,7 @@ theorem residualSharp_times_sqrt_lt :
     norm_num
   have hr0 : 0 < residualSharp := residualSharp_pos
   have hg0 : 0 < 21 * gStar := by
-    positivity
+    norm_num [gStar]
   have hsq := residualSharp_sq_certificate
   nlinarith
 
@@ -93,8 +94,19 @@ theorem sharp_residual_forces_velocity
     exact mul_le_mul_of_nonneg_right (le_of_lt hm) hu
   have hru' : r ≤ mSharp * u := le_trans hru hM
   have hp := velocity_product_certificate
+  have hcoef : velocitySharp * mSharp ≤ residualSharp := le_of_lt hp
+  have hleft :
+      (velocitySharp * mSharp) * Real.sqrt h
+        ≤ residualSharp * Real.sqrt h :=
+    mul_le_mul_of_nonneg_right hcoef hs0
+  have hchain :
+      (velocitySharp * mSharp) * Real.sqrt h ≤ mSharp * u :=
+    le_trans hleft (le_trans hr hru')
   have hmpos : 0 < mSharp := by norm_num [mSharp]
-  nlinarith [mul_nonneg (le_of_lt hp) hs0]
+  have hchain' :
+      mSharp * (velocitySharp * Real.sqrt h) ≤ mSharp * u := by
+    nlinarith
+  exact (mul_le_mul_left hmpos).mp hchain'
 
 theorem sharp_no_universal_h32_rate
     {C t : ℝ} (hC : 0 < C) (ht : 0 < t)
