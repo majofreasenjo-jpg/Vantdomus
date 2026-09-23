@@ -1,0 +1,68 @@
+name: P1 Lean kernel verify
+on:
+  push:
+    branches:
+      - tmp-p1-lean-kernel-verify-20260922
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: p1_lean_verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          auto-config: false
+          use-mathlib-cache: true
+      - name: Toolchain and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          lean --version | tee lean-version.txt
+          lake --version | tee lake-version.txt
+          lake update
+          lake build 2>&1 | tee lake-build.log
+      - name: Static source firewall
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -nE '\\b(sorry|admit|axiom|opaque)\\b' ZeroGradientLean ZeroGradientLean.lean; then
+            echo UNSOUND_DECLARATION_TOKEN_FOUND=TRUE
+            exit 1
+          fi
+          echo UNSOUND_DECLARATION_TOKEN_FOUND=FALSE | tee static-audit.txt
+      - name: Axiom audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean ZeroGradientLean/Main.lean 2>&1 | tee axiom-audit.log
+          if grep -q 'sorryAx' axiom-audit.log; then
+            echo SORRY_AXIOM_FOUND=TRUE
+            exit 1
+          fi
+          echo SORRY_AXIOM_FOUND=FALSE
+      - name: Source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          find ZeroGradientLean -type f -name '*.lean' -print0 | sort -z | xargs -0 sha256sum > source-sha256.txt
+          sha256sum ZeroGradientLean.lean lean-toolchain lakefile.toml >> source-sha256.txt
+          cat source-sha256.txt
+      - name: Preserve verification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-lean-kernel-receipt
+          path: |
+            p1_lean_verify/lean-version.txt
+            p1_lean_verify/lake-version.txt
+            p1_lean_verify/lake-build.log
+            p1_lean_verify/static-audit.txt
+            p1_lean_verify/axiom-audit.log
+            p1_lean_verify/source-sha256.txt
+          if-no-files-found: warn
+          retention-days: 30
