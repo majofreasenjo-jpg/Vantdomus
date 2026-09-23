@@ -19,4 +19,6 @@ theorem selected_core_inventory_anchor : True := by trivial
 #print axioms ZeroGradientLean.beta_integral_exact
 #print axioms ZeroGradientLean.beta_sq_integral_exact
 #print axioms ZeroGradientLean.local_pressure_moment_factor_21
+#print axioms ZeroGradientLean.cyclic_successive_differences_zero
+#print axioms ZeroGradientLean.polygon_flux_telescopes
 end ZeroGradientLean
