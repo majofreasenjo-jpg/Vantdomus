@@ -1,0 +1,134 @@
+{
+  "version": "DOMI_P5_PRODUCTION_READINESS_PREFLIGHT_MATRIX_V0_1",
+  "date": "2026-09-24",
+  "project": "VANTDOMUS_DOMI",
+  "track": "P5_PRODUCTION_READINESS_PREFLIGHT_DESIGN",
+  "baseRc2FreezeCommit": "20999f18153b675cc0394447e800e7b9c4bbd513",
+  "baseRc2SealedBranch": "domi-p5-field-beta-rc2-sealed",
+  "executionClass": "DESIGN_AND_READ_ONLY_PREFLIGHT_ONLY",
+  "productionMutationAuthorized": false,
+  "productionReady": false,
+  "domains": [
+    {
+      "id": "PRD-01",
+      "name": "PRODUCTION_ENVIRONMENT_CONTRACT",
+      "status": "PARTIALLY_IMPLEMENTED_NOT_CERTIFIED",
+      "existingControls": [
+        "docs/PRODUCTION_RUNBOOK.md defines staging/production runtime requirements",
+        "docs/PRODUCTION_READINESS_7_POINT_PLAN.md defines infrastructure/env acceptance gates",
+        "docs/env/api.production.env.example exists",
+        "docs/env/web.production.env.example exists",
+        "tools/production_readiness_report.py validates required keys, placeholders, forbidden public web keys, backups, and documents",
+        "apps/api/scripts/production_preflight.py validates runtime security, database, backups, Redis and ClamAV",
+        "apps/web/app/api/p5-field-beta-preflight/route.ts is explicitly Preview-only and refuses non-preview P5 beta admission"
+      ],
+      "unresolved": [
+        "No exact production deployment/configuration receipt exists for P5",
+        "No production-specific P5 admission contract exists",
+        "No evidence that real production env exports pass production_readiness_report.py",
+        "No evidence that production_preflight.py passes without --skip-network against real infrastructure",
+        "No production rollback drill receipt for P5"
+      ],
+      "exitCriteria": [
+        "production-specific admission contract frozen",
+        "real env exports pass readiness report",
+        "production preflight passes with real Redis/ClamAV/database/backups",
+        "immutable production deployment/configuration receipt exists",
+        "rollback drill passes",
+        "separate explicit production authorization exists"
+      ]
+    },
+    {
+      "id": "PRD-02",
+      "name": "SECURITY_AND_ACCESS_CONTROL",
+      "status": "SUBSTANTIALLY_IMPLEMENTED_NOT_PRODUCTION_CERTIFIED",
+      "existingControls": [
+        "apps/web/proxy.ts protects sensitive prefixes and fails closed outside explicit local/dev environments",
+        "apps/web/proxy.ts recognizes session cookies and redirects unauthenticated protected routes to /login",
+        "tools/web_session_security_lint.py checks HttpOnly cookies, CSRF, backend logout revoke, protected routes, no-store headers, and proxy body limits",
+        "apps/api/app/security.py signs expiring JWT access tokens with jti",
+        "apps/api/app/routes/auth.py includes session issuance, failed-login accounting, password policy, email verification, MFA/recovery-code support",
+        "apps/api/app/rate_limit.py includes global and per-action rate limits plus Redis mode",
+        "docs/SECURITY_BASELINE.md documents tenant isolation, audit/security events, private attachment handling, signed links, webhook controls and security tests",
+        ".github/workflows/security-gate.yml runs security lint, secret scan, tenant isolation tests, full backend tests, web typecheck/build and dependency audits"
+      ],
+      "unresolved": [
+        "P5 owner-alpha qualification routes are not yet bound to a production-specific AuthN/AuthZ contract",
+        "No final production RBAC/access review receipt scoped specifically to P5 continuity surfaces",
+        "No production secret rotation rehearsal receipt scoped to P5 deployment",
+        "Dependency audits remain advisory in current workflow for npm/pip",
+        "No production abuse/threat-model signoff specifically for P5 continuity artifacts"
+      ],
+      "exitCriteria": [
+        "P5 production surfaces require authenticated/authorized sessions",
+        "least-privilege surface matrix approved",
+        "secret lifecycle/rotation drill passed",
+        "dependency/security findings dispositioned",
+        "P5-specific threat model and artifact-security review passed"
+      ]
+    },
+    {
+      "id": "PRD-03",
+      "name": "OBSERVABILITY_AND_SLO",
+      "status": "PARTIALLY_IMPLEMENTED_NOT_CERTIFIED",
+      "existingControls": [
+        "security_events and tamper-evident event-chain controls are documented",
+        "production runbook defines alert webhook, scheduled health checks and incident response",
+        "production plan requires signed alert delivery, scheduled ClamAV, backup, integrity, retention and preflight jobs",
+        "P5 synthetic beta contract defines privacy-minimized allowed telemetry"
+      ],
+      "unresolved": [
+        "No P5 production SLI/SLO targets frozen",
+        "No P5 production alert thresholds and ownership receipt",
+        "No P5 production latency/error/cost telemetry certification",
+        "No P5 production telemetry retention approval"
+      ],
+      "exitCriteria": [
+        "P5 SLI/SLO document frozen",
+        "alerts and ownership frozen",
+        "privacy-preserving telemetry verified",
+        "cost/usage guardrails configured",
+        "telemetry retention policy approved"
+      ]
+    },
+    {
+      "id": "PRD-04",
+      "name": "RESILIENCE_AND_RECOVERY",
+      "status": "PARTIALLY_IMPLEMENTED_NOT_CERTIFIED",
+      "existingControls": [
+        "production_preflight.py checks encrypted backup presence and manifest integrity",
+        "PRODUCTION_RUNBOOK.md defines encrypted backup/restore drills, offsite copy, integrity checks and incident procedures",
+        "RC2 itself has an exact runtime rollback anchor",
+        "P5 continuity harnesses already fail closed on receipt/artifact/key drift and stale probes"
+      ],
+      "unresolved": [
+        "No production-like P5 rollback drill executed",
+        "No P5 corrupt-artifact/session recovery drill in production-like environment",
+        "No dependency/network outage drill for production P5",
+        "No durable-state backup/restore contract specific to P5 if/when durable owner state is introduced"
+      ],
+      "exitCriteria": [
+        "rollback drill passes",
+        "artifact/session corruption recovery passes",
+        "dependency/network outage drills pass",
+        "backup/restore contract defined for any durable P5 state",
+        "partial-infrastructure fail-closed behavior certified"
+      ]
+    }
+  ],
+  "globalBoundaries": {
+    "productionReady": false,
+    "productionMutation": false,
+    "realOwnerMemory": "NOT_STARTED",
+    "externalOutreachAuthorized": false,
+    "universalCompatibilityClaim": false,
+    "iosSafariQualification": "PAUSED_WAITING_FOR_PHYSICAL_IOS_DEVICE"
+  },
+  "nextSafeInternalActions": [
+    "Freeze a P5 production admission contract draft that is non-executable and fail-closed by default.",
+    "Map P5 owner-alpha routes into the existing authenticated web proxy model without changing production.",
+    "Define P5 production SLI/SLO and telemetry schema using only privacy-minimized fields.",
+    "Define production rollback and outage drill protocols.",
+    "Create objective pass/fail checklist that requires real staging evidence before any production-ready claim."
+  ]
+}
