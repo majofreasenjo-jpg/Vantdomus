@@ -1,0 +1,138 @@
+{
+  "version": "DOMI_P5_RC2_QUALIFICATION_DEBT_LEDGER_V0_1",
+  "date": "2026-09-23",
+  "project": "VANTDOMUS_DOMI",
+  "packageId": "DOMI_P5_FIELD_BETA_RC2_2026_09_22",
+  "rc2FreezeCommit": "20999f18153b675cc0394447e800e7b9c4bbd513",
+  "sealedAnchorBranch": "domi-p5-field-beta-rc2-sealed",
+  "receiptBranch": "domi-p5-rc2-certification-receipts",
+  "currentState": "P5_RC2_CLOSEOUT_AND_QUALIFICATION_DEBT_LEDGER_FROZEN",
+  "supportedOperationalCells": [
+    "ANDROID_CHROME_DESTINATION",
+    "WINDOWS_EDGE_SOURCE",
+    "WINDOWS_CHROME_SOURCE"
+  ],
+  "debts": [
+    {
+      "id": "QD-01",
+      "domain": "SUPPORTED_CELL_EXPANSION",
+      "item": "WINDOWS_CHROME_SOURCE",
+      "status": "FULLY_RESOLVED",
+      "evidence": {
+        "physicalQualification": "PASS_BOUNDED",
+        "operationalDryRun": "PASS_BOUNDED",
+        "baselineProbeId": "67d153b6-28df-48bb-91ca-fc3543e0d5b8",
+        "physicalPostProbeId": "e89b9745-b2d6-4f41-965a-5b15f7d39ea1",
+        "operationalPreProbeId": "b260aee0-f403-4739-9fb5-4bb652d36f62",
+        "operationalPostProbeId": "f7f39f97-6f22-4c08-b57c-25916af2ad59"
+      }
+    },
+    {
+      "id": "QD-02",
+      "domain": "SUPPORTED_CELL_EXPANSION",
+      "item": "IOS_SAFARI_DESTINATION",
+      "status": "OPEN_PHYSICAL_DEVICE_REQUIRED",
+      "executionAuthorized": false,
+      "prerequisites": [
+        "physical iPhone/iPad running Safari",
+        "device-matrix BASELINE with fresh probe",
+        "full browser close/reopen",
+        "device-matrix POST with stable receipt/artifact/continuity key",
+        "expected recovered references P5-M-PRIVATE,P5-M-SHARED",
+        "no raw memory/transcript/full-state/authority persistence",
+        "operational wrapper PRE/POST dry-run in Vercel Preview",
+        "separate iOS Wi-Fi/mobile-data transition qualification before claiming iOS network-transition robustness"
+      ],
+      "exitCriterion": "IOS_SAFARI_DESTINATION=PASS_BOUNDED plus operational dry-run PASS_BOUNDED"
+    },
+    {
+      "id": "PRD-01",
+      "domain": "PRODUCTION_READINESS",
+      "item": "PRODUCTION_ENVIRONMENT_CONTRACT",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "PRD-02",
+      "domain": "PRODUCTION_READINESS",
+      "item": "SECURITY_AND_ACCESS_CONTROL",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "PRD-03",
+      "domain": "PRODUCTION_READINESS",
+      "item": "OBSERVABILITY_AND_SLO",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "PRD-04",
+      "domain": "PRODUCTION_READINESS",
+      "item": "RESILIENCE_AND_RECOVERY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "ROM-01",
+      "domain": "REAL_OWNER_MEMORY",
+      "item": "CONSENT_AND_SCOPE_CONTRACT",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "ROM-02",
+      "domain": "REAL_OWNER_MEMORY",
+      "item": "DATA_LIFECYCLE_AND_PRIVACY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "ROM-03",
+      "domain": "REAL_OWNER_MEMORY",
+      "item": "EVALUATION_AND_SAFETY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "EXT-01",
+      "domain": "EXTERNAL_CLOSED_BETA",
+      "item": "PARTICIPANT_AND_ACCESS_GOVERNANCE",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    },
+    {
+      "id": "EXT-02",
+      "domain": "EXTERNAL_CLOSED_BETA",
+      "item": "SUPPORT_INCIDENT_AND_TELEMETRY",
+      "status": "NOT_STARTED",
+      "executionAuthorized": false
+    }
+  ],
+  "operationalLessons": [
+    {
+      "id": "OPS-01",
+      "item": "PREVIEW_RETENTION",
+      "status": "CONTROL_DEFINED",
+      "observation": "A prior Vercel Preview expired with HTTP 410 under retention policy.",
+      "control": "Recreate a Preview carrier from the exact sealed/source commit without mutating the sealed package."
+    },
+    {
+      "id": "OPS-02",
+      "item": "NONREPRODUCED_VERCEL_BUILD_FAILURE",
+      "status": "CLOSED_AS_NONREPRODUCED",
+      "observation": "The first RC2 freeze deployment failed BUILD_UTILS_SPAWN_1 while GitHub CI succeeded.",
+      "control": "Redeploy the exact same commit on a separate recertification branch; seal only after READY. Retry on exact SHA succeeded."
+    }
+  ],
+  "invariants": {
+    "rc2Immutable": true,
+    "productionReady": false,
+    "productionMutation": false,
+    "realOwnerMemory": "NOT_STARTED",
+    "externalOutreachAuthorized": false,
+    "universalCompatibilityClaim": false,
+    "scientificRootsMinted": 0
+  },
+  "nextSafeInternalTrack": "P5_RC2_IOS_SAFARI_PREPHYSICAL_QUALIFICATION_PACKAGE"
+}
