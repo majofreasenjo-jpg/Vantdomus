@@ -1,0 +1,58 @@
+{
+  "schema": "DOMI_P5_IOS_SAFARI_PHYSICAL_EVIDENCE_SCHEMA_V0_1",
+  "baseline": {
+    "probeId": null,
+    "probeNonce": null,
+    "serverTime": null,
+    "detectedPlatformClass": "IOS",
+    "detectedBrowserClass": "SAFARI",
+    "cell": "IOS_SAFARI_DESTINATION",
+    "role": "DESTINATION",
+    "stage": "BASELINE",
+    "receiptId": null,
+    "receiptDigest": null,
+    "artifactDigest": null,
+    "continuityKey": "fnv1a32:2b7f23b7",
+    "memoryIds": [
+      "P5-M-PRIVATE",
+      "P5-M-SHARED"
+    ],
+    "continuityPass": null,
+    "rawMemoryPersisted": false,
+    "rawTranscriptPersisted": false,
+    "fullStatePersisted": false,
+    "authorityPersisted": false
+  },
+  "post": {
+    "probeId": null,
+    "probeNonce": null,
+    "serverTime": null,
+    "stage": "REOPEN",
+    "receiptId": null,
+    "receiptDigest": null,
+    "artifactDigest": null,
+    "continuityKey": "fnv1a32:2b7f23b7",
+    "memoryIds": [
+      "P5-M-PRIVATE",
+      "P5-M-SHARED"
+    ],
+    "continuityPass": null,
+    "receiptStable": null,
+    "artifactStable": null,
+    "continuityKeyStable": null,
+    "cellDecision": null,
+    "failures": []
+  },
+  "operational": {
+    "preProbeId": null,
+    "postProbeId": null,
+    "admission": null,
+    "sessionDecision": null,
+    "incidentLevel": null,
+    "failures": []
+  },
+  "networkTransition": {
+    "wifiToMobile": null,
+    "mobileToWifi": null
+  }
+}
