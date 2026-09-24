@@ -1,0 +1,58 @@
+name: P1 Lean pure-kernel verify
+on:
+  push:
+    branches:
+      - tmp-p1-lean-pure-kernel-20260923
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: p1_lean_verify
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install exact Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.24.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/lean" --version | tee lean-version.txt
+      - name: Resolve exact mathlib and cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake update
+          lake exe cache get
+      - name: Pure-kernel build
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake build 2>&1 | tee lake-build.log
+      - name: Axiom audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake env lean ZeroGradientLean/Main.lean 2>&1 | tee axiom-audit.log
+          if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' axiom-audit.log; then
+            echo NON_KERNEL_DEPENDENCY_FOUND=TRUE
+            exit 1
+          fi
+          echo NON_KERNEL_DEPENDENCY_FOUND=FALSE | tee pure-kernel-audit.txt
+      - name: Preserve receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-lean-pure-kernel-receipt
+          path: |
+            p1_lean_verify/lean-version.txt
+            p1_lean_verify/lake-build.log
+            p1_lean_verify/axiom-audit.log
+            p1_lean_verify/pure-kernel-audit.txt
+          retention-days: 30
