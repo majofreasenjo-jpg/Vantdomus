@@ -55,9 +55,9 @@ def argyrisAinv : Matrix (Fin 21) (Fin 21) ℚ :=
 ]
 
 theorem argyris_exact_right_inverse : argyrisA * argyrisAinv = 1 := by
-  native_decide
+  decide
 
 theorem argyris_exact_left_inverse : argyrisAinv * argyrisA = 1 := by
-  native_decide
+  decide
 
 end ZeroGradientLean
