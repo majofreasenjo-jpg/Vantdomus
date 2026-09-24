@@ -1,0 +1,117 @@
+name: P1 exact frozen ZIP kernel verify
+on:
+  push:
+    branches:
+      - tmp-p1-exact-frozen-zip-kernel-20260924
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: p1_lean_verify
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact frozen source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > exact-source-sha256.expected <<'EOF'
+          42779d67b81608af8a12aa4328d2ab47ca201925b3b2bd68369587b5340bb434  lean-toolchain
+          ddd7e8fa6013b4271c12df147d4db1bbef9704260f8b84aee259c6940ed0355c  lakefile.toml
+          e8710c948b9d7c0757905ec7b8d0c6ca09dfaace499bcb6c19072793041b5512  ZeroGradientLean.lean
+          cd98430f8104a74bafc9a2e7f5b3133e176de8d53051e999a8241c4d7325bdd3  ZeroGradientLean/Argyris.lean
+          590ce150af73fc71cbc6dd312cb13ed00aa66cda54d7b65c804c1c1bdf1842b1  ZeroGradientLean/Geometry.lean
+          1aa59808e8ba497b8ef2c01405d55a454af325b4dadcce48dfc666f509c263d0  ZeroGradientLean/Main.lean
+          a83821b584b794d562fc9d9b0acd8a23ce91f7c8143beddb087499d24a598a26  ZeroGradientLean/MainTheorem.lean
+          e2582589ceb725e0c4a84b128def02dac097377f89ba106857a31aacd1932323  ZeroGradientLean/Nitsche.lean
+          96b04e783401ef5c2de0d93f43a54963a284829fb4dfe6f3eba19c0858ecf74e  ZeroGradientLean/TraceP3.lean
+          EOF
+          sha256sum -c exact-source-sha256.expected | tee exact-source-hash-check.log
+      - name: Install Lean 4.24.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.24.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/lean" --version | tee lean-version.txt
+          "$HOME/.elan/bin/lake" --version | tee lake-version.txt
+      - name: Resolve mathlib v4.24.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake update
+          lake exe cache get
+      - name: Kernel build exact selected core
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake build 2>&1 | tee lake-build.log
+          lake env lean ZeroGradientLean/Main.lean 2>&1 | tee direct-main.log
+      - name: Static frozen-source firewall
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES="ZeroGradientLean.lean ZeroGradientLean/Geometry.lean ZeroGradientLean/Argyris.lean ZeroGradientLean/TraceP3.lean ZeroGradientLean/Nitsche.lean ZeroGradientLean/MainTheorem.lean ZeroGradientLean/Main.lean"
+          if grep -nE '\b(sorry|admit|axiom|opaque)\b' $FILES; then
+            echo UNSOUND_DECLARATION_TOKEN_FOUND=TRUE
+            exit 1
+          fi
+          echo UNSOUND_DECLARATION_TOKEN_FOUND=FALSE | tee static-audit.txt
+      - name: Axiom audit exact selected core
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          cat > ExactAxiomAudit.lean <<'EOF'
+          import ZeroGradientLean.Main
+          #print axioms ZeroGradientLean.three_halves_pow_four
+          #print axioms ZeroGradientLean.fourth_order_below_three_halves_order
+          #print axioms ZeroGradientLean.zra_tight_fourth_order_bridge
+          #print axioms ZeroGradientLean.sec_envelope_arithmetic
+          #print axioms ZeroGradientLean.argyris_reference_energy_identity
+          #print axioms ZeroGradientLean.argyris_triangle_energy_identity
+          #print axioms ZeroGradientLean.argyris_sector_energy_identity
+          #print axioms ZeroGradientLean.argyris_direct_energy_identity
+          #print axioms ZeroGradientLean.argyris_cf_sq_identity
+          #print axioms ZeroGradientLean.argyris_det_certificate_nonzero
+          #print axioms ZeroGradientLean.trace_spectrum_bound
+          #print axioms ZeroGradientLean.trace_constant_attained
+          #print axioms ZeroGradientLean.cGammaSq_lt_31
+          #print axioms ZeroGradientLean.cGamma_over_mu_lt_137_over_250_sq
+          #print axioms ZeroGradientLean.nitsche_two_by_two_lower
+          #print axioms ZeroGradientLean.nitsche_a_rational_envelope
+          #print axioms ZeroGradientLean.nitsche_alpha_floor
+          #print axioms ZeroGradientLean.nitsche_continuity_ceiling
+          #print axioms ZeroGradientLean.residual_forces_velocity
+          #print axioms ZeroGradientLean.sqrt_vs_three_halves_contradiction
+          #print axioms ZeroGradientLean.no_universal_h32_rate_at_small_scale
+          #print axioms ZeroGradientLean.selected_core_inventory_anchor
+          EOF
+          lake env lean ExactAxiomAudit.lean 2>&1 | tee axiom-audit.log
+          if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' axiom-audit.log; then
+            echo NON_KERNEL_OR_SORRY_DEPENDENCY_FOUND=TRUE
+            exit 1
+          fi
+          echo NON_KERNEL_OR_SORRY_DEPENDENCY_FOUND=FALSE | tee kernel-trust-audit.txt
+      - name: Preserve exact receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-exact-frozen-zip-kernel-receipt
+          path: |
+            p1_lean_verify/exact-source-sha256.expected
+            p1_lean_verify/exact-source-hash-check.log
+            p1_lean_verify/lean-version.txt
+            p1_lean_verify/lake-version.txt
+            p1_lean_verify/lake-build.log
+            p1_lean_verify/direct-main.log
+            p1_lean_verify/static-audit.txt
+            p1_lean_verify/axiom-audit.log
+            p1_lean_verify/kernel-trust-audit.txt
+            p1_lean_verify/lake-manifest.json
+          retention-days: 30
