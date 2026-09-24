@@ -3,11 +3,11 @@ import ZeroGradientLean.Argyris
 import ZeroGradientLean.TraceP3
 import ZeroGradientLean.Nitsche
 import ZeroGradientLean.MainTheorem
+
 namespace ZeroGradientLean
-theorem selected_core_inventory_anchor : True := by trivial
-#print axioms ZeroGradientLean.three_halves_pow_four
-#print axioms ZeroGradientLean.argyris_cf_sq_identity
-#print axioms ZeroGradientLean.trace_spectrum_bound
-#print axioms ZeroGradientLean.nitsche_two_by_two_lower
-#print axioms ZeroGradientLean.no_universal_h32_rate_at_small_scale
+
+/-- Inventory anchor forcing the five selected-core layers into one library. -/
+theorem selected_core_inventory_anchor : True := by
+  trivial
+
 end ZeroGradientLean
