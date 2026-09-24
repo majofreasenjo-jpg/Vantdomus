@@ -1,0 +1,38 @@
+# DOMI P5 — iOS + Safari Qualification Pause
+
+DATE=2026-09-24
+PROJECT=VANTDOMUS_DOMI
+
+USER_DIRECTION=PAUSE_IOS_SAFARI_UNTIL_PHYSICAL_DEVICE_AVAILABLE
+
+```text
+TARGET_CELL=IOS_SAFARI_DESTINATION
+QD_02=PAUSED_WAITING_FOR_PHYSICAL_IOS_DEVICE
+PHYSICAL_EXECUTION=PAUSED_BY_OWNER_DEVICE_UNAVAILABLE
+PREPHYSICAL_PACKAGE=READY
+SUPPORT_CLAIM=NOT_ALLOWED
+IOS_NETWORK_TRANSITION_QUALIFICATION=NOT_STARTED
+```
+
+No result is inferred from the pause.
+
+The existing pre-physical package remains valid and ready to resume when a physical iPhone or iPad with Safari is available.
+
+```text
+PREPHYSICAL_BRANCH=domi-p5-rc3-ios-safari-prephysical-qualification
+PREPHYSICAL_COMMIT=a51813d842186a09b22e2601147578fc2394f862
+BASE_RC2_FREEZE_COMMIT=20999f18153b675cc0394447e800e7b9c4bbd513
+```
+
+RC2 remains immutable. The pause does not change the support boundary:
+
+```text
+ANDROID_CHROME_DESTINATION=PASS_BOUNDED
+WINDOWS_EDGE_SOURCE=PASS_BOUNDED
+WINDOWS_CHROME_SOURCE=PASS_BOUNDED
+IOS_SAFARI_DESTINATION=NOT_TESTED_NOT_SUPPORTED
+```
+
+NEXT_ACTIVE_INTERNAL_TRACK=P5_PRODUCTION_READINESS_PREFLIGHT_DESIGN
+
+This next track is design/test/preflight only. It does not authorize production deployment, production mutation, real owner memory, or external outreach.
