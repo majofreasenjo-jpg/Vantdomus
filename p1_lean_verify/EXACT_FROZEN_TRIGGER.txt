@@ -1,0 +1,1 @@
+Trigger exact frozen selected-core verification after workflow registration.
