@@ -1,0 +1,159 @@
+# DOMI P5 — Authenticated Owner-Scoped Route-Binding CI Certification
+
+DATE=2026-09-25
+PROJECT=VANTDOMUS_DOMI
+TRACK=P5_AUTHENTICATED_OWNER_SCOPED_ROUTE_BINDING_CI_CERTIFICATION
+
+## Exact specification identity
+
+```text
+SPECIFICATION_COMMIT=89240a93f031471e83198d17bf5cb9709bb4f5b0
+SEALED_SPEC_BRANCH=domi-p5-authenticated-owner-scoped-route-binding-contract-sealed
+RECEIPT_BRANCH=domi-p5-authenticated-owner-scoped-route-binding-contract-receipts
+
+BASE_VALIDATED_ADMISSION_SPEC=19f8ab559ff5e0ce7a7bf0a8453db2a7a67cc645
+BASE_ROUTE_BINDING_AUDIT=15fd6b0eddd77c51d51e8d467372e50440a31388
+```
+
+## Mechanical certification
+
+```text
+GITHUB_RUN=36171883273
+GITHUB_HEAD=89240a93f031471e83198d17bf5cb9709bb4f5b0
+GITHUB_STATUS=COMPLETED
+GITHUB_CONCLUSION=SUCCESS
+BUILD_PLUS_DETERMINISTIC_POSTBUILD=SUCCESS
+BOUNDED_P5_FIELD_GATES_RERUN=SUCCESS
+
+VERCEL_DEPLOYMENT=dpl_6hwaQ3nNxbfNCCLtwx4ns3wJ3c5P
+VERCEL_COMMIT=89240a93f031471e83198d17bf5cb9709bb4f5b0
+VERCEL_STATE=READY
+VERCEL_TARGET=PREVIEW
+```
+
+No production promotion or production deployment was performed.
+
+## Specification asset readback
+
+```text
+LIB_BLOB_SHA=1f1ff650283713866cfd5c036efd1e97d4e32fd7
+TEST_BLOB_SHA=3b30d4ea54707a0942dcdde6c27a59617b01058a
+CONTRACT_BLOB_SHA=127a43432b15cd8383b5cc06837399755270a273
+EVIDENCE_SCHEMA_BLOB_SHA=353385b98dfb2b751785c252251d91b034dd1ed3
+DESIGN_DOC_BLOB_SHA=30d69f336199f185ec6c242c62130b3a3c8987ff
+CAPSULA_RESTART_BLOB_SHA=a3ba721f7362a9b569e19a7030aee6cc80bd782e
+```
+
+## Certification decision
+
+```text
+P5_AUTHENTICATED_OWNER_SCOPED_ROUTE_BINDING_CI_CERTIFICATION=PASS_BOUNDED
+P5_AUTHENTICATED_OWNER_SCOPED_ROUTE_BINDING_CONTRACT=VALIDATED_SPECIFICATION
+
+EXECUTABLE_BINDING=FALSE
+PRODUCTION_READY=FALSE
+PRODUCTION_MUTATION=FALSE
+```
+
+The validated contract remains a deterministic specification only.
+
+Even with a complete simulated fixture, the maximum positive decision is:
+
+```text
+CONTRACT_SATISFIED_IN_SIMULATION_NOT_EXECUTABLE
+```
+
+## Certified architectural invariants
+
+```text
+OWNER_ALPHA_HARNESSES=PREVIEW_ONLY_INTERNAL_QUALIFICATION
+FUTURE_PRODUCTION_SURFACE=SEPARATE_AUTHENTICATED_OWNER_SCOPED_SURFACE
+
+OWNER_SCOPE_MODE=SELF_ONLY_V0_1
+DELEGATION=NOT_SUPPORTED
+REQUEST_MODE=READ_ONLY
+STATE_MUTATION=FORBIDDEN
+```
+
+Required binding model:
+
+```text
+authenticated non-revoked session
++ session jti
++ authenticated user
++ self-owner subject binding
++ household membership / role
++ household-to-organization coherence
++ organization / tenant scope
++ RC2-qualified device cell
++ no-store
++ rate limit
++ audit-log receipt
++ security-event receipt
++ incident STOP authority
++ exact build/config identity
+```
+
+## Support boundary
+
+```text
+ANDROID_CHROME_DESTINATION=QUALIFIED_RC2
+WINDOWS_EDGE_SOURCE=QUALIFIED_RC2
+WINDOWS_CHROME_SOURCE=QUALIFIED_RC2
+
+IOS_SAFARI_DESTINATION=PAUSED_WAITING_FOR_PHYSICAL_IOS_DEVICE
+IOS_SAFARI_DESTINATION=NOT_TESTED_NOT_SUPPORTED
+```
+
+## Global boundaries
+
+```text
+PRODUCTION_READY=FALSE
+PRODUCTION_MUTATION=FALSE
+PRODUCTION_DEPLOYMENT=NOT_AUTHORIZED
+REAL_OWNER_MEMORY=NOT_STARTED
+EXTERNAL_OUTREACH_AUTHORIZATION=FALSE
+SCIENTIFIC_ROOTS_MINTED=0
+R4_EXECUTION_AUTHORIZATION=FALSE
+```
+
+## CÁPSULA DE REHIDRATACIÓN
+
+```text
+CURRENT=P5_AUTHENTICATED_OWNER_SCOPED_ROUTE_BINDING_VALIDATED_SPECIFICATION
+
+SPEC_COMMIT=89240a93f031471e83198d17bf5cb9709bb4f5b0
+SEALED_SPEC_BRANCH=domi-p5-authenticated-owner-scoped-route-binding-contract-sealed
+CI_RUN=36171883273 SUCCESS
+PREVIEW=dpl_6hwaQ3nNxbfNCCLtwx4ns3wJ3c5P READY
+CERTIFICATION=PASS_BOUNDED
+
+EXECUTABLE_BINDING=FALSE
+PRODUCTION_READY=FALSE
+PRODUCTION_MUTATION=FALSE
+REAL_OWNER_MEMORY=NOT_STARTED
+IOS_SAFARI=PAUSED_WAITING_FOR_PHYSICAL_IOS_DEVICE
+
+NEXT_SAFE_INTERNAL_TRACK=P5_OWNER_SCOPED_BINDING_INTEGRATION_HARNESS_DRAFT
+```
+
+## EXACT PROMPT RESTART
+
+RETOMA VANTDOMUS / DOMI DESDE:
+`P5_AUTHENTICATED_OWNER_SCOPED_ROUTE_BINDING_VALIDATED_SPECIFICATION`
+
+Preserva la especificación sellada en:
+`89240a93f031471e83198d17bf5cb9709bb4f5b0`
+
+Preserva:
+- RC2 inmutable;
+- owner-alpha harnesses Preview-only;
+- iOS Safari en pausa;
+- production ready = FALSE;
+- production mutation = FALSE;
+- real owner memory = NOT_STARTED;
+- external outreach = FALSE.
+
+NEXT_SAFE_INTERNAL_TRACK=P5_OWNER_SCOPED_BINDING_INTEGRATION_HARNESS_DRAFT
+
+The next track may map the validated contract to the existing backend primitives (session revocation, household RBAC, organization tenancy, audit log, security events and global API rate limiting) in a deterministic non-production integration harness. It must not create a production endpoint, admit real owner memory, mutate production or contact external users.
