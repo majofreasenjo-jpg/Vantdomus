@@ -1,0 +1,53 @@
+{
+  "version": "DOMI_P5_PRODUCTION_ROUTE_BINDING_SECURITY_AUDIT_V0_1",
+  "date": "2026-09-25",
+  "project": "VANTDOMUS_DOMI",
+  "baseSpecificationCommit": "19f8ab559ff5e0ce7a7bf0a8453db2a7a67cc645",
+  "status": "AUDIT_AUTHORED_PENDING_CI",
+  "positiveControls": [
+    "Global CSP, frame, referrer and content-type security headers apply to all web paths.",
+    "All /api paths receive no-store headers.",
+    "Authenticated /api/proxy requires a session bearer token.",
+    "Authenticated /api/proxy validates CSRF and same-origin on unsafe methods.",
+    "Authenticated /api/proxy enforces request body size limits.",
+    "Authenticated /api/proxy strips browser cookie/authorization forwarding and adds server-side bearer token.",
+    "Authenticated /api/proxy responses are no-store.",
+    "Local demo-token fallback is restricted to explicit local/dev/test environments.",
+    "P5 field-beta preflight is Preview-only and fail-closed outside Vercel Preview.",
+    "Cross-device, handoff and memory-test owner-alpha pages contain explicit Preview/notFound isolation.",
+    "Direct P5 probes validate nonce format and return privacy-minimal synthetic metadata."
+  ],
+  "blockers": [
+    "P5_OWNER_ALPHA_NOT_BOUND_TO_AUTHENTICATED_WEB_PROXY",
+    "P5_OWNER_ALPHA_PAGE_NO_STORE_POLICY_MISSING",
+    "P5_FIELD_PREFLIGHT_SESSION_BINDING_MISSING",
+    "P5_NETWORK_PROBE_ENVIRONMENT_GUARD_MISSING",
+    "P5_NETWORK_PROBE_SESSION_BINDING_MISSING",
+    "CONTINUITY_RESUME_PREVIEW_GUARD_MISSING",
+    "CROSS_DEVICE_RETURN_PREVIEW_GUARD_MISSING",
+    "DEVICE_MATRIX_PREVIEW_GUARD_MISSING",
+    "FIELD_BETA_OPS_PREVIEW_GUARD_MISSING",
+    "NETWORK_TRANSITION_PREVIEW_GUARD_MISSING",
+    "P5_OWNER_TENANT_SCOPE_BINDING_NOT_IMPLEMENTED",
+    "P5_PRODUCTION_AUDIT_SECURITY_EVENT_BINDING_NOT_IMPLEMENTED",
+    "P5_PRODUCTION_RATE_LIMIT_POLICY_NOT_BOUND_TO_DIRECT_P5_PROBES",
+    "P5_PRODUCTION_MUTATION_CSRF_POLICY_NOT_APPLICABLE_YET_BUT_REQUIRED_FOR_ANY_FUTURE_MUTATION"
+  ],
+  "routeDisposition": {
+    "/owner-alpha-cross-device": "KEEP_PREVIEW_ONLY",
+    "/owner-alpha-handoff": "KEEP_PREVIEW_ONLY",
+    "/owner-alpha-memory-test": "KEEP_PREVIEW_ONLY_BLOCK_PRODUCTION_UNTIL_ROM_AUTHORIZED",
+    "/owner-alpha-continuity-resume": "KEEP_PREVIEW_ONLY_OR_REPLACE",
+    "/owner-alpha-cross-device-return": "KEEP_PREVIEW_ONLY_OR_REPLACE",
+    "/owner-alpha-device-matrix": "KEEP_PREVIEW_ONLY_OR_REPLACE",
+    "/owner-alpha-field-beta-ops": "KEEP_PREVIEW_ONLY_OR_REPLACE",
+    "/owner-alpha-network-transition": "KEEP_PREVIEW_ONLY_OR_REPLACE",
+    "/api/p5-field-beta-preflight": "KEEP_PREVIEW_ONLY",
+    "/api/p5-network-probe": "KEEP_PREVIEW_ONLY_OR_REPLACE_WITH_AUTHENTICATED_PROBE"
+  },
+  "recommendedArchitecture": "KEEP_OWNER_ALPHA_HARNESSES_PREVIEW_ONLY_AND_CREATE_SEPARATE_AUTHENTICATED_OWNER_SCOPED_PRODUCTION_SURFACE",
+  "productionReady": false,
+  "productionMutation": false,
+  "executableBinding": false,
+  "iosSafari": "PAUSED_WAITING_FOR_PHYSICAL_IOS_DEVICE"
+}
