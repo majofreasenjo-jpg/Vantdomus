@@ -1,0 +1,37 @@
+{
+  "schema": "DOMI_P5_PRODUCTION_ADMISSION_EVIDENCE_V0_1",
+  "allowedFields": {
+    "observedAt": "ISO-8601 timestamp",
+    "cell": "qualified P5 cell identifier",
+    "commitSha": "40-hex Git commit SHA",
+    "configDigest": "sha256:<64 hex>",
+    "rollbackAnchorCommit": "40-hex Git commit SHA",
+    "securityGateRunId": "non-secret CI run identifier",
+    "productionReadinessReportDigest": "digest/reference only",
+    "productionPreflightReceiptDigest": "digest/reference only",
+    "rollbackDrillReceiptDigest": "digest/reference only",
+    "healthCheckReceiptDigest": "digest/reference only",
+    "alertingReceiptDigest": "digest/reference only",
+    "operatorRole": "non-secret role label",
+    "decision": "HOLD or simulated contract result",
+    "failureCodes": "array of machine-readable codes"
+  },
+  "forbiddenContent": [
+    "raw memory",
+    "raw transcript",
+    "full application state",
+    "authority payloads",
+    "credentials",
+    "temporary Vercel share tokens",
+    "JWTs/session tokens",
+    "database/Redis/SMTP secrets",
+    "real owner memory content"
+  ],
+  "requiredPrivacyFlags": {
+    "rawMemoryIncluded": false,
+    "rawTranscriptIncluded": false,
+    "fullStateIncluded": false,
+    "authorityIncluded": false,
+    "credentialsIncluded": false
+  }
+}

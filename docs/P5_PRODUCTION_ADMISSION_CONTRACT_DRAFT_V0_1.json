@@ -1,0 +1,52 @@
+{
+  "version": "DOMI_P5_PRODUCTION_ADMISSION_CONTRACT_DRAFT_V0_1",
+  "date": "2026-09-24",
+  "status": "DESIGN_ONLY_NON_EXECUTABLE",
+  "baseRc2FreezeCommit": "20999f18153b675cc0394447e800e7b9c4bbd513",
+  "supportedCells": [
+    "ANDROID_CHROME_DESTINATION",
+    "WINDOWS_EDGE_SOURCE",
+    "WINDOWS_CHROME_SOURCE"
+  ],
+  "explicitlyUnsupported": [
+    "IOS_SAFARI_DESTINATION"
+  ],
+  "required": {
+    "targetEnvironment": "production",
+    "explicitProductionAuthorization": true,
+    "authenticatedSession": true,
+    "authorizedOwnerScope": true,
+    "tenantScopeValid": true,
+    "identityAssurancePass": true,
+    "demoFallbackEnabled": false,
+    "publicStaticAccessTokenPresent": false,
+    "temporaryShareTokenDependency": false,
+    "securityGatePass": true,
+    "secretScanPass": true,
+    "webSessionSecurityLintPass": true,
+    "productionReadinessReportPass": true,
+    "productionPreflightPass": true,
+    "productionPreflightSkippedNetwork": false,
+    "healthCheckPass": true,
+    "exactCommitMatch": true,
+    "exactConfigDigestMatch": true,
+    "rollbackAnchorPresent": true,
+    "rollbackDrillPass": true,
+    "incidentStopAuthorityActive": true,
+    "telemetryPolicyPass": true,
+    "rawMemoryInTelemetry": false,
+    "rawTranscriptInTelemetry": false,
+    "fullStateInTelemetry": false,
+    "authorityInTelemetry": false,
+    "realOwnerMemoryRequested": false,
+    "externalOutreachRequested": false
+  },
+  "decisionSemantics": {
+    "allSatisfied": "CONTRACT_SATISFIED_IN_SIMULATION_NOT_EXECUTABLE",
+    "anyFailure": "HOLD",
+    "executableAdmission": false,
+    "productionReady": false,
+    "productionMutationAllowed": false
+  },
+  "designInvariant": "This draft cannot authorize or execute production deployment. It is a deterministic specification and test oracle only."
+}
