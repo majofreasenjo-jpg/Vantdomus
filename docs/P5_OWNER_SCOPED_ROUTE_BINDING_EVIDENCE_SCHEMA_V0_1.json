@@ -1,0 +1,38 @@
+{
+  "schema": "DOMI_P5_OWNER_SCOPED_ROUTE_BINDING_EVIDENCE_V0_1",
+  "allowedFields": [
+    "observedAt",
+    "cell",
+    "buildCommit",
+    "configDigest",
+    "sessionJti",
+    "authenticatedUserId",
+    "ownerSubjectUserId",
+    "householdId",
+    "organizationId",
+    "householdRole",
+    "auditLogReceiptId",
+    "securityEventReceiptId",
+    "rateLimitReceiptDigest",
+    "incidentStopReceiptDigest",
+    "decision",
+    "failureCodes"
+  ],
+  "forbiddenContent": [
+    "credentials",
+    "JWT/session token values",
+    "temporary Vercel share tokens",
+    "raw owner memory",
+    "raw transcript",
+    "full application state",
+    "authority payloads",
+    "database/Redis/SMTP secrets"
+  ],
+  "privacyFlagsRequired": {
+    "rawMemoryIncluded": false,
+    "rawTranscriptIncluded": false,
+    "fullStateIncluded": false,
+    "authorityIncluded": false,
+    "credentialsIncluded": false
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "version": "DOMI_P5_AUTHENTICATED_OWNER_SCOPED_ROUTE_BINDING_CONTRACT_V0_1",
+  "date": "2026-09-25",
+  "status": "DESIGN_ONLY_NON_EXECUTABLE",
+  "baseValidatedAdmissionSpecificationCommit": "19f8ab559ff5e0ce7a7bf0a8453db2a7a67cc645",
+  "baseRouteBindingAuditCommit": "15fd6b0eddd77c51d51e8d467372e50440a31388",
+  "architecture": "SEPARATE_AUTHENTICATED_P5_PRODUCTION_SURFACE",
+  "ownerScopeMode": "SELF_ONLY_V0_1",
+  "delegationSupported": false,
+  "requestMode": "READ_ONLY",
+  "existingOwnerAlphaHarnessReuseAllowed": false,
+  "supportedCells": [
+    "ANDROID_CHROME_DESTINATION",
+    "WINDOWS_EDGE_SOURCE",
+    "WINDOWS_CHROME_SOURCE"
+  ],
+  "pausedUnsupported": [
+    "IOS_SAFARI_DESTINATION"
+  ],
+  "requiredBindings": {
+    "nonRevokedAuthenticatedSession": true,
+    "sessionJti": true,
+    "authenticatedUserId": true,
+    "ownerSubjectEqualsAuthenticatedUser": true,
+    "householdMembership": true,
+    "validHouseholdRole": true,
+    "householdOrganizationMatchesRequestedOrganization": true,
+    "organizationScope": true,
+    "tenantScope": true,
+    "qualifiedCell": true,
+    "noStore": true,
+    "rateLimit": true,
+    "auditLogReceipt": true,
+    "securityEventReceipt": true,
+    "securityEventMetadataMinimized": true,
+    "incidentStopAuthority": true,
+    "exactBuildCommit": true,
+    "configDigest": true
+  },
+  "forbidden": {
+    "ownerAlphaHarnessReuse": true,
+    "delegatedAccessV0_1": true,
+    "stateMutationV0_1": true,
+    "rawMemoryPersistence": true,
+    "rawTranscriptPersistence": true,
+    "fullStatePersistence": true,
+    "authorityPersistence": true,
+    "realOwnerMemoryWithoutSeparateAuthorization": true,
+    "externalOutreachWithoutSeparateAuthorization": true,
+    "iOSSupportInference": true
+  },
+  "resultSemantics": {
+    "allSatisfied": "CONTRACT_SATISFIED_IN_SIMULATION_NOT_EXECUTABLE",
+    "anyFailure": "HOLD",
+    "executableBinding": false,
+    "productionReady": false,
+    "productionMutationAllowed": false
+  }
+}
