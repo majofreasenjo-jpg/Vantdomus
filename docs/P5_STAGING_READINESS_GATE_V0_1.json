@@ -1,0 +1,65 @@
+{
+  "version": "DOMI_P5_STAGING_READINESS_GATE_V0_1",
+  "date": "2026-10-01",
+  "status": "DESIGN_ONLY_NON_EXECUTABLE_PENDING_CI",
+  "canonicalBible": {
+    "title": "VANTDOMUS_DOMI_BIBLIA_RECTORA_CANONICA_V2_0_PRODUCTO_CIENCIA_COMERCIAL_2026_10_01",
+    "documentId": "1ztu_1fOfSuDIm3vp1CcZvnOPrS3npCzP7MiKDRn1SQQ"
+  },
+  "baseValidatedIntegrationHarnessCommit": "01c20955ce24a410a5eccaa300d51edde0bb408c",
+  "targetEnvironment": "staging",
+  "initialDataClass": "SYNTHETIC_ONLY",
+  "gateGroups": [
+    "SOURCE_AND_SECURITY",
+    "CONFIGURATION",
+    "INFRASTRUCTURE",
+    "IDENTITY_AND_TENANCY",
+    "P5_OWNER_SCOPED_BINDING",
+    "RUNTIME_SMOKE",
+    "RESILIENCE_AND_RECOVERY",
+    "OBSERVABILITY_AND_OWNERSHIP"
+  ],
+  "objectiveExistingTools": [
+    "python tools/security_gate.py",
+    "python tools/secret_scan.py",
+    "python tools/web_session_security_lint.py",
+    "python tools/web_env_preflight.py --env-file <staging-web-env-export>",
+    "python tools/production_readiness_report.py --api-env <staging-api-env-export> --web-env <staging-web-env-export> --backup-dir <staging-backup-dir>",
+    "python apps/api/scripts/production_preflight.py --backup-dir <staging-backup-dir>",
+    "python tools/staging_smoke_check.py --web-url <staging-web-url> --api-url <staging-api-url> --household-id <staging-household-id>"
+  ],
+  "requiredStagingEvidence": [
+    "security_gate PASS",
+    "secret_scan zero findings",
+    "web session security lint PASS",
+    "web env preflight PASS under staging",
+    "production readiness report PASS with real staging values",
+    "production preflight PASS without --skip-network",
+    "database/Redis/ClamAV/encrypted backup PASS",
+    "authenticated session and revocation PASS",
+    "household RBAC and organization tenancy PASS",
+    "two-tenant isolation PASS",
+    "P5 owner-scoped binding PASS on qualified RC2 cell",
+    "no-store/rate-limit/audit/security-event receipts PASS",
+    "runtime smoke PASS",
+    "rollback and backup restore drills PASS",
+    "security-event chain PASS",
+    "incident stop authority PASS",
+    "privacy-minimized telemetry + signed alerts + operator ownership"
+  ],
+  "forbiddenInitialStaging": [
+    "real owner memory",
+    "external users",
+    "production mutation",
+    "owner-alpha harness promotion",
+    "iOS support inference",
+    "demo/public token fallback",
+    "network-check skipping",
+    "placeholder environment values"
+  ],
+  "positiveDecision": "STAGING_ENTRY_ELIGIBLE_PENDING_EXPLICIT_EXECUTION_AUTHORIZATION",
+  "executableGate": false,
+  "stagingDeploymentAuthorized": false,
+  "productionDeploymentAuthorized": false,
+  "nextAfterCertification": "P5_STAGING_READINESS_EVIDENCE_PACKAGE_AND_EXECUTION_PLAN"
+}
