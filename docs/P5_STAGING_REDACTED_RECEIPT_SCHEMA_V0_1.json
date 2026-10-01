@@ -1,0 +1,57 @@
+{
+  "schema": "DOMI_P5_STAGING_REDACTED_RECEIPT_V0_1",
+  "date": "2026-10-01",
+  "purpose": "Store staging configuration/provisioning evidence without secret material.",
+  "requiredTopLevel": [
+    "packageId",
+    "candidateCommit",
+    "configDigest",
+    "observedAt",
+    "environment",
+    "resourceStatuses",
+    "environmentChecks",
+    "gateReceipts",
+    "privacyFlags",
+    "decision"
+  ],
+  "fieldPolicy": {
+    "packageId": "STRING",
+    "candidateCommit": "SHA40",
+    "configDigest": "SHA256_PREFIXED",
+    "observedAt": "ISO8601",
+    "environment": "MUST_EQUAL_STAGING",
+    "resourceStatuses": "ARRAY_OF_REDACTED_RESOURCE_STATUS",
+    "environmentChecks": "ARRAY_OF_KEY_STATUS_WITHOUT_RAW_SECRET_VALUES",
+    "gateReceipts": "ARRAY_OF_DIGEST_OR_RUN_ID_REFERENCES",
+    "privacyFlags": "EXACT_FALSE_FOR_FORBIDDEN_CONTENT",
+    "decision": "ENUM_HOLD_OR_ELIGIBLE"
+  },
+  "resourceStatusShape": {
+    "resourceId": "MANIFEST_RESOURCE_ID",
+    "status": "NOT_PROVISIONED|PROVISIONED_UNVERIFIED|VERIFIED",
+    "providerClass": "REDACTED_OR_GENERIC",
+    "resourceRef": "OPAQUE_REDACTED_REF_ONLY",
+    "receiptDigest": "OPTIONAL_SHA256_PREFIXED"
+  },
+  "environmentCheckShape": {
+    "key": "MANIFEST_ENV_KEY",
+    "present": "BOOLEAN",
+    "classification": "NON_SECRET|SECRET|FORBIDDEN_PUBLIC",
+    "valueStatus": "NOT_RECORDED|EMPTY|EXPECTED|UNEXPECTED",
+    "valueHash": "OPTIONAL_SHA256_PREFIXED_FOR_SECRET_ONLY",
+    "value": "ALLOWED_ONLY_FOR_NON_SECRET_AND_NON_SENSITIVE_KEYS"
+  },
+  "privacyFlagsRequired": {
+    "rawSecretsIncluded": false,
+    "credentialsIncluded": false,
+    "sessionTokensIncluded": false,
+    "realOwnerMemoryIncluded": false,
+    "rawTranscriptIncluded": false,
+    "fullStateIncluded": false,
+    "authorityIncluded": false
+  },
+  "decisionEnum": [
+    "HOLD_STAGING_CONFIGURATION",
+    "STAGING_CONFIGURATION_EVIDENCE_COMPLETE"
+  ]
+}

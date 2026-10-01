@@ -1,0 +1,390 @@
+{
+  "version": "DOMI_P5_STAGING_CONFIGURATION_MANIFEST_V0_1",
+  "date": "2026-10-01",
+  "status": "PROVIDER_NEUTRAL_TEMPLATE_NOT_PROVISIONED",
+  "environment": "staging",
+  "dataClass": "SYNTHETIC_ONLY",
+  "canonicalInputs": {
+    "stagingGateCommit": "1bda8f8014240111246952b74bd6831cb124db36",
+    "integrationHarnessCommit": "01c20955ce24a410a5eccaa300d51edde0bb408c",
+    "verifierCommit": "91c2e4886d3fdfbbc94f8a9b33f8f801162ded56",
+    "evidencePackageCommit": "7bf3c4a12484e58e347fff3f3c9ca9641bb80a72"
+  },
+  "resources": [
+    {
+      "id": "web_runtime",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "https",
+        "immutable deployment id",
+        "staging-only environment",
+        "no public static token"
+      ]
+    },
+    {
+      "id": "api_runtime",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "https",
+        "APP_ENV=staging",
+        "private secret injection",
+        "health endpoint"
+      ]
+    },
+    {
+      "id": "database",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "staging-only",
+        "encrypted in transit",
+        "backed up",
+        "network reachable by API only"
+      ]
+    },
+    {
+      "id": "redis",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "private/authenticated",
+        "staging-only",
+        "rate-limit use"
+      ]
+    },
+    {
+      "id": "clamav",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "reachable from API",
+        "fail-closed",
+        "health check"
+      ]
+    },
+    {
+      "id": "smtp",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "staging-only credentials",
+        "TLS",
+        "non-production recipients"
+      ]
+    },
+    {
+      "id": "signed_alert_receiver",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "HTTPS",
+        "HMAC signature verification",
+        "staging-only endpoint"
+      ]
+    },
+    {
+      "id": "backup_primary",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "encrypted artifact storage",
+        "manifest retention"
+      ]
+    },
+    {
+      "id": "backup_offsite",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "separate failure domain",
+        "encrypted copy",
+        "checksum verification"
+      ]
+    },
+    {
+      "id": "secret_manager",
+      "required": true,
+      "provider": "TBD",
+      "resourceRef": "TBD_REDACTED_REF",
+      "status": "NOT_PROVISIONED",
+      "requirements": [
+        "managed secret store",
+        "no secret values in repo or receipts"
+      ]
+    },
+    {
+      "id": "operator_ownership",
+      "required": true,
+      "provider": "INTERNAL",
+      "resourceRef": "TBD_ROLE_REF",
+      "status": "NOT_ASSIGNED",
+      "requirements": [
+        "primary operator",
+        "backup operator",
+        "incident escalation owner"
+      ]
+    }
+  ],
+  "apiEnvironment": [
+    {
+      "key": "APP_ENV",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "staging",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "DATABASE_URL",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "MANAGED_SECRET",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "DB_PATH",
+      "classification": "NON_SECRET",
+      "required": false,
+      "expected": "EMPTY_WHEN_DATABASE_URL_USED",
+      "receiptPolicy": "EMPTY_STATUS_ONLY"
+    },
+    {
+      "key": "JWT_SECRET",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "32+ chars",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_MFA_SECRET_KEY",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "32+ chars",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_ALLOWED_HOSTS",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "EXACT_STAGING_API_HOSTS",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "CORS_ALLOWED_ORIGINS",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "EXACT_HTTPS_STAGING_WEB_ORIGIN",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_APP_PUBLIC_URL",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "HTTPS_STAGING_WEB_URL",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_API_RATE_LIMIT_MODE",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "redis",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_REDIS_URL",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "MANAGED_SECRET",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_MALWARE_SCAN_MODE",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "clamav",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_CLAMAV_HOST",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "STAGING_SERVICE_HOST",
+      "receiptPolicy": "REDACTED_REF_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_CLAMAV_PORT",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "3310_OR_PROVIDER_PORT",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "SMTP_HOST",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "STAGING_SMTP_HOST",
+      "receiptPolicy": "REDACTED_REF_ONLY"
+    },
+    {
+      "key": "SMTP_PORT",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "PROVIDER_PORT",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "SMTP_USER",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "MANAGED_SECRET",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "SMTP_PASS",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "MANAGED_SECRET",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "SMTP_FROM",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "STAGING_SENDER",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_SECURITY_ALERT_WEBHOOK_URL",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "MANAGED_SECRET_OR_REDACTED_ENDPOINT",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_SECURITY_ALERT_SIGNING_SECRET",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "32+ chars",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_BACKUP_ENCRYPTION_KEY",
+      "classification": "SECRET",
+      "required": true,
+      "expected": "32+ chars",
+      "receiptPolicy": "PRESENCE_AND_HASH_ONLY"
+    },
+    {
+      "key": "VANTDOMUS_ENABLE_PUBLIC_UPLOADS",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "false",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_ALLOW_DEMO_SEED",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "false",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_ALLOW_NOTIFICATION_TESTS",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "false",
+      "receiptPolicy": "VALUE_ALLOWED"
+    }
+  ],
+  "webEnvironment": [
+    {
+      "key": "VANTDOMUS_DEPLOY_ENV",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "staging",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "APP_ENV",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "staging",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "NEXT_PUBLIC_API_BASE",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "HTTPS_STAGING_API_URL",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_WEB_PROXY_MAX_BODY_BYTES",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "10485760",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "VANTDOMUS_WEB_PUBLIC_PROXY_MAX_BODY_BYTES",
+      "classification": "NON_SECRET",
+      "required": true,
+      "expected": "1048576",
+      "receiptPolicy": "VALUE_ALLOWED"
+    },
+    {
+      "key": "NEXT_PUBLIC_ACCESS_TOKEN",
+      "classification": "FORBIDDEN_PUBLIC",
+      "required": false,
+      "expected": "ABSENT_OR_EMPTY",
+      "receiptPolicy": "EMPTY_STATUS_ONLY"
+    },
+    {
+      "key": "NEXT_PUBLIC_DEFAULT_HOUSEHOLD_ID",
+      "classification": "FORBIDDEN_PUBLIC",
+      "required": false,
+      "expected": "ABSENT_OR_EMPTY",
+      "receiptPolicy": "EMPTY_STATUS_ONLY"
+    }
+  ],
+  "forbiddenReceiptContent": [
+    "raw secret values",
+    "JWTs/session tokens",
+    "database passwords",
+    "Redis credentials",
+    "SMTP passwords",
+    "alert signing secret",
+    "backup encryption key",
+    "OpenAI/API provider keys",
+    "real owner memory",
+    "raw transcripts",
+    "full application state",
+    "authority payloads"
+  ],
+  "executionBoundary": {
+    "provisioningAuthorized": false,
+    "stagingDeploymentAuthorized": false,
+    "productionMutationAuthorized": false,
+    "realOwnerMemoryAuthorized": false,
+    "externalUsersAuthorized": false
+  }
+}

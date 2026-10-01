@@ -11,6 +11,7 @@ on:
       - domi-p5-owner-scoped-binding-integration-harness-draft
       - domi-p5-staging-readiness-gate-design
       - domi-p5-security-event-chain-verifier
+      - domi-p5-staging-config-manifests
   workflow_dispatch:
 
 permissions:
@@ -50,3 +51,19 @@ jobs:
           python-version: "3.12"
       - name: Run autonomous security-event-chain verifier fail-closed tests
         run: python -m unittest tests/security/test_security_event_chain_verifier.py -v
+
+
+  staging-config-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate provider-neutral staging manifest and redacted receipt schema
+        run: |
+          python tools/staging_manifest_validate.py             --manifest docs/P5_STAGING_CONFIGURATION_MANIFEST_V0_1.json             --receipt-schema docs/P5_STAGING_REDACTED_RECEIPT_SCHEMA_V0_1.json
+      - name: Run staging manifest fail-closed tests
+        run: python -m unittest tests/security/test_staging_config_manifest.py -v
