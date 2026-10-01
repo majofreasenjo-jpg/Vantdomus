@@ -86,13 +86,23 @@ Railway backend = CONFIG PRESENT IN REPO; LIVE ACCOUNT/SERVICE NOT VERIFIED IN C
 
 Historical G5/R2/R3 work established bounded evidence around real owner memory,
 longitudinal recall, cross-surface recall and controlled causal-memory
-experiments. That evidence is preserved as historical evidence.
+experiments. R3 is now authoritatively reconciled as CLOSED at G12 with
+`PASS_BOUNDED_SOFTWARE_CAUSAL_DEPENDENCY_R3`: the single valid G11-R1 execution
+produced 192/192 exact outcomes and G12 statically re-adjudicated the frozen
+artifacts. R3 is consumed and MUST NOT be rerun. This evidence is preserved as
+historical scientific evidence.
 
 The current code independently shows that a governed product memory subsystem
 exists and is wired into the assistant context. This audit does NOT assert that
 the historical G5 experimental runtime and every R3 autobiographical mechanism
 have been merged byte-for-byte into the current product branch. That integration
 question remains a separate traceability task.
+
+R4 was subsequently opened as a separate scientific lane. Recovered authoritative
+state is `R4_G1_PASS_PRE_G2`: G0 preregistration and G1 prospective controlled
+non-personal longitudinal admission passed; R4 has zero scientific evidence
+pre-outcome, zero subject calls/outcomes, and no execution authorization. Generic
+`AVANCEMOS` does not authorize R4 G10/G11.
 
 ## Product closure blockers
 
