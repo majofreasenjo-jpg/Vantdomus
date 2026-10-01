@@ -85,5 +85,59 @@
     "rawSecretsIncluded": false,
     "credentialsIncluded": false,
     "tokensIncluded": false
+  },
+  "liveInventory": {
+    "auditedAt": "2026-10-01",
+    "vercel": {
+      "team": "majofreasenjo-jpgs-projects",
+      "vantdomusFamilyPilot": {
+        "projectId": "prj_HeOL2Ui4XwFs0KNafuxbsnSO4nV5",
+        "latestDeployment": "dpl_D7bUM3HFu4soW2Gofuq1cvh3fkUM",
+        "state": "READY",
+        "decision": "USE_AS_CURRENT_WEB_PREVIEW_AND_STAGING_WEB_CANDIDATE_WITHOUT_REPURPOSING_OR_DELETING"
+      },
+      "vantdomusHogarDemo": {
+        "projectId": "prj_jHA8Eu6yg4arydstAy9yS6iGTan6",
+        "latestDeployment": "dpl_2qY2eDFPjSN8rgEkXymCvNkXhYpc",
+        "state": "READY",
+        "decision": "PRESERVE_AS_DEMO_SURFACE; DO_NOT REPURPOSE WITHOUT OWNER CONFIRMATION"
+      },
+      "vantdomusPanel": {
+        "projectId": "prj_yLPPlSwJDn2hNSlBiEcDgvf1ZkG4",
+        "latestDeployment": "dpl_2MXnaHfCVEYWB7g8rkimeiRY6NLF",
+        "state": "ERROR",
+        "decision": "PRESERVE; DO NOT USE FOR STAGING UNTIL ERROR ROOT CAUSE IS AUDITED"
+      },
+      "vantdomusMobile": {
+        "projectId": "prj_5ZjQlZIRmhXe5XcNf3ROZu24G9Ge",
+        "latestDeployment": "dpl_7rGhGFEAZavDgZhCToJCMYX4mDsp",
+        "state": "ERROR",
+        "decision": "PRESERVE; DO NOT USE FOR STAGING UNTIL ERROR ROOT CAUSE IS AUDITED"
+      }
+    },
+    "supabase": {
+      "organizationId": "lktcatqvimhiivlrrmiw",
+      "organizationPlan": "free",
+      "projects": [
+        {
+          "id": "dhejnqhgfsmzafhfacod",
+          "name": "Bases de datos Project",
+          "region": "us-west-2",
+          "status": "ACTIVE_HEALTHY",
+          "observedPublicTables": [
+            "goc_external_staging_effects"
+          ],
+          "decision": "DO_NOT_REUSE_FOR_DOMI; EXISTING GOC/POIEX SEMANTICS PRESENT"
+        },
+        {
+          "id": "mpzcvpwzztqdsyvnlmew",
+          "name": "LUXTMENT Commercial OS",
+          "region": "sa-east-1",
+          "status": "ACTIVE_HEALTHY",
+          "decision": "DO_NOT_REUSE_FOR_DOMI; ACTIVE COMMERCIAL/EDIS DATA PLANE"
+        }
+      ],
+      "dedicatedDomiStagingProjectRequired": true
+    }
   }
 }
