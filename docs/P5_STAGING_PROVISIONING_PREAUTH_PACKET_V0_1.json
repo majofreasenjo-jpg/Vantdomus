@@ -1,0 +1,89 @@
+{
+  "version": "DOMI_P5_STAGING_PROVISIONING_PREAUTH_PACKET_V0_1",
+  "date": "2026-10-01",
+  "status": "PREAUTH_HOLD",
+  "baseProvisioningReadyCommit": "40f707181aea44b50e7640d6e5cf5f06d4b75f8e",
+  "requiredAuthorizationMarker": "P5_STAGING_PROVISIONING_EXECUTION_AUTHORIZATION_V0_1",
+  "providerConnections": {
+    "vercel": "CONNECTED",
+    "supabase": "CONNECTED",
+    "railway": "NOT_CONNECTED",
+    "resend": "NOT_CONNECTED"
+  },
+  "supabase": {
+    "availableOrganizations": [
+      {
+        "organizationRef": "supabase-org:connected-1",
+        "organizationId": "lktcatqvimhiivlrrmiw"
+      }
+    ],
+    "selectedOrganizationId": null,
+    "organizationSelectionConfirmedByOwner": false,
+    "projectName": "domi-staging",
+    "preferredRegion": "sa-east-1",
+    "costQuoteObtained": false,
+    "costUnderstandingConfirmed": false,
+    "createProjectReady": false
+  },
+  "railway": {
+    "connected": false,
+    "projectName": "domi-staging",
+    "targetServices": [
+      "domi-staging-api",
+      "domi-staging-redis",
+      "domi-staging-clamav"
+    ],
+    "planOrCostConfirmed": false,
+    "createProjectReady": false
+  },
+  "resend": {
+    "connected": false,
+    "stagingIdentity": "domi-staging-mail",
+    "planOrCostConfirmed": false,
+    "createIdentityReady": false
+  },
+  "vercel": {
+    "connected": true,
+    "targetProject": "domi-staging-web",
+    "isolatedStagingContextConfirmed": false,
+    "incrementalCostConfirmed": false,
+    "createOrDesignateReady": false
+  },
+  "backups": {
+    "primaryProviderSelected": false,
+    "offsiteProviderSelected": false,
+    "separateFailureDomainConfirmed": false,
+    "encryptionPolicyConfirmed": true,
+    "provisioningReady": false
+  },
+  "operations": {
+    "primaryOperatorAssigned": false,
+    "backupOperatorAssigned": false,
+    "incidentEscalationOwnerAssigned": false
+  },
+  "authorizationEnvelope": {
+    "markerPresent": false,
+    "markerValue": null,
+    "monthlyRecurringCostCapUsd": null,
+    "oneTimeCostCapUsd": null,
+    "ownerCostUnderstandingConfirmed": false
+  },
+  "executionEligibility": {
+    "provisioningEligible": false,
+    "decision": "HOLD_STAGING_PROVISIONING"
+  },
+  "hardBoundaries": {
+    "stagingDeploymentAuthorized": false,
+    "productionDeploymentAuthorized": false,
+    "productionMutationAuthorized": false,
+    "realOwnerMemoryAuthorized": false,
+    "externalUsersAuthorized": false,
+    "iosSupportClaimAuthorized": false,
+    "r3G11Authorized": false
+  },
+  "secrets": {
+    "rawSecretsIncluded": false,
+    "credentialsIncluded": false,
+    "tokensIncluded": false
+  }
+}
