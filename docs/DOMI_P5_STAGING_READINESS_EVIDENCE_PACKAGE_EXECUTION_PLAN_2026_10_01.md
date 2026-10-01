@@ -65,7 +65,7 @@ A Vercel Preview is useful evidence of web build/deploy health, but it is not be
 | G-STG-4 Identity & tenancy | auth/session, RBAC, organization tenancy, tenant-isolation tests | source/test evidence exists, no real-staging receipt | Synthetic admin + two synthetic tenants; login, revocation, RBAC, org tenancy and cross-tenant denial | OPEN |
 | G-STG-5 P5 binding | validated owner-scoped integration harness; RC2 qualified cells | harness commit 01c20955... | Bind to staging authenticated route; synthetic round trip; no-store, rate-limit, audit and security-event receipts | OPEN |
 | G-STG-6 Runtime smoke | staging_smoke_check.py; STAGING_SMOKE_TEST.md | none | Staging web/API URLs + synthetic household; run without demo/dev exceptions | OPEN |
-| G-STG-7 Resilience | backup_restore_drill.py; hash-chain storage; incident tooling | none against staging | backup/restore drill, rollback drill, objective chain verification, incident stop exercise | OPEN |
+| G-STG-7 Resilience | backup_restore_drill.py; hash-chain storage; autonomous read-only verifier; incident tooling | verifier commit 91c2e488... + CI 36864050114 SUCCESS | live staging-chain receipt, backup/restore drill, rollback drill, incident stop exercise | PARTIAL |
 | G-STG-8 Observability | audit/security events; alert route; incident template | none against staging | signed alert receiver/delivery, minimized telemetry evidence, named operator/escalation owner | OPEN |
 
 ## 4. Provisioning plan
@@ -219,7 +219,17 @@ Execute:
 - signed alert delivery;
 - incident stop exercise.
 
-One code-level gap was found during this audit: the repository contains the security-event hash-chain schema and event implementation, but no standalone verifier script was found under the expected `security_event_chain_verify.py` path. Before G-STG-7 can close, either identify an existing equivalent verifier or add a bounded read-only verifier.
+The code-level verifier gap identified in the first audit is now closed.
+
+```text
+SCRIPT=apps/api/scripts/security_event_chain_verify.py
+IMPLEMENTATION_COMMIT=91c2e4886d3fdfbbc94f8a9b33f8f801162ded56
+CI_RUN=36864050114
+AUTONOMOUS_VERIFIER=PASS_BOUNDED
+FAIL_CLOSED_TESTS=PASS
+```
+
+G-STG-7 remains PARTIAL because the verifier still needs a read-only receipt from the future real staging database, and the backup/restore, rollback and incident-stop drills remain open.
 
 ### Phase STG-P8 — Evidence freeze and adjudication
 
@@ -282,13 +292,13 @@ The initial staging qualification may proceed using the already-qualified Androi
 ```text
 1. PROVISION/IDENTIFY STAGING SUBSTRATE
 2. LOAD STAGING-ONLY MANAGED SECRETS
-3. CLOSE SECURITY-EVENT-CHAIN VERIFIER GAP
-4. RUN PRE-DEPLOYMENT GATES
-5. REQUEST EXPLICIT STAGING EXECUTION AUTHORIZATION
-6. DEPLOY EXACT CANDIDATE TO STAGING
-7. RUN SYNTHETIC IDENTITY/TENANCY TESTS
-8. RUN P5 OWNER-SCOPED STAGING ROUND TRIP
-9. RUN SMOKE + RESILIENCE + ALERT DRILLS
+3. RUN PRE-DEPLOYMENT GATES
+4. REQUEST EXPLICIT STAGING EXECUTION AUTHORIZATION
+5. DEPLOY EXACT CANDIDATE TO STAGING
+6. RUN SYNTHETIC IDENTITY/TENANCY TESTS
+7. RUN P5 OWNER-SCOPED STAGING ROUND TRIP
+8. RUN LIVE READ-ONLY SECURITY-EVENT-CHAIN VERIFICATION
+9. RUN SMOKE + BACKUP/RESTORE + ROLLBACK + ALERT/INCIDENT DRILLS
 10. FREEZE EVIDENCE
 11. ADJUDICATE STAGING GATE
 ```
@@ -304,3 +314,16 @@ PRODUCTION_MUTATION=FALSE
 REAL_OWNER_MEMORY_FOR_STAGING=FALSE
 EXTERNAL_USERS=FALSE
 ```
+
+
+## 9. Verifier closure receipt — 2026-10-01
+
+```text
+SECURITY_EVENT_CHAIN_VERIFIER_CODE_GAP=CLOSED
+IMPLEMENTATION_COMMIT=91c2e4886d3fdfbbc94f8a9b33f8f801162ded56
+CI_RUN=36864050114
+CI_CONCLUSION=SUCCESS
+G-STG-7=PARTIAL_RUNTIME_EVIDENCE_PENDING
+```
+
+This closes only the missing autonomous-verifier implementation debt. It does not manufacture a staging runtime receipt.

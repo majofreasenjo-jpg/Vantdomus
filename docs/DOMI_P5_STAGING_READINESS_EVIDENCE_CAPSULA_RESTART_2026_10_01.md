@@ -33,8 +33,11 @@ SIGNED_ALERT_RECEIVER
 ENCRYPTED_AND_OFFSITE_BACKUP
 STAGING_OPERATOR_OWNERSHIP
 
-CODE_GAP=
-OBJECTIVE_SECURITY_EVENT_CHAIN_VERIFIER_NOT_FOUND
+SECURITY_EVENT_CHAIN_VERIFIER_CODE_GAP=CLOSED
+VERIFIER_COMMIT=91c2e4886d3fdfbbc94f8a9b33f8f801162ded56
+VERIFIER_CI_RUN=36864050114
+VERIFIER_CI=SUCCESS
+G-STG-7=PARTIAL_RUNTIME_EVIDENCE_PENDING
 
 INITIAL_STAGING=SYNTHETIC_ONLY
 IOS_SAFARI=PAUSED_NON_BLOCKING
@@ -59,11 +62,11 @@ The evidence audit shows that source/CI/Preview and P5 harness infrastructure ex
 
 Next safe internal work:
 
-1. close the bounded security-event-chain verifier gap;
-2. prepare provider-neutral staging configuration manifests and redacted receipt schemas;
-3. identify/provision API, DB, Redis, ClamAV, SMTP, alert receiver and backup resources;
-4. run pre-deployment gates;
-5. only then request explicit staging execution authorization.
+1. prepare provider-neutral staging configuration manifests and redacted receipt schemas;
+2. identify/provision API, DB, Redis, ClamAV, SMTP, alert receiver and backup resources;
+3. run pre-deployment gates;
+4. after staging exists, run the autonomous verifier read-only against the staging database;
+5. only then request/consume the appropriate explicit staging execution authorization at the execution boundary.
 
 Do not:
 - deploy production;

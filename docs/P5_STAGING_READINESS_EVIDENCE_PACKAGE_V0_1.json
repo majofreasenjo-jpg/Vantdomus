@@ -1,7 +1,7 @@
 {
   "packageId": "DOMI_P5_STAGING_READINESS_EVIDENCE_PACKAGE_V0_1_2026_10_01",
   "date": "2026-10-01",
-  "status": "EVIDENCE_PACKAGE_AUTHORED_EXECUTION_NOT_AUTHORIZED",
+  "status": "EVIDENCE_PACKAGE_UPDATED_VERIFIER_CODE_GAP_CLOSED_EXECUTION_NOT_AUTHORIZED",
   "gateCommit": "1bda8f8014240111246952b74bd6831cb124db36",
   "gateCertification": {
     "githubRun": 36861418896,
@@ -172,17 +172,21 @@
       "existing": [
         "backup_restore_drill.py",
         "security-event hash-chain storage",
+        "autonomous read-only security-event-chain verifier",
         "incident evidence tooling",
         "runbooks"
       ],
-      "receipts": [],
+      "receipts": [
+        "security-event-chain verifier implementation 91c2e4886d3fdfbbc94f8a9b33f8f801162ded56",
+        "CI run 36864050114 SUCCESS including fail-closed verifier job and full P5 certification"
+      ],
       "remaining": [
+        "execute autonomous verifier against real staging database and freeze privacy-minimized receipt",
         "execute encrypted backup/restore drill",
         "execute rollback drill",
-        "add or identify objective security-event-chain verifier and run it",
         "exercise incident stop authority"
       ],
-      "status": "DRILLS_AND_ONE_VERIFIER_GAP"
+      "status": "PARTIAL_RUNTIME_EVIDENCE_PENDING"
     },
     {
       "id": "G-STG-8",
@@ -218,5 +222,17 @@
     "ownerAlphaHarnessPromotion": false,
     "iosSupportInference": false
   },
-  "nextDecision": "STAGING_EXECUTION_AUTHORIZATION_NOT_REQUESTED_BY_THIS_PACKAGE"
+  "nextDecision": "STAGING_EXECUTION_AUTHORIZATION_NOT_REQUESTED_BY_THIS_PACKAGE",
+  "securityEventChainVerifier": {
+    "status": "CODE_GAP_CLOSED_PASS_BOUNDED",
+    "implementationCommit": "91c2e4886d3fdfbbc94f8a9b33f8f801162ded56",
+    "script": "apps/api/scripts/security_event_chain_verify.py",
+    "tests": "tests/security/test_security_event_chain_verifier.py",
+    "ciRun": 36864050114,
+    "ciConclusion": "SUCCESS",
+    "verifierJob": "SUCCESS",
+    "fullP5CertifyJob": "SUCCESS",
+    "receiptScope": "IMPLEMENTATION_AND_DETERMINISTIC_FAIL_CLOSED_TESTS_ONLY",
+    "liveStagingDatabaseReceipt": "PENDING_STAGING_INFRASTRUCTURE"
+  }
 }
