@@ -1,0 +1,144 @@
+{
+  "version": "DOMI_P5_STAGING_PROVIDER_CAPABILITY_AND_PROVISIONING_READY_PACKET_V0_1",
+  "date": "2026-10-01",
+  "status": "PROVISIONING_READY_PACKET_AUTHORED_EXECUTION_NOT_AUTHORIZED",
+  "baseSelectionCommit": "5a8019a3ce09b665cdce6b1a165317a6f639ce30",
+  "authorizationMarkerRequired": "P5_STAGING_PROVISIONING_EXECUTION_AUTHORIZATION_V0_1",
+  "currentConnectedProviders": {
+    "vercel": "CONNECTED",
+    "supabase": "CONNECTED",
+    "railway": "NOT_CONNECTED",
+    "resend": "NOT_CONNECTED"
+  },
+  "providerCapabilityAssessment": {
+    "vercel": {
+      "role": "WEB_RUNTIME",
+      "capability": "CONFIRMED_BY_EXISTING_DEPLOYS",
+      "currentProject": "vantdomus-family-pilot",
+      "stagingDecision": "CREATE_OR_DESIGNATE_ISOLATED_STAGING_CONTEXT; DO_NOT EQUATE CURRENT PREVIEW WITH FULL STAGING"
+    },
+    "supabase": {
+      "role": "DATABASE",
+      "capability": "CONFIRMED",
+      "target": "DEDICATED_NEW_DOMI_STAGING_PROJECT",
+      "preferredRegion": "sa-east-1",
+      "regionReason": "South America / Sao Paulo available and geographically appropriate for Chile-facing staging; verify latency against API runtime before final freeze",
+      "reuseExistingProjects": false
+    },
+    "railway": {
+      "roles": [
+        "API_RUNTIME",
+        "REDIS",
+        "CLAMAV"
+      ],
+      "capability": "PUBLIC_DOCS_SUPPORT_FASTAPI_PRIVATE_NETWORKING_REDIS; LIVE_ACCOUNT_NOT_CONNECTED",
+      "targetNames": [
+        "domi-staging-api",
+        "domi-staging-redis",
+        "domi-staging-clamav"
+      ],
+      "regionRule": "prefer same South America region as database if account/provider offers it; otherwise choose lowest measured API<->DB RTT and record exception",
+      "status": "CONNECTION_REQUIRED_BEFORE_PROVISIONING"
+    },
+    "resend": {
+      "role": "SMTP",
+      "capability": "PUBLIC_SERVICE_AVAILABLE; LIVE_ACCOUNT_NOT_CONNECTED",
+      "target": "domi-staging-transactional-mail",
+      "status": "CONNECTION_REQUIRED_BEFORE_PROVISIONING"
+    },
+    "signedAlertReceiver": {
+      "role": "SECURITY_ALERT_RECEIVER",
+      "capability": "IMPLEMENT_ON_STAGING_API",
+      "target": "POST /internal/security-alert-receiver",
+      "requirements": [
+        "HMAC verification",
+        "replay protection",
+        "minimal receipt logging",
+        "rate limiting"
+      ]
+    },
+    "backupPrimary": {
+      "role": "ENCRYPTED_PRIMARY_BACKUP",
+      "provider": "TBD",
+      "status": "SELECTION_OPEN"
+    },
+    "backupOffsite": {
+      "role": "ENCRYPTED_OFFSITE_BACKUP",
+      "provider": "TBD_DIFFERENT_FAILURE_DOMAIN",
+      "status": "SELECTION_OPEN"
+    }
+  },
+  "regionAndLatencyPolicy": {
+    "databasePreferred": "Supabase sa-east-1 Sao Paulo",
+    "apiPreferred": "South America if Railway/account supports it",
+    "acceptance": "measure p50/p95 API-to-DB latency after provisioning; if materially high, reevaluate before staging gate adjudication",
+    "dataResidencyNote": "region choice controls primary data location but is not itself proof of regulatory compliance"
+  },
+  "exactResourceNames": {
+    "databaseProject": "domi-staging",
+    "apiService": "domi-staging-api",
+    "redisService": "domi-staging-redis",
+    "clamavService": "domi-staging-clamav",
+    "webProject": "domi-staging-web",
+    "smtpIdentity": "domi-staging-mail",
+    "alertReceiver": "domi-staging-security-alerts",
+    "backupPrimary": "domi-staging-backup-primary",
+    "backupOffsite": "domi-staging-backup-offsite"
+  },
+  "costBearingActions": [
+    {
+      "action": "create dedicated Supabase staging project",
+      "publicPlanningEstimate": "Supabase Pro currently starts at USD 25/month and includes compute credits sufficient for one Micro instance; actual account billing may differ",
+      "authorizationRequired": true
+    },
+    {
+      "action": "create Railway project/services",
+      "publicPlanningEstimate": "Railway Hobby currently USD 5/month minimum; Pro USD 20/month minimum; resource usage may exceed minimum",
+      "authorizationRequired": true
+    },
+    {
+      "action": "connect/use Resend",
+      "publicPlanningEstimate": "Resend Free currently USD 0/month up to 3,000 emails/month and 100/day; paid usage if limits/features require it",
+      "authorizationRequired": true
+    },
+    {
+      "action": "create separate Vercel staging context",
+      "publicPlanningEstimate": "depends on existing Vercel plan and environment/project choice; no new charge assumed in this packet",
+      "authorizationRequired": true
+    },
+    {
+      "action": "provision primary/offsite backup storage",
+      "publicPlanningEstimate": "TBD until provider selected",
+      "authorizationRequired": true
+    }
+  ],
+  "provisioningStepsAfterAuthorization": [
+    "re-check provider connections and account state",
+    "create dedicated Supabase project domi-staging in preferred available region",
+    "create Railway project and API/Redis/ClamAV services after Railway connection",
+    "create/designate isolated Vercel staging web context",
+    "connect/configure Resend staging mail after Resend connection",
+    "implement signed alert receiver in staging API",
+    "select and provision encrypted primary/offsite backup targets",
+    "load staging-only secrets through provider secret stores",
+    "run manifest validator and redacted receipt generation",
+    "run pre-deployment gates",
+    "freeze provisioning receipts",
+    "request separate staging deployment execution authorization"
+  ],
+  "notAuthorizedByProvisioningMarker": [
+    "production deployment",
+    "production mutation",
+    "real owner memory",
+    "external users",
+    "iOS support claim",
+    "R3 G11 execution"
+  ],
+  "executionBoundary": {
+    "provisioningAuthorized": false,
+    "stagingDeploymentAuthorized": false,
+    "productionDeploymentAuthorized": false,
+    "realOwnerMemoryAuthorized": false,
+    "externalUsersAuthorized": false
+  }
+}
