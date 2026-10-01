@@ -83,3 +83,18 @@ jobs:
         run: python tools/staging_provisioning_preauth_validate.py --packet docs/P5_STAGING_PROVISIONING_PREAUTH_PACKET_V0_1.json
       - name: Run provisioning preauthorization fail-closed tests
         run: python -m unittest tests/security/test_staging_provisioning_preauth.py -v
+
+
+  staging-provisioning-operation-order:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate staging provisioning operation order
+        run: python tools/staging_operation_order_validate.py --order docs/P5_STAGING_PROVISIONING_OPERATION_ORDER_V0_1.json
+      - name: Run operation-order fail-closed tests
+        run: python -m unittest tests/security/test_staging_operation_order.py -v

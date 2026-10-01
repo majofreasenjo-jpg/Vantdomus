@@ -1,0 +1,48 @@
+{
+  "version": "DOMI_P5_STAGING_PROVISIONING_OPERATION_ORDER_V0_1",
+  "date": "2026-10-01",
+  "status": "DRAFT_NOT_EXECUTED",
+  "baseTechnicalCommit": "fe02f70815a51175651e5f3aabac77a02cd69083",
+  "requiredExecutionMarker": "P5_STAGING_PROVISIONING_EXECUTION_AUTHORIZATION_V0_1",
+  "resourceNames": {
+    "web": "domi-staging-web",
+    "database": "domi-staging",
+    "api": "domi-staging-api",
+    "redis": "domi-staging-redis",
+    "clamav": "domi-staging-clamav",
+    "smtp": "domi-staging-mail",
+    "alerts": "domi-staging-security-alerts",
+    "backupPrimary": "domi-staging-backup-primary",
+    "backupOffsite": "domi-staging-backup-offsite"
+  },
+  "preconditions": {
+    "monthlyCostCapUsd": null,
+    "ownerCostConfirmation": false,
+    "supabaseOrgConfirmed": false,
+    "supabaseCostConfirmed": false,
+    "railwayConnectionConfirmed": false,
+    "railwayCostConfirmed": false,
+    "smtpProviderConfirmed": false,
+    "backupPrimaryProviderSelected": false,
+    "backupOffsiteProviderSelected": false,
+    "separateFailureDomain": false,
+    "primaryOperatorAssigned": false,
+    "backupOperatorAssigned": false,
+    "incidentEscalationOwnerAssigned": false,
+    "authorizationMarkerPresent": false
+  },
+  "hardBoundaries": {
+    "deleteExistingResource": false,
+    "renameExistingResource": false,
+    "repurposeExistingResource": false,
+    "productionMutation": false,
+    "useExistingEdisGocDatabases": false,
+    "realOwnerMemory": false,
+    "externalUsers": false,
+    "productionPromotion": false,
+    "r3r4Execution": false,
+    "iosSupportClaim": false
+  },
+  "approvalDecision": "HOLD_STAGING_PROVISIONING",
+  "executed": false
+}
