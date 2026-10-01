@@ -12,6 +12,7 @@ on:
       - domi-p5-staging-readiness-gate-design
       - domi-p5-security-event-chain-verifier
       - domi-p5-staging-config-manifests
+      - domi-p5-staging-provisioning-preauth
   workflow_dispatch:
 
 permissions:
@@ -67,3 +68,18 @@ jobs:
           python tools/staging_manifest_validate.py             --manifest docs/P5_STAGING_CONFIGURATION_MANIFEST_V0_1.json             --receipt-schema docs/P5_STAGING_REDACTED_RECEIPT_SCHEMA_V0_1.json
       - name: Run staging manifest fail-closed tests
         run: python -m unittest tests/security/test_staging_config_manifest.py -v
+
+
+  staging-provisioning-preauth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate provisioning preauthorization packet
+        run: python tools/staging_provisioning_preauth_validate.py --packet docs/P5_STAGING_PROVISIONING_PREAUTH_PACKET_V0_1.json
+      - name: Run provisioning preauthorization fail-closed tests
+        run: python -m unittest tests/security/test_staging_provisioning_preauth.py -v
