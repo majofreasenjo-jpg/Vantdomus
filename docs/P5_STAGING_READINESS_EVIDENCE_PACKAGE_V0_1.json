@@ -1,0 +1,222 @@
+{
+  "packageId": "DOMI_P5_STAGING_READINESS_EVIDENCE_PACKAGE_V0_1_2026_10_01",
+  "date": "2026-10-01",
+  "status": "EVIDENCE_PACKAGE_AUTHORED_EXECUTION_NOT_AUTHORIZED",
+  "gateCommit": "1bda8f8014240111246952b74bd6831cb124db36",
+  "gateCertification": {
+    "githubRun": 36861418896,
+    "conclusion": "SUCCESS",
+    "previewDeployment": "dpl_GCXU61auih6r4nFimagoGMdu5wPC",
+    "previewState": "READY",
+    "receiptCommit": "dd0ac2914f8b68f51d810fb32bc7f6a1fe7f2e8a"
+  },
+  "validatedIntegrationHarnessCommit": "01c20955ce24a410a5eccaa300d51edde0bb408c",
+  "currentInfrastructure": {
+    "githubRepository": {
+      "status": "AVAILABLE",
+      "role": "source_ci_receipts"
+    },
+    "githubActions": {
+      "status": "AVAILABLE",
+      "evidence": "gate CI run 36861418896 success"
+    },
+    "vercelProject": {
+      "status": "AVAILABLE_PREVIEW_CAPABLE",
+      "projectId": "prj_HeOL2Ui4XwFs0KNafuxbsnSO4nV5",
+      "name": "vantdomus-family-pilot",
+      "evidence": "preview deployment dpl_GCXU61auih6r4nFimagoGMdu5wPC READY"
+    },
+    "dedicatedStagingWeb": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingApi": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingDatabase": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingRedis": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingClamav": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingSmtp": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingAlertReceiver": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingEncryptedBackupStore": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingOffsiteBackup": {
+      "status": "NOT_ESTABLISHED"
+    },
+    "stagingOperatorOwnership": {
+      "status": "NOT_ESTABLISHED"
+    }
+  },
+  "gates": [
+    {
+      "id": "G-STG-1",
+      "name": "SOURCE_AND_SECURITY",
+      "existing": [
+        "tools/security_gate.py",
+        "tools/secret_scan.py",
+        "tools/web_session_security_lint.py",
+        "tools/web_env_preflight.py",
+        "GitHub Actions"
+      ],
+      "receipts": [
+        "gate CI run 36861418896"
+      ],
+      "remaining": [
+        "run full security gate on exact staging candidate",
+        "zero-finding secret scan receipt",
+        "staging-mode web env preflight receipt"
+      ],
+      "status": "PARTIAL_AUTOMATION_AVAILABLE_REAL_STAGING_RECEIPTS_PENDING"
+    },
+    {
+      "id": "G-STG-2",
+      "name": "CONFIGURATION",
+      "existing": [
+        "tools/production_readiness_report.py",
+        "docs/env/api.production.env.example",
+        "docs/env/web.production.env.example"
+      ],
+      "receipts": [],
+      "remaining": [
+        "create real staging API configuration in managed secret store",
+        "create real staging web configuration",
+        "remove placeholders",
+        "prove forbidden NEXT_PUBLIC keys absent",
+        "run production_readiness_report against sanitized staging exports"
+      ],
+      "status": "PROVISIONING_REQUIRED"
+    },
+    {
+      "id": "G-STG-3",
+      "name": "INFRASTRUCTURE",
+      "existing": [
+        "apps/api/scripts/production_preflight.py",
+        "apps/api/scripts/backup_restore_drill.py"
+      ],
+      "receipts": [],
+      "remaining": [
+        "staging API runtime",
+        "staging database",
+        "Redis",
+        "ClamAV",
+        "encrypted backup location",
+        "offsite backup location",
+        "network-reachable preflight without --skip-network"
+      ],
+      "status": "PROVISIONING_REQUIRED"
+    },
+    {
+      "id": "G-STG-4",
+      "name": "IDENTITY_AND_TENANCY",
+      "existing": [
+        "session/auth implementation",
+        "household RBAC",
+        "organization tenancy",
+        "tenant-isolation tests"
+      ],
+      "receipts": [],
+      "remaining": [
+        "create synthetic staging admin",
+        "create two synthetic staging tenants",
+        "exercise login/revocation/RBAC/organization tenancy/two-tenant isolation against real staging"
+      ],
+      "status": "RUNTIME_EVIDENCE_REQUIRED"
+    },
+    {
+      "id": "G-STG-5",
+      "name": "P5_OWNER_SCOPED_BINDING",
+      "existing": [
+        "validated integration harness",
+        "qualified RC2 cells Android Chrome, Windows Edge, Windows Chrome",
+        "P5 audit/security/rate-limit contracts"
+      ],
+      "receipts": [
+        "base harness 01c20955ce24a410a5eccaa300d51edde0bb408c"
+      ],
+      "remaining": [
+        "bind harness to real staging authenticated route without promoting owner-alpha harness",
+        "execute synthetic owner-scoped round trip on one qualified cell",
+        "capture no-store/rate-limit/audit/security-event receipts"
+      ],
+      "status": "STAGING_BINDING_EXECUTION_REQUIRED"
+    },
+    {
+      "id": "G-STG-6",
+      "name": "RUNTIME_SMOKE",
+      "existing": [
+        "tools/staging_smoke_check.py",
+        "docs/STAGING_SMOKE_TEST.md"
+      ],
+      "receipts": [],
+      "remaining": [
+        "real staging web URL",
+        "real staging API URL",
+        "synthetic staging household id",
+        "execute smoke without --allow-demo and without --allow-dev-cache"
+      ],
+      "status": "ENDPOINTS_REQUIRED"
+    },
+    {
+      "id": "G-STG-7",
+      "name": "RESILIENCE_AND_RECOVERY",
+      "existing": [
+        "backup_restore_drill.py",
+        "security-event hash-chain storage",
+        "incident evidence tooling",
+        "runbooks"
+      ],
+      "receipts": [],
+      "remaining": [
+        "execute encrypted backup/restore drill",
+        "execute rollback drill",
+        "add or identify objective security-event-chain verifier and run it",
+        "exercise incident stop authority"
+      ],
+      "status": "DRILLS_AND_ONE_VERIFIER_GAP"
+    },
+    {
+      "id": "G-STG-8",
+      "name": "OBSERVABILITY_AND_OWNERSHIP",
+      "existing": [
+        "security event subsystem",
+        "audit subsystem",
+        "alert route",
+        "incident notification template"
+      ],
+      "receipts": [],
+      "remaining": [
+        "provision signed alert receiver",
+        "prove signed alert delivery",
+        "define staging operator and escalation owner",
+        "capture privacy-minimized telemetry receipt"
+      ],
+      "status": "PROVISIONING_AND_OWNERSHIP_REQUIRED"
+    }
+  ],
+  "pausedDebt": {
+    "iosSafari": {
+      "status": "PAUSED_WAITING_FOR_PHYSICAL_IOS_DEVICE",
+      "blocksInitialStaging": false
+    }
+  },
+  "hardBoundaries": {
+    "syntheticOnly": true,
+    "realOwnerMemory": false,
+    "externalUsers": false,
+    "productionMutation": false,
+    "productionDeployment": false,
+    "ownerAlphaHarnessPromotion": false,
+    "iosSupportInference": false
+  },
+  "nextDecision": "STAGING_EXECUTION_AUTHORIZATION_NOT_REQUESTED_BY_THIS_PACKAGE"
+}
