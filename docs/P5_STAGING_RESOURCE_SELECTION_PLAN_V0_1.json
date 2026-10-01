@@ -1,0 +1,133 @@
+{
+  "version": "DOMI_P5_STAGING_RESOURCE_SELECTION_PLAN_V0_1",
+  "date": "2026-10-01",
+  "status": "PROVISIONING_PLAN_AUTHORED_NOT_EXECUTED",
+  "baseManifestCommit": "bbf3e9fc6affaf31ec56cc04e503a263de42c09f",
+  "selectionPrinciples": [
+    "isolate staging from existing unrelated business projects",
+    "prefer providers with direct operational access from ChatGPT where practical",
+    "minimize provider count without weakening fail-closed controls",
+    "keep web and API deployment identities independent",
+    "keep real owner memory out of initial staging",
+    "preserve an offsite backup failure domain"
+  ],
+  "currentAssets": {
+    "vercel": {
+      "status": "CONNECTED_AND_AVAILABLE",
+      "currentProject": "vantdomus-family-pilot",
+      "decision": "USE_EXISTING_PROJECT_FOR_PREVIEW_ONLY; CREATE_OR_DESIGNATE_SEPARATE_STAGING_PROJECT_OR_ENVIRONMENT_BEFORE_STAGING"
+    },
+    "supabase": {
+      "status": "CONNECTED_AND_AVAILABLE",
+      "observedProjects": [
+        {
+          "name": "Bases de datos Project",
+          "region": "us-west-2",
+          "status": "ACTIVE_HEALTHY",
+          "reuseDecision": "DO_NOT_REUSE_WITHOUT_EXPLICIT_REPURPOSING"
+        },
+        {
+          "name": "LUXTMENT Commercial OS",
+          "region": "sa-east-1",
+          "status": "ACTIVE_HEALTHY",
+          "reuseDecision": "DO_NOT_REUSE; SEPARATE BUSINESS SYSTEM"
+        }
+      ],
+      "decision": "PREFER_DEDICATED_DOMI_STAGING_SUPABASE_PROJECT"
+    },
+    "railway": {
+      "status": "AVAILABLE_BUT_NOT_CONNECTED",
+      "intendedRole": "API_RUNTIME + REDIS + CLAMAV_SERVICE_CANDIDATE",
+      "decision": "CANDIDATE_PENDING_CONNECTION_AND_CAPABILITY_CONFIRMATION"
+    },
+    "resend": {
+      "status": "AVAILABLE_BUT_NOT_CONNECTED",
+      "intendedRole": "STAGING_SMTP_CANDIDATE",
+      "decision": "CANDIDATE_PENDING_CONNECTION"
+    }
+  },
+  "proposedResourceMap": [
+    {
+      "resource": "web_runtime",
+      "preferred": "Vercel dedicated staging project/environment",
+      "status": "DESIGNATED_CANDIDATE"
+    },
+    {
+      "resource": "api_runtime",
+      "preferred": "Railway containerized FastAPI service",
+      "status": "CANDIDATE_PENDING_CONNECTION"
+    },
+    {
+      "resource": "database",
+      "preferred": "Dedicated Supabase Postgres staging project",
+      "status": "CANDIDATE_NO_PROJECT_CREATED"
+    },
+    {
+      "resource": "redis",
+      "preferred": "Railway Redis or equivalent managed Redis in same operational stack",
+      "status": "CANDIDATE_PENDING_PROVIDER_CONFIRMATION"
+    },
+    {
+      "resource": "clamav",
+      "preferred": "Dedicated ClamAV service colocated with API provider",
+      "status": "CANDIDATE_PENDING_PROVIDER_CONFIRMATION"
+    },
+    {
+      "resource": "smtp",
+      "preferred": "Resend SMTP/API-backed delivery for staging",
+      "status": "CANDIDATE_PENDING_CONNECTION"
+    },
+    {
+      "resource": "signed_alert_receiver",
+      "preferred": "Dedicated signed webhook route on staging API with independent receipt logging",
+      "status": "DESIGN_SELECTED_NOT_IMPLEMENTED"
+    },
+    {
+      "resource": "backup_primary",
+      "preferred": "Encrypted object storage associated with staging data plane",
+      "status": "PROVIDER_TBD"
+    },
+    {
+      "resource": "backup_offsite",
+      "preferred": "Second-provider encrypted object storage in separate failure domain",
+      "status": "PROVIDER_TBD"
+    },
+    {
+      "resource": "secret_manager",
+      "preferred": "Provider-managed secrets on each runtime + no secrets in GitHub/receipts",
+      "status": "ARCHITECTURE_SELECTED"
+    },
+    {
+      "resource": "operator_ownership",
+      "preferred": "Owner primary + named backup operator before live staging",
+      "status": "NOT_ASSIGNED"
+    }
+  ],
+  "noReuseRules": [
+    "do not use LUXTMENT Commercial OS database for DOMI staging",
+    "do not treat current Vercel Preview as full staging",
+    "do not place API/database/Redis credentials in NEXT_PUBLIC variables",
+    "do not store real owner memories in initial staging",
+    "do not enable external users"
+  ],
+  "provisioningOrder": [
+    "connect/confirm chosen runtime and SMTP providers",
+    "create dedicated DOMI staging database project",
+    "create isolated API/Redis/ClamAV staging services",
+    "create or designate isolated Vercel staging project/environment",
+    "configure managed secrets",
+    "configure SMTP and signed alert receiver",
+    "configure primary/offsite encrypted backup destinations",
+    "assign staging operator/escalation ownership",
+    "run pre-deployment gates",
+    "request explicit staging execution authorization"
+  ],
+  "executionBoundary": {
+    "providerConnectionsDoNotEqualProvisioningAuthorization": true,
+    "provisioningAuthorized": false,
+    "stagingDeploymentAuthorized": false,
+    "productionMutationAuthorized": false,
+    "realOwnerMemoryAuthorized": false,
+    "externalUsersAuthorized": false
+  }
+}
