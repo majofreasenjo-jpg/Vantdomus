@@ -15,11 +15,12 @@ class DummyRow(dict):
 
 class FakeDB:
     def __init__(self, *, role="domi_api", bypass=False, superuser=False,
-                 create_role=False, create_db=False, count=57, rls=57, owner=0):
+                 create_role=False, create_db=False, count=57, rls=57, owner=0, policies=57):
         self.rows = [
             DummyRow(role_name=role, bypass_rls=bypass),
             DummyRow(rolsuper=superuser, rolcreaterole=create_role, rolcreatedb=create_db),
             DummyRow(table_count=count, rls_count=rls, force_rls_count=0, owned_count=owner),
+            DummyRow(policy_count=policies),
         ]
         self.calls = []
 
@@ -61,4 +62,8 @@ def test_pg_gate_rejects_privileged_runtime():
 def test_pg_gate_accepts_unprivileged_fully_rls_enabled_schema():
     db = FakeDB()
     gate.check_postgres_staging_readiness(db)
-    assert len(db.calls) == 3
+    assert len(db.calls) == 4
+
+
+def test_pg_gate_rejects_empty_policy_catalog():
+    fails(FakeDB(policies=0), "POSTGRES_POLICY_GATE")
