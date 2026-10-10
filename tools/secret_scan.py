@@ -114,7 +114,7 @@ def _is_verified_non_secret_fixture(path: Path, key: str, value: str, source: st
         permitted = aliases.get(key)
         return bool(permitted and value == permitted[0] and permitted[1] in source)
     if normalized.endswith("/tests/test_family_pilot_runtime_profile.py"):
-        return key == "JWT_SECRET" and value.startswith('"') and value.endswith('",') and len(value) <= 50
+        return key == "JWT_SECRET" and value == '"test_fixture_" + "x" * 32,'
     return False
 
 
