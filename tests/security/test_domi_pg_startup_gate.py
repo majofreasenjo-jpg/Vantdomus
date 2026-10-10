@@ -20,7 +20,7 @@ class FakeDB:
             DummyRow(role_name=role, bypass_rls=bypass),
             DummyRow(rolsuper=superuser, rolcreaterole=create_role, rolcreatedb=create_db),
             DummyRow(table_count=count, rls_count=rls, force_rls_count=0, owned_count=owner),
-            DummyRow(policy_count=policies),
+            DummyRow(tables_without_policy=max(0, count - policies)),
         ]
         self.calls = []
 
@@ -67,3 +67,7 @@ def test_pg_gate_accepts_unprivileged_fully_rls_enabled_schema():
 
 def test_pg_gate_rejects_empty_policy_catalog():
     fails(FakeDB(policies=0), "POSTGRES_POLICY_GATE")
+
+
+def test_pg_gate_rejects_one_table_without_policy():
+    fails(FakeDB(policies=56), "POSTGRES_POLICY_GATE")
