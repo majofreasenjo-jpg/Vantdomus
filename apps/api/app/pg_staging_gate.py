@@ -44,5 +44,15 @@ def check_postgres_staging_readiness(db) -> None:
     if int(summary["owned_count"]) != 0:
         raise RuntimeError("POSTGRES_RUNTIME_ROLE_UNSAFE: application role owns tables")
 
+    # RLS being enabled is not proof of effective isolation: verify
+    # policies, FORCE RLS and runtime grant surface in a separate gate.
+    # This preflight deliberately refuses a schema with no policies.
+    policy_count = db.execute(
+        "SELECT COUNT(*) AS policy_count FROM pg_policies "
+        "WHERE schemaname='public'"
+    ).fetchone()
+    if not policy_count or int(policy_count["policy_count"]) == 0:
+        raise RuntimeError("POSTGRES_POLICY_GATE: no RLS policies configured")
+
     # Security gate only: it does not certify that tenant policies are correct.
     # Functional two-tenant adversarial tests are still mandatory before deploy.
