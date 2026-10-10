@@ -90,6 +90,41 @@ def create_task(household_id: str, title: str, due_date: str|None=None, assigned
     db.commit()
     return {"id": tid}
 
+def build_study_steps(*, source_text: str, subject: str, student: str,
+                      due_date: str, evaluation_title: str, notes: str):
+    """Deterministic, no-network study plan with bounded dates and safe fallback.
+
+    AI planning remains a separate, unverified integration gate. Do not label
+    the deterministic steps as AI-generated.
+    """
+    due = _parse_due_date(due_date)
+    now_utc = datetime.now(timezone.utc)
+    if due < now_utc:
+        due = now_utc
+    base = (subject or "Materia").strip()[:60]
+    label = (evaluation_title or "evaluación").strip()[:100]
+    title = f"Preparar {base}: {label}"
+    step_date = max(now_utc, due - timedelta(days=2))
+    candidates = _extract_calendar_candidates(source_text)
+    steps = [{
+        "title": title[:160],
+        "due": step_date,
+        "priority": "high",
+        "tags": ["estudio", "planificacion"],
+        "subject": base,
+    }]
+    for candidate in candidates[:3]:
+        event_date = max(now_utc, candidate["due"])
+        steps.append({
+            "title": (f"Revisar {base}: {candidate['label']}")[:160],
+            "due": event_date,
+            "priority": "medium",
+            "tags": ["estudio", "calendario"],
+            "subject": base,
+        })
+    return steps, "template"
+
+
 @router.post("/school_plan")
 def create_school_plan(
     household_id: str = Form(...),
