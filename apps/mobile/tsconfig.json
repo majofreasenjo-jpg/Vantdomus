@@ -5,7 +5,7 @@
       "ES2020"
     ],
     "jsx": "react-jsx",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": false,
     "skipLibCheck": true,
     "noEmit": true,
