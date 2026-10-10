@@ -56,12 +56,12 @@ jobs:
       - name: Backend tests — tenant isolation (must pass)
         run: |
           python -m pytest tests/security/test_tenant_isolation.py -q \
-            --basetemp /tmp/vantdomus-pytest -p no:cacheprovider
+            --basetemp /var/tmp/vantdomus-pytest -p no:cacheprovider
 
       - name: Backend tests — full suite (must pass)
         run: |
           python -m pytest tests/ -q \
-            --basetemp /tmp/vantdomus-pytest-full -p no:cacheprovider \
+            --basetemp /var/tmp/vantdomus-pytest-full -p no:cacheprovider \
             --ignore=tests/security/test_tenant_isolation.py
 
       - name: Python dependency audit (pip-audit)
