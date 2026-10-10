@@ -65,12 +65,10 @@ class PostgresCursorWrapper:
         translated_sql = translate_sqlite_to_pg(sql)
         try:
             return self.cur.execute(translated_sql, params)
-        except Exception as e:
-            print(f"PG EXECUTE ERROR: {e}")
-            print(f"ORIGINAL SQL: {sql}")
-            print(f"TRANSLATED SQL: {translated_sql}")
-            print(f"PARAMS: {params}")
-            raise e
+        except Exception:
+            # SQL parameters may hold secrets or private household data.
+            logger.error("PostgreSQL execution failed; SQL and parameters withheld")
+            raise
 
     def fetchone(self):
         r = self.cur.fetchone()
