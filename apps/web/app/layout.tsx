@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Nunito } from "next/font/google";
 import { getDashboard, getHouseholds } from "../lib/api";
 import { INDUSTRY_PRESETS_UI } from "../lib/taxonomy";
 import { cookies } from "next/headers";
@@ -12,14 +11,7 @@ import DomiIcon from "./components/domiIcons";
 import PwaRegister from "./components/PwaRegister";
 import ModeSwitcher from "./components/ModeSwitcher";
 
-// Tipografía humanista redondeada y cálida, coherente con "hogar".
-// Se expone como CSS var --font-family-warm y se aplica en modo familia.
-const nunito = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "800", "900"],
-  variable: "--font-nunito",
-  display: "swap",
-});
+// CSS font stacks are local and build-independent; no remote Google font loader.
 
 // CP1d-FAMILY-PILOT-WEB-HARDENING: metadata robots global (genera el
 // <meta name="robots"> en TODAS las páginas). Tercera capa junto al header
@@ -128,7 +120,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : `${tax.product_line || "Planificador de Unidades"} - ${tax.domain_label || "Cliente adaptable"}`;
 
   return (
-    <html lang="es" className={nunito.variable} data-mode={isFamily ? domiMode : undefined} suppressHydrationWarning>
+    <html lang="es" data-mode={isFamily ? domiMode : undefined} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         data-theme={isFamily ? "family" : undefined}
