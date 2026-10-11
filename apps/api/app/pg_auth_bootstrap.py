@@ -39,3 +39,60 @@ def verify_password_only(auth_connection, email: str, password: str) -> str | No
     except (ValueError, TypeError, UnicodeError):
         matches = False
     return user_id if user_id and matches else None
+
+
+
+def get_mfa_state(auth_connection, user_id: str) -> tuple[str, bool] | None:
+    """Read a protected MFA configuration via an auth-only function.
+
+    The stored secret remains encrypted until the trusted server uses
+    app.mfa.reveal_totp_secret and app.mfa.verify_totp after password proof.
+    """
+    if not user_id:
+        return None
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute("SELECT totp_secret,is_enabled FROM domi_auth.lookup_mfa_state(%s)", (user_id,))
+        row = cursor.fetchone()
+        return (row[0], bool(row[1])) if row else None
+    finally:
+        cursor.close()
+
+
+def consume_recovery_code(auth_connection, user_id: str, code_hash: str) -> bool:
+    """Atomically consume one hashed recovery code; caller checks MFA first."""
+    if not user_id or not code_hash or len(code_hash) != 64:
+        return False
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute("SELECT domi_auth.consume_recovery_code(%s,%s)", (user_id,code_hash))
+        result = cursor.fetchone()
+        return bool(result and result[0])
+    finally:
+        cursor.close()
+
+
+def recent_failed_logins(auth_connection, email: str, from_timestamp) -> int:
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute("SELECT domi_auth.recent_failed_logins(%s,%s)",(email,from_timestamp))
+        row=cursor.fetchone()
+        return int(row[0]) if row else 0
+    finally:
+        cursor.close()
+
+
+def record_login_attempt(auth_connection, email: str, successful: bool) -> None:
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(email,successful))
+    finally:
+        cursor.close()
+
+
+def clear_failed_logins(auth_connection, email: str) -> None:
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute("SELECT domi_auth.clear_failed_logins(%s)",(email,))
+    finally:
+        cursor.close()

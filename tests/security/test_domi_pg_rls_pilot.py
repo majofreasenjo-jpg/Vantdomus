@@ -23,6 +23,7 @@ psycopg2 = pytest.importorskip("psycopg2")
 pytestmark = pytest.mark.skipif(not DSN, reason="Dedicated local PostgreSQL CI job only")
 SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_rls_pilot_v1.sql"
 AUTH_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_lookup_pilot_v1.sql"
+AUTH_MFA_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_mfa_pilot_v1.sql"
 
 
 def _check_disposable_dsn():
@@ -49,6 +50,7 @@ def app_password():
                 assert cur.fetchone() == ("postgres", "domi_rls_ci")
                 cur.execute(SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute(AUTH_MFA_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
                 cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
                 cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
@@ -417,3 +419,82 @@ def test_auth_lookup_cannot_create_sessions_or_assume_owner(auth_lookup_connecti
     with pytest.raises(psycopg2.errors.InsufficientPrivilege):
         with auth_lookup_connection.cursor() as cur:
             cur.execute("SET ROLE domi_pilot_auth_owner")
+
+
+# R16: real restricted PostgreSQL connection and identity-specific functions.
+def test_mfa_tables_hidden_from_both_runtime_and_auth_lookup(app_connection, auth_lookup_connection):
+    for conn in (app_connection, auth_lookup_connection):
+        for name in ("user_mfa", "user_mfa_recovery_codes", "auth_login_attempts"):
+            with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+                with conn.cursor() as cur:
+                    cur.execute("SELECT count(*) FROM domi_pilot." + name)
+            conn.rollback()
+
+
+def test_ordinary_runtime_cannot_call_auth_mfa_or_throttle(app_connection):
+    for sql,args in (
+        ("SELECT count(*) FROM domi_auth.lookup_mfa_state(%s)",("u-a",)),
+        ("SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a","any")),
+        ("SELECT domi_auth.recent_failed_logins(%s,clock_timestamp())",("a@example.invalid",)),
+        ("SELECT domi_auth.record_login_attempt(%s,false)",("a@example.invalid",)),
+    ):
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+            with app_connection.cursor() as cur:
+                cur.execute(sql,args)
+        app_connection.rollback()
+
+
+def test_mfa_state_visible_only_via_scoped_auth_function(auth_lookup_connection):
+    with auth_lookup_connection.cursor() as cur:
+        cur.execute("SELECT totp_secret,is_enabled FROM domi_auth.lookup_mfa_state(%s)",("u-a",))
+        assert cur.fetchone()==("SYNTHETIC_ENCRYPTED_MFA_PLACEHOLDER", True)
+        cur.execute("SELECT is_enabled FROM domi_auth.lookup_mfa_state(%s)",("u-b",))
+        assert cur.fetchone()==(False,)
+        cur.execute("SELECT count(*) FROM domi_auth.lookup_mfa_state(%s)",("u-disabled",))
+        assert cur.fetchone()==(0,)
+
+
+def test_recovery_token_consumed_once_even_after_commit(auth_lookup_connection):
+    auth_lookup_connection.autocommit=False
+    h="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a",h)) is True
+    auth_lookup_connection.commit()
+    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a",h)) is False
+
+
+def test_wrong_recovery_code_rejected(auth_lookup_connection):
+    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a","invalid")) is False
+    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-b","invalid")) is False
+
+
+def test_throttle_attempt_window_and_case_normalization(auth_lookup_connection):
+    with auth_lookup_connection.cursor() as cur:
+        cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(" A@EXAMPLE.INVALID ",False))
+        cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",("a@example.invalid",False))
+        cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",("a@example.invalid",True))
+    assert one(auth_lookup_connection,
+       "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
+       ("a@example.invalid",))==2
+
+
+def test_throttle_clear_failed_does_not_erase_successful(auth_lookup_connection):
+    assert one(auth_lookup_connection,
+        "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
+        ("a@example.invalid",))>=0
+    with auth_lookup_connection.cursor() as cur:
+        cur.execute("SELECT domi_auth.clear_failed_logins(%s)",("a@example.invalid",))
+    assert one(auth_lookup_connection,
+        "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
+        ("a@example.invalid",))==0
+
+
+def test_auth_only_role_cannot_escalate_via_direct_writes(auth_lookup_connection):
+    for statement in (
+        "DELETE FROM domi_pilot.user_mfa_recovery_codes",
+        "INSERT INTO domi_pilot.auth_login_attempts "
+        "(id,email,success,created_at) VALUES('hack','a@example.invalid',true,clock_timestamp())",
+    ):
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+            with auth_lookup_connection.cursor() as cur:
+                cur.execute(statement)
+        auth_lookup_connection.rollback()
