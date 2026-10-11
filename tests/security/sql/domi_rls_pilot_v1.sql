@@ -2,13 +2,16 @@
 -- NEVER execute against Neon, staging, or production.
 -- Owner is the ephemeral CI postgres account, NOT the proposed Neon owner.
 CREATE ROLE domi_pilot_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+CREATE ROLE domi_pilot_auth_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
 CREATE SCHEMA domi_pilot;
 REVOKE ALL ON SCHEMA domi_pilot FROM PUBLIC;
 GRANT USAGE ON SCHEMA domi_pilot TO domi_pilot_app;
+GRANT USAGE ON SCHEMA domi_pilot TO domi_pilot_auth_owner;
 
 CREATE TABLE domi_pilot.users (
   id text PRIMARY KEY,
-  is_active boolean NOT NULL
+  is_active boolean NOT NULL,
+  password_hash text NOT NULL
 );
 CREATE TABLE domi_pilot.organizations (
   id text PRIMARY KEY
@@ -37,7 +40,7 @@ CREATE TABLE domi_pilot.task_items (
   title text NOT NULL
 );
 
-INSERT INTO domi_pilot.users VALUES ('u-a', true), ('u-b', true), ('u-disabled', false);
+INSERT INTO domi_pilot.users VALUES ('u-a', true, 'synthetic_a'), ('u-b', true, 'synthetic_b'), ('u-disabled', false, 'synthetic_c');
 INSERT INTO domi_pilot.organizations VALUES ('o-a'), ('o-b');
 INSERT INTO domi_pilot.households VALUES ('h-a','o-a'), ('h-b','o-b');
 INSERT INTO domi_pilot.household_memberships VALUES
@@ -64,6 +67,22 @@ ALTER TABLE domi_pilot.household_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE domi_pilot.household_memberships FORCE ROW LEVEL SECURITY;
 ALTER TABLE domi_pilot.task_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE domi_pilot.task_items FORCE ROW LEVEL SECURITY;
+
+-- Only the non-login authentication function owner may read required private
+-- metadata, without BYPASSRLS. The runtime app has NO direct table grants.
+CREATE POLICY auth_user_lookup ON domi_pilot.users FOR SELECT TO domi_pilot_auth_owner
+  USING (current_user = 'domi_pilot_auth_owner');
+CREATE POLICY auth_session_lookup ON domi_pilot.auth_sessions FOR SELECT TO domi_pilot_auth_owner
+  USING (current_user = 'domi_pilot_auth_owner');
+CREATE POLICY auth_household_lookup ON domi_pilot.households FOR SELECT TO domi_pilot_auth_owner
+  USING (current_user = 'domi_pilot_auth_owner');
+CREATE POLICY auth_membership_lookup ON domi_pilot.household_memberships FOR SELECT TO domi_pilot_auth_owner
+  USING (current_user = 'domi_pilot_auth_owner');
+GRANT SELECT (id,is_active) ON domi_pilot.users TO domi_pilot_auth_owner;
+GRANT SELECT (user_id,token_jti,expires_at,revoked_at) ON domi_pilot.auth_sessions TO domi_pilot_auth_owner;
+GRANT SELECT (id,organization_id) ON domi_pilot.households TO domi_pilot_auth_owner;
+GRANT SELECT (user_id,household_id) ON domi_pilot.household_memberships TO domi_pilot_auth_owner;
+
 
 -- SECURITY DEFINER is constrained to a fixed search_path, fully-qualified
 -- tables and single-purpose boolean/text returns. Do not expose auth hashes.
@@ -121,6 +140,10 @@ AS $$
       AND hm.user_id=domi_pilot.verified_subject()
   );
 $$;
+
+ALTER FUNCTION domi_pilot.activate_session(text,text) OWNER TO domi_pilot_auth_owner;
+ALTER FUNCTION domi_pilot.verified_subject() OWNER TO domi_pilot_auth_owner;
+ALTER FUNCTION domi_pilot.has_household_access(text,text) OWNER TO domi_pilot_auth_owner;
 
 REVOKE ALL ON ALL TABLES IN SCHEMA domi_pilot FROM PUBLIC;
 REVOKE ALL ON FUNCTION domi_pilot.activate_session(text,text) FROM PUBLIC;

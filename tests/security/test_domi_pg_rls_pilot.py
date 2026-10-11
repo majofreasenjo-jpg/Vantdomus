@@ -7,51 +7,61 @@ certify application integration or coverage for all 57 Neon tables.
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
 
-psycopg2 = pytest.importorskip("psycopg2")
 DSN = os.getenv("DOMI_RLS_TEST_DSN", "")
-pytestmark = pytest.mark.skipif(not DSN, reason="RLS pilot uses the dedicated PostgreSQL CI job")
+REQUIRED = os.getenv("DOMI_RLS_REQUIRE_LIVE", "") == "1"
+if REQUIRED and not DSN:
+    raise RuntimeError("Required RLS pilot DSN missing: fail closed")
+
+psycopg2 = pytest.importorskip("psycopg2")
+pytestmark = pytest.mark.skipif(not DSN, reason="Dedicated local PostgreSQL CI job only")
 SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_rls_pilot_v1.sql"
 
 
-@pytest.fixture(scope="module", autouse=True)
-def initialize_pilot():
-    if not DSN:
-        return
+def _check_disposable_dsn():
     parsed = urlsplit(DSN)
-    if parsed.hostname not in {"localhost", "127.0.0.1"} or parsed.path != "/domi_rls_ci":
-        pytest.fail("Refusing RLS fixture outside local disposable domi_rls_ci")
-    conn = psycopg2.connect(DSN)
+    if parsed.scheme not in {"postgres", "postgresql"} or parsed.hostname not in {"localhost", "127.0.0.1"} or parsed.path != "/domi_rls_ci":
+        pytest.fail("RLS pilot cannot run against Neon, remote or non-disposable DB")
+
+
+def _connect_app(password):
+    return psycopg2.connect(DSN, user="domi_pilot_app", password=password)
+
+
+@pytest.fixture(scope="module")
+def app_password():
+    if not DSN:
+        pytest.skip("No isolated PostgreSQL DSN")
+    _check_disposable_dsn()
+    connection = psycopg2.connect(DSN)
+    password = secrets.token_urlsafe(32)
     try:
-        with conn:
-            with conn.cursor() as cur:
+        with connection:
+            with connection.cursor() as cur:
                 cur.execute("SELECT current_user, current_database()")
-                user, database = cur.fetchone()
-                assert user == "postgres" and database == "domi_rls_ci"
+                assert cur.fetchone() == ("postgres", "domi_rls_ci")
                 cur.execute(SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
+                cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
+                cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
     finally:
-        conn.close()
+        connection.close()
+    return password
 
 
 @pytest.fixture
-def app_connection():
-    if not DSN:
-        pytest.skip("No disposable PostgreSQL DSN")
-    conn = psycopg2.connect(DSN)
-    # SET ROLE persists; transaction-local claims MUST NOT persist.
-    conn.autocommit = True
-    with conn.cursor() as cur:
-        cur.execute("SET ROLE domi_pilot_app")
-    conn.autocommit = False
+def app_connection(app_password):
+    connection = _connect_app(app_password)
     try:
-        yield conn
+        yield connection
     finally:
-        conn.rollback()
-        conn.close()
+        connection.rollback()
+        connection.close()
 
 
 def one(conn, sql, args=()):
@@ -71,11 +81,42 @@ def visible_ids(conn):
 
 
 def test_role_has_no_admin_rights_or_bypass(app_connection):
+    assert one(app_connection, "SELECT session_user") == "domi_pilot_app"
     assert one(app_connection, "SELECT current_user") == "domi_pilot_app"
     assert one(app_connection,
         "SELECT NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole "
-        "AND NOT rolcreatedb AND NOT rolcanlogin FROM pg_roles "
+        "AND NOT rolcreatedb AND rolcanlogin FROM pg_roles "
         "WHERE rolname=current_user") is True
+
+
+def test_unprivileged_runtime_cannot_set_superuser_role(app_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        with app_connection.cursor() as cur:
+            cur.execute("SET ROLE postgres")
+
+
+def test_auth_secrets_and_membreships_cannot_be_queried(app_connection):
+    for statement in (
+        "SELECT password_hash FROM domi_pilot.users",
+        "SELECT token_jti FROM domi_pilot.auth_sessions",
+        "SELECT user_id FROM domi_pilot.household_memberships",
+    ):
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+            with app_connection.cursor() as cur:
+                cur.execute(statement)
+        app_connection.rollback()
+
+
+def test_auth_definer_is_unprivileged_non_login(app_connection):
+    count = one(app_connection,
+        "SELECT count(*) FROM pg_proc p "
+        "JOIN pg_namespace n ON p.pronamespace=n.oid JOIN pg_roles r ON p.proowner=r.oid "
+        "WHERE n.nspname='domi_pilot' "
+        "AND p.proname IN ('activate_session','verified_subject','has_household_access') "
+        "AND p.prosecdef AND r.rolname='domi_pilot_auth_owner' "
+        "AND NOT r.rolsuper AND NOT r.rolbypassrls "
+        "AND NOT r.rolcreatedb AND NOT r.rolcreaterole AND NOT r.rolcanlogin")
+    assert count == 3
 
 
 def test_no_context_denies_every_row(app_connection):
@@ -172,14 +213,10 @@ def test_revoke_session_blocks_even_previous_context(app_connection):
         admin.close()
 
 
-def test_separate_connections_cannot_inherit_identity(app_connection):
+def test_separate_connections_cannot_inherit_identity(app_connection, app_password):
     assert activate(app_connection, "u-a", "jti-a")
-    other = psycopg2.connect(DSN)
+    other = _connect_app(app_password)
     try:
-        other.autocommit = True
-        with other.cursor() as cur:
-            cur.execute("SET ROLE domi_pilot_app")
-        other.autocommit = False
         assert visible_ids(other) == []
         assert activate(other, "u-b", "jti-b")
         assert visible_ids(other) == ["t-b"]
