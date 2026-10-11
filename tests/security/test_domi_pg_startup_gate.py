@@ -15,11 +15,13 @@ class DummyRow(dict):
 
 class FakeDB:
     def __init__(self, *, role="domi_api", bypass=False, superuser=False,
-                 create_role=False, create_db=False, count=57, rls=57, owner=0, policies=57, auth_ready=True):
+                 create_role=False, create_db=False, unsafe_membership=False, count=57,
+                 rls=57, force_rls=57, owner=0, policies=57, auth_ready=True):
         self.rows = [
             DummyRow(role_name=role, bypass_rls=bypass),
             DummyRow(rolsuper=superuser, rolcreaterole=create_role, rolcreatedb=create_db),
-            DummyRow(table_count=count, rls_count=rls, force_rls_count=0, owned_count=owner),
+            DummyRow(unsafe_membership=unsafe_membership),
+            DummyRow(table_count=count, rls_count=rls, force_rls_count=force_rls, owned_count=owner),
             DummyRow(tables_without_policy=max(0, count - policies)),
             DummyRow(auth_helper_ready=auth_ready),
         ]
@@ -63,7 +65,7 @@ def test_pg_gate_rejects_privileged_runtime():
 def test_pg_gate_accepts_unprivileged_fully_rls_enabled_schema():
     db = FakeDB()
     gate.check_postgres_staging_readiness(db)
-    assert len(db.calls) == 5
+    assert len(db.calls) == 6
 
 
 def test_pg_gate_rejects_empty_policy_catalog():
@@ -76,3 +78,11 @@ def test_pg_gate_rejects_one_table_without_policy():
 
 def test_pg_gate_rejects_missing_restricted_auth_bootstrap():
     fails(FakeDB(auth_ready=False), "POSTGRES_AUTH_GATE")
+
+
+def test_pg_gate_rejects_privileged_role_membership():
+    fails(FakeDB(unsafe_membership=True), "POSTGRES_RUNTIME_ROLE_UNSAFE")
+
+
+def test_pg_gate_rejects_tables_without_force_rls():
+    fails(FakeDB(force_rls=56), "POSTGRES_FORCE_RLS_GATE")

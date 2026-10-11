@@ -272,3 +272,38 @@ def test_runtime_context_revocation_after_commit(app_connection):
         assert visible_ids(app_connection) == []
     finally:
         admin.close()
+
+
+def test_invalid_empty_rebind_rolls_back_pending_writes(app_connection):
+    ctx = SESSION_MOD.PgSessionContext(app_connection)
+    assert ctx.bind_verified_claims("u-a", "jti-a") is True
+    with app_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO domi_pilot.task_items VALUES (%s,%s,%s,%s)",
+            ("transient-a", "h-a", "o-a", "rollback fixture"),
+        )
+    assert "transient-a" in visible_ids(app_connection)
+    # A malformed second bind must never preserve prior SQL privileges or writes.
+    assert ctx.bind_verified_claims("", "") is False
+    assert ctx.authenticated is False
+    assert visible_ids(app_connection) == []
+    app_connection.commit()
+    ctx.after_transaction()
+    assert ctx.bind_verified_claims("u-a", "jti-a") is True
+    assert "transient-a" not in visible_ids(app_connection)
+
+
+def test_switching_valid_identity_rolls_back_prior_uncommitted_changes(app_connection):
+    ctx = SESSION_MOD.PgSessionContext(app_connection)
+    assert ctx.bind_verified_claims("u-a", "jti-a") is True
+    with app_connection.cursor() as cur:
+        cur.execute(
+            "INSERT INTO domi_pilot.task_items VALUES (%s,%s,%s,%s)",
+            ("transient-switch", "h-a", "o-a", "rollback fixture"),
+        )
+    assert ctx.bind_verified_claims("u-b", "jti-b") is True
+    assert visible_ids(app_connection) == ["t-b"]
+    app_connection.commit()
+    ctx.after_transaction()
+    assert ctx.bind_verified_claims("u-a", "jti-a") is True
+    assert "transient-switch" not in visible_ids(app_connection)

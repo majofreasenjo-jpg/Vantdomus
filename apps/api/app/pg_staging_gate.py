@@ -29,6 +29,21 @@ def check_postgres_staging_readiness(db) -> None:
     if not privileged or any(privileged[key] for key in ("rolsuper", "rolcreaterole", "rolcreatedb")):
         raise RuntimeError("POSTGRES_RUNTIME_ROLE_UNSAFE: privileged role is forbidden")
 
+    # Membership in another privileged role can enable SET ROLE or
+    # inherited authority even when the immediate login is unprivileged.
+    unsafe = db.execute(
+        "SELECT EXISTS (SELECT 1 FROM pg_roles r "
+        "WHERE r.rolname<>current_user "
+        "AND pg_has_role(current_user,r.oid,'member') "
+        "AND (r.rolsuper OR r.rolbypassrls OR r.rolcreaterole "
+        "OR r.rolcreatedb OR EXISTS ("
+        "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+        "WHERE n.nspname='public' AND c.relkind='r' AND c.relowner=r.oid"
+        "))) AS unsafe_membership"
+    ).fetchone()
+    if not unsafe or unsafe["unsafe_membership"]:
+        raise RuntimeError("POSTGRES_RUNTIME_ROLE_UNSAFE: privileged role membership forbidden")
+
     summary = db.execute(
         "SELECT COUNT(*) AS table_count, "
         "COUNT(*) FILTER (WHERE c.relrowsecurity) AS rls_count, "
@@ -41,6 +56,8 @@ def check_postgres_staging_readiness(db) -> None:
         raise RuntimeError("POSTGRES_SCHEMA_GATE: expected exactly 57 public tables")
     if int(summary["rls_count"]) != EXPECTED_DOMI_TABLES:
         raise RuntimeError("POSTGRES_RLS_GATE: all public tables must have RLS enabled")
+    if int(summary["force_rls_count"]) != EXPECTED_DOMI_TABLES:
+        raise RuntimeError("POSTGRES_FORCE_RLS_GATE: all public tables must use FORCE RLS")
     if int(summary["owned_count"]) != 0:
         raise RuntimeError("POSTGRES_RUNTIME_ROLE_UNSAFE: application role owns tables")
 

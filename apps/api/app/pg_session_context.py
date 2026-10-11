@@ -35,7 +35,13 @@ class PgSessionContext:
 
     def bind_verified_claims(self, user_id: str, token_jti: str) -> bool:
         """Only call AFTER verifying the bearer JWT cryptographically."""
+        # The same connection must never carry an earlier caller's RLS
+        # identity into a second authentication attempt. An invalid empty
+        # claim must roll back pending writes AND SQL SET LOCAL attributes.
+        previously_bound = self._identity is not None or self._active
         self.clear()
+        if previously_bound:
+            self._connection.rollback()
         if not isinstance(user_id, str) or not user_id or not isinstance(token_jti, str) or not token_jti:
             return False
         if not self._activate(user_id, token_jti):
