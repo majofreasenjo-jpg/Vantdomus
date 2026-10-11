@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from .db import connect
+from .db import connect, PostgresConnectionWrapper
 from .security import decode_access_token
 from .rbac import require_household_role as _require
 
@@ -24,6 +24,15 @@ def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer), db=D
         jti = p.get("jti")
         if not jti:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        if isinstance(db, PostgresConnectionWrapper):
+            # RLS runtime cannot SELECT private auth_sessions. A SECURITY
+            # DEFINER bootstrap verifies the JTI/expiry/revocation and binds
+            # the transaction; the connection wrapper revalidates after COMMIT.
+            if not db.bind_verified_session(p["sub"], jti):
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session revoked")
+            # PostgreSQL session last_seen_at updates require their own narrow
+            # privilege path; intentionally NOT granted to the runtime role.
+            return {"user_id": p["sub"], "email": p.get("email"), "jti": jti}
         session = db.execute(
             "SELECT revoked_at FROM auth_sessions WHERE user_id=? AND token_jti=?",
             (p["sub"], jti),

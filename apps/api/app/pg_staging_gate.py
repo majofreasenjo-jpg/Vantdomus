@@ -57,5 +57,20 @@ def check_postgres_staging_readiness(db) -> None:
     if not missing or int(missing["tables_without_policy"]) != 0:
         raise RuntimeError("POSTGRES_POLICY_GATE: some public tables lack an RLS policy")
 
-    # Security gate only: it does not certify that tenant policies are correct.
-    # Functional two-tenant adversarial tests are still mandatory before deploy.
+    auth_helper = db.execute(
+        "SELECT EXISTS ("
+        "SELECT 1 FROM pg_proc p "
+        "JOIN pg_namespace n ON n.oid=p.pronamespace "
+        "JOIN pg_roles r ON r.oid=p.proowner "
+        "WHERE p.oid=to_regprocedure('domi_auth.activate_session(text,text)') "
+        "AND n.nspname='domi_auth' AND p.prosecdef "
+        "AND NOT r.rolsuper AND NOT r.rolbypassrls "
+        "AND NOT r.rolcreaterole AND NOT r.rolcreatedb "
+        "AND NOT r.rolcanlogin "
+        "AND has_function_privilege(current_user,p.oid,'EXECUTE')"
+        ") AS auth_helper_ready"
+    ).fetchone()
+    if not auth_helper or not auth_helper["auth_helper_ready"]:
+        raise RuntimeError("POSTGRES_AUTH_GATE: restricted auth helper unavailable")
+
+    # Structural gate only. Requires real tenant adversarial tests for rollout.

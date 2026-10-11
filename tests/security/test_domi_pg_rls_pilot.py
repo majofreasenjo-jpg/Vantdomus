@@ -7,6 +7,7 @@ certify application integration or coverage for all 57 Neon tables.
 from __future__ import annotations
 
 import os
+import importlib.util
 import secrets
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -223,3 +224,51 @@ def test_separate_connections_cannot_inherit_identity(app_connection, app_passwo
         assert visible_ids(app_connection) == ["t-a"]
     finally:
         other.close()
+
+
+# R11: exercise the actual transaction-scoped Python runtime component
+# against the restricted PostgreSQL login used by all the R10 tests.
+SESSION_MODULE = Path(__file__).resolve().parents[2] / "apps/api/app/pg_session_context.py"
+SESSION_SPEC = importlib.util.spec_from_file_location("domi_pg_session_context", SESSION_MODULE)
+SESSION_MOD = importlib.util.module_from_spec(SESSION_SPEC)
+SESSION_SPEC.loader.exec_module(SESSION_MOD)
+
+
+def test_runtime_context_rebinds_after_commit(app_connection):
+    ctx = SESSION_MOD.PgSessionContext(app_connection)
+    assert ctx.bind_verified_claims("u-a", "jti-a") is True
+    assert visible_ids(app_connection) == ["t-a"]
+    app_connection.commit()
+    ctx.after_transaction()
+    assert visible_ids(app_connection) == []
+    ctx.ensure_bound()
+    assert visible_ids(app_connection) == ["t-a"]
+    ctx.clear()
+
+
+def test_runtime_context_denies_invalid_claims(app_connection):
+    ctx = SESSION_MOD.PgSessionContext(app_connection)
+    assert ctx.bind_verified_claims("u-b", "wrong-token") is False
+    assert not ctx.authenticated
+    assert visible_ids(app_connection) == []
+
+
+def test_runtime_context_revocation_after_commit(app_connection):
+    ctx = SESSION_MOD.PgSessionContext(app_connection)
+    assert ctx.bind_verified_claims("u-a", "jti-a") is True
+    assert visible_ids(app_connection) == ["t-a"]
+    app_connection.commit()
+    ctx.after_transaction()
+    admin = psycopg2.connect(DSN)
+    try:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute(
+                    "UPDATE domi_pilot.auth_sessions "
+                    "SET revoked_at=clock_timestamp() WHERE id='s-a'"
+                )
+        with pytest.raises(PermissionError, match="revoked"):
+            ctx.ensure_bound()
+        assert visible_ids(app_connection) == []
+    finally:
+        admin.close()

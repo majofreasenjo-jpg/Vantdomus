@@ -4,6 +4,7 @@ import re
 import sqlite3
 from pathlib import Path
 from .config import settings
+from .pg_session_context import PgSessionContext
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +59,15 @@ class PostgresRow(dict):
             raise e
 
 class PostgresCursorWrapper:
-    def __init__(self, pg_cursor):
+    def __init__(self, pg_cursor, session_context=None):
         self.cur = pg_cursor
+        self.session_context = session_context
 
     def execute(self, sql, params=None):
         translated_sql = translate_sqlite_to_pg(sql)
         try:
+            if self.session_context is not None:
+                self.session_context.ensure_bound()
             return self.cur.execute(translated_sql, params)
         except Exception:
             # SQL parameters may hold secrets or private household data.
@@ -84,9 +88,17 @@ class PostgresCursorWrapper:
 class PostgresConnectionWrapper:
     def __init__(self, pg_conn):
         self.conn = pg_conn
+        self._auth_context = PgSessionContext(pg_conn)
+
+    def bind_verified_session(self, user_id: str, token_jti: str) -> bool:
+        """Called only after the API cryptographically validates a bearer JWT."""
+        return self._auth_context.bind_verified_claims(user_id, token_jti)
 
     def cursor(self):
-        return PostgresCursorWrapper(self.conn.cursor(cursor_factory=RealDictCursor))
+        return PostgresCursorWrapper(
+            self.conn.cursor(cursor_factory=RealDictCursor),
+            session_context=self._auth_context,
+        )
 
     def execute(self, sql, params=None):
         cur = self.cursor()
@@ -94,9 +106,19 @@ class PostgresConnectionWrapper:
         return cur
 
     def commit(self):
-        return self.conn.commit()
+        try:
+            return self.conn.commit()
+        finally:
+            self._auth_context.after_transaction()
+
+    def rollback(self):
+        try:
+            return self.conn.rollback()
+        finally:
+            self._auth_context.after_transaction()
 
     def close(self):
+        self._auth_context.clear()
         return self.conn.close()
 
 def connect():

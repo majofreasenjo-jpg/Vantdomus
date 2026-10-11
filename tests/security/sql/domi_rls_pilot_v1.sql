@@ -159,3 +159,21 @@ CREATE POLICY task_scope ON domi_pilot.task_items
 FOR ALL TO domi_pilot_app
 USING (domi_pilot.has_household_access(household_id,organization_id))
 WITH CHECK (domi_pilot.has_household_access(household_id,organization_id));
+
+
+-- CI-only compatibility alias for the real API's PostgreSQL session contract.
+-- This does not create or modify anything in Neon or production.
+CREATE SCHEMA domi_auth;
+REVOKE ALL ON SCHEMA domi_auth FROM PUBLIC;
+GRANT USAGE ON SCHEMA domi_auth TO domi_pilot_app;
+GRANT USAGE ON SCHEMA domi_auth TO domi_pilot_auth_owner;
+CREATE FUNCTION domi_auth.activate_session(p_user_id text, p_jti text)
+RETURNS boolean
+LANGUAGE sql SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $$
+  SELECT domi_pilot.activate_session(p_user_id,p_jti);
+$$;
+ALTER FUNCTION domi_auth.activate_session(text,text) OWNER TO domi_pilot_auth_owner;
+REVOKE ALL ON FUNCTION domi_auth.activate_session(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION domi_auth.activate_session(text,text) TO domi_pilot_app;
