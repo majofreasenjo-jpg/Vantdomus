@@ -70,6 +70,39 @@ jobs:
           python -m pip install pip-audit
           pip-audit -r apps/api/requirements.txt --strict
 
+
+  # Real PostgreSQL RLS contract proof on synthetic data in a disposable CI
+  # container. This job NEVER connects to Neon or deploys infrastructure.
+  postgres-rls-pilot:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only_rls_ci_not_a_secret
+          POSTGRES_DB: domi_rls_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d domi_rls_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install disposable PostgreSQL pilot dependencies
+        run: python -m pip install pytest psycopg2-binary==2.9.10
+      - name: Prove cross-household and cross-organization RLS in PostgreSQL
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+        run: python -m pytest tests/security/test_domi_pg_rls_pilot.py -q -ra
+
   # ----------------------------------------------------------------------
   # Web (Next.js) typecheck + build + npm audit
   # ----------------------------------------------------------------------
