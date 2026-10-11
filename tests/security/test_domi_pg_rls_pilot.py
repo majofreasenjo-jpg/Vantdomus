@@ -22,6 +22,7 @@ if REQUIRED and not DSN:
 psycopg2 = pytest.importorskip("psycopg2")
 pytestmark = pytest.mark.skipif(not DSN, reason="Dedicated local PostgreSQL CI job only")
 SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_rls_pilot_v1.sql"
+AUTH_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_lookup_pilot_v1.sql"
 
 
 def _check_disposable_dsn():
@@ -47,6 +48,7 @@ def app_password():
                 cur.execute("SELECT current_user, current_database()")
                 assert cur.fetchone() == ("postgres", "domi_rls_ci")
                 cur.execute(SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute(AUTH_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
                 cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
                 cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
@@ -323,3 +325,95 @@ def test_switching_valid_identity_rolls_back_prior_uncommitted_changes(app_conne
     ctx.after_transaction()
     assert ctx.bind_verified_claims("u-a", "jti-a") is True
     assert "transient-switch" not in visible_ids(app_connection)
+
+
+
+# R15: Separate authenticating SQL login. The household runtime role cannot
+# look up credentials even though a trusted, rate-limited API may use it.
+AUTH_MODULE = Path(__file__).resolve().parents[2] / "apps/api/app/pg_auth_bootstrap.py"
+AUTH_SPEC = importlib.util.spec_from_file_location("domi_pg_auth_bootstrap", AUTH_MODULE)
+AUTH_MOD = importlib.util.module_from_spec(AUTH_SPEC)
+AUTH_SPEC.loader.exec_module(AUTH_MOD)
+
+
+@pytest.fixture(scope="module")
+def auth_lookup_password(app_password):
+    import bcrypt
+    _check_disposable_dsn()
+    lookup_password = secrets.token_urlsafe(32)
+    sample_hash = bcrypt.hashpw(b"R15-local-synthetic-passphrase", bcrypt.gensalt())
+    admin = psycopg2.connect(DSN)
+    try:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("UPDATE domi_pilot.users SET password_hash=%s WHERE id='u-a'",
+                            (sample_hash.decode("ascii"),))
+                cur.execute("ALTER ROLE domi_auth_lookup LOGIN PASSWORD %s",
+                            (lookup_password,))
+                cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_auth_lookup")
+    finally:
+        admin.close()
+    return lookup_password
+
+
+@pytest.fixture
+def auth_lookup_connection(auth_lookup_password):
+    conn = psycopg2.connect(DSN, user="domi_auth_lookup", password=auth_lookup_password)
+    try:
+        yield conn
+    finally:
+        conn.rollback()
+        conn.close()
+
+
+def test_auth_lookup_has_no_admin_privileges(auth_lookup_connection):
+    assert one(auth_lookup_connection, "SELECT current_user") == "domi_auth_lookup"
+    assert one(auth_lookup_connection,
+        "SELECT NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole "
+        "AND NOT rolcreatedb AND rolcanlogin AND NOT rolinherit "
+        "FROM pg_roles WHERE rolname=current_user") is True
+
+
+def test_auth_lookup_cannot_select_password_table(auth_lookup_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(auth_lookup_connection, "SELECT count(*) FROM domi_pilot.users")
+
+
+def test_household_runtime_role_cannot_call_auth_lookup(app_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(app_connection,
+            "SELECT count(*) FROM domi_auth.lookup_password_credential(%s)",
+            ("a@example.invalid",))
+
+
+def test_login_lookup_rejects_missing_and_inactive_identities(auth_lookup_connection):
+    assert one(auth_lookup_connection,
+        "SELECT count(*) FROM domi_auth.lookup_password_credential(%s)",
+        ("nobody@example.invalid",)) == 0
+    assert one(auth_lookup_connection,
+        "SELECT count(*) FROM domi_auth.lookup_password_credential(%s)",
+        ("disabled@example.invalid",)) == 0
+
+
+def test_server_bcrypt_password_only_credential_verification(auth_lookup_connection):
+    assert AUTH_MOD.verify_password_only(
+        auth_lookup_connection, " A@EXAMPLE.INVALID ", "R15-local-synthetic-passphrase"
+    ) == "u-a"
+    assert AUTH_MOD.verify_password_only(
+        auth_lookup_connection, "a@example.invalid", "wrong-passphrase"
+    ) is None
+    assert AUTH_MOD.verify_password_only(
+        auth_lookup_connection, "nobody@example.invalid", "wrong-passphrase"
+    ) is None
+
+
+def test_auth_lookup_cannot_create_sessions_or_assume_owner(auth_lookup_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        with auth_lookup_connection.cursor() as cur:
+            cur.execute("INSERT INTO domi_pilot.auth_sessions "
+                        "(id,user_id,token_jti,expires_at) "
+                        "VALUES ('forged','u-a','forged-jti',clock_timestamp())")
+    auth_lookup_connection.rollback()
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        with auth_lookup_connection.cursor() as cur:
+            cur.execute("SET ROLE domi_pilot_auth_owner")
