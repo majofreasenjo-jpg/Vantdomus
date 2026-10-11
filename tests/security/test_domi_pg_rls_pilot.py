@@ -211,6 +211,14 @@ def test_revoke_session_blocks_even_previous_context(app_connection):
                 )
         assert visible_ids(app_connection) == []
     finally:
+        # The revoked session is a module fixture. Restore it so another
+        # test never inherits altered state or depends on execution order.
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute(
+                    "UPDATE domi_pilot.auth_sessions SET revoked_at=NULL "
+                    "WHERE id='s-rev'"
+                )
         admin.close()
 
 
@@ -271,6 +279,14 @@ def test_runtime_context_revocation_after_commit(app_connection):
             ctx.ensure_bound()
         assert visible_ids(app_connection) == []
     finally:
+        # A failed authentication test must not poison subsequent tests;
+        # restore the synthetic session only after asserting revocation.
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute(
+                    "UPDATE domi_pilot.auth_sessions SET revoked_at=NULL "
+                    "WHERE id='s-a'"
+                )
         admin.close()
 
 
