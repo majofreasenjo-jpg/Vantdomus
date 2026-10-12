@@ -96,3 +96,112 @@ def clear_failed_logins(auth_connection, email: str) -> None:
         cursor.execute("SELECT domi_auth.clear_failed_logins(%s)",(email,))
     finally:
         cursor.close()
+
+
+
+def issue_session(auth_connection, user_id: str, session_id: str, token_jti: str, ttl_seconds: int) -> bool:
+    """Issue an opaque JWT-bound session via a narrow, audited SQL contract."""
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute(
+            "SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+            (user_id, session_id, token_jti, ttl_seconds),
+        )
+        row = cursor.fetchone()
+        return bool(row and row[0])
+    finally:
+        cursor.close()
+
+
+def _rotate_mfa_secret(auth_connection, user_id: str, previous: str, replacement: str) -> bool:
+    cursor = auth_connection.cursor()
+    try:
+        cursor.execute(
+            "SELECT domi_auth.rotate_mfa_secret(%s,%s,%s)",
+            (user_id,previous,replacement),
+        )
+        row = cursor.fetchone()
+        return bool(row and row[0])
+    finally:
+        cursor.close()
+
+
+def login_postgres(
+    auth_connection,
+    email: str,
+    password: str,
+    mfa_code: str | None,
+    *,
+    max_attempts: int,
+    window_seconds: int,
+) -> dict:
+    """Trusted server login: bcrypt, throttle, MFA, then atomic DB session.
+
+    Enabled only through the restricted PostgreSQL authentication dependency.
+    Registration/recovery/invite flows still require separate reviewed ports;
+    do not promote staging until those flows and audit chains pass gates.
+    """
+    import hashlib
+    import uuid
+    from datetime import datetime, timedelta, timezone
+    from fastapi import HTTPException, status
+    from .mfa import (
+        protect_totp_secret, reveal_totp_secret,
+        should_reprotect_totp_secret, verify_totp,
+    )
+    from .security import create_access_token
+
+    if max_attempts < 1 or not (60 <= window_seconds <= 86400):
+        raise HTTPException(status_code=503, detail="Authentication limits not configured")
+    email = (email or "").strip().lower()
+    if not email or len(email) > 320 or not password or len(password) > 4096:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    start = datetime.now(timezone.utc) - timedelta(seconds=window_seconds)
+    if recent_failed_logins(auth_connection,email,start) >= max_attempts:
+        raise HTTPException(status_code=429, detail="Too many failed login attempts")
+
+    def deny(reason: str):
+        record_login_attempt(auth_connection,email,False)
+        auth_connection.commit()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=reason)
+
+    user_id = verify_password_only(auth_connection,email,password)
+    if not user_id:
+        deny("Invalid credentials")
+
+    state = get_mfa_state(auth_connection,user_id)
+    if state and state[1]:
+        if not mfa_code:
+            # Exactly like the existing SQLite route: password proof alone
+            # does not generate a session when MFA is enabled.
+            raise HTTPException(status_code=428, detail="MFA required")
+        stored_secret = state[0]
+        secret = reveal_totp_secret(stored_secret)
+        verified_totp = verify_totp(secret,mfa_code)
+        if verified_totp and should_reprotect_totp_secret(stored_secret):
+            refreshed = protect_totp_secret(secret)
+            if not _rotate_mfa_secret(auth_connection,user_id,stored_secret,refreshed):
+                auth_connection.rollback()
+                raise HTTPException(status_code=503, detail="MFA secret rotation failed")
+        recovery_ok = False
+        if not verified_totp:
+            normalized = str(mfa_code).strip().upper().replace(" ","")
+            recovery_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+            recovery_ok = consume_recovery_code(auth_connection,user_id,recovery_hash)
+        if not verified_totp and not recovery_ok:
+            deny("Invalid MFA code")
+
+    token_jti = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
+    token, expires_in = create_access_token(sub=user_id,email=email,jti=token_jti)
+    if not issue_session(auth_connection,user_id,session_id,token_jti,expires_in):
+        auth_connection.rollback()
+        raise HTTPException(status_code=503, detail="Session issuance unavailable")
+    clear_failed_logins(auth_connection,email)
+    record_login_attempt(auth_connection,email,True)
+    auth_connection.commit()
+    return {
+        "access_token": token, "token_type": "bearer",
+        "expires_in": expires_in, "session_id": session_id,
+    }

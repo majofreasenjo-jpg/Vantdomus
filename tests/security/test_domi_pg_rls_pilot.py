@@ -24,6 +24,7 @@ pytestmark = pytest.mark.skipif(not DSN, reason="Dedicated local PostgreSQL CI j
 SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_rls_pilot_v1.sql"
 AUTH_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_lookup_pilot_v1.sql"
 AUTH_MFA_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_mfa_pilot_v1.sql"
+AUTH_SESSION_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_session_pilot_v1.sql"
 
 
 def _check_disposable_dsn():
@@ -51,6 +52,7 @@ def app_password():
                 cur.execute(SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_MFA_SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute(AUTH_SESSION_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
                 cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
                 cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
@@ -348,7 +350,7 @@ def auth_lookup_password(app_password):
     try:
         with admin:
             with admin.cursor() as cur:
-                cur.execute("UPDATE domi_pilot.users SET password_hash=%s WHERE id='u-a'",
+                cur.execute("UPDATE domi_pilot.users SET password_hash=%s WHERE id IN ('u-a','u-b')",
                             (sample_hash.decode("ascii"),))
                 cur.execute("ALTER ROLE domi_auth_lookup LOGIN PASSWORD %s",
                             (lookup_password,))
@@ -498,3 +500,83 @@ def test_auth_only_role_cannot_escalate_via_direct_writes(auth_lookup_connection
             with auth_lookup_connection.cursor() as cur:
                 cur.execute(statement)
         auth_lookup_connection.rollback()
+
+
+
+# R22: Actual server login orchestrator, with a real restricted PostgreSQL
+# authentication role and an independently validated RLS session.
+def test_auth_role_cannot_directly_insert_sessions_after_issuer_granted(auth_lookup_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        with auth_lookup_connection.cursor() as cur:
+            cur.execute("INSERT INTO domi_pilot.auth_sessions(id,user_id,token_jti,expires_at) "
+                        "VALUES('forgery','u-b','forgery',clock_timestamp()+interval '1 hour')")
+    auth_lookup_connection.rollback()
+
+
+def test_runtime_role_cannot_issue_auth_session(app_connection):
+    import uuid
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(app_connection, "SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+            ("u-b",str(uuid.uuid4()),str(uuid.uuid4()),3600))
+    app_connection.rollback()
+
+
+def test_auth_session_issuer_rejects_disabled_user_and_bad_expiry(auth_lookup_connection):
+    import uuid
+    for user,ttl in (("u-disabled",3600),("u-b",1),("u-b",100000)):
+        assert one(auth_lookup_connection,"SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+            (user,str(uuid.uuid4()),str(uuid.uuid4()),ttl)) is False
+
+
+def test_auth_bootstrap_login_mints_real_rls_session(auth_lookup_connection,app_connection):
+    import sys
+    from pathlib import Path
+    project_api=str(Path(__file__).resolve().parents[2] / "apps/api")
+    if project_api not in sys.path: sys.path.insert(0,project_api)
+    from app.pg_auth_bootstrap import login_postgres
+    from app.security import decode_access_token
+    result=login_postgres(
+        auth_lookup_connection,
+        "b@example.invalid","R15-local-synthetic-passphrase",None,
+        max_attempts=5,window_seconds=900,
+    )
+    assert result["token_type"]=="bearer"
+    assert result["session_id"]
+    claims=decode_access_token(result["access_token"])
+    assert claims["sub"]=="u-b"
+    assert activate(app_connection,"u-b",claims["jti"]) is True
+    assert visible_ids(app_connection)==["t-b"]
+    app_connection.rollback()
+
+
+def test_pg_bootstrap_bad_password_does_not_mint_session(auth_lookup_connection):
+    from fastapi import HTTPException
+    from app.pg_auth_bootstrap import login_postgres
+    with pytest.raises(HTTPException) as fail:
+        login_postgres(auth_lookup_connection,"b@example.invalid","invalid",None,
+                       max_attempts=5,window_seconds=900)
+    assert fail.value.status_code==401
+    assert one(auth_lookup_connection,
+      "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '15 minutes')",
+      ("b@example.invalid",))>=1
+
+
+def test_pg_bootstrap_password_without_mfa_does_not_mint_session(auth_lookup_connection):
+    from fastapi import HTTPException
+    from app.pg_auth_bootstrap import login_postgres
+    with pytest.raises(HTTPException) as fail:
+        login_postgres(auth_lookup_connection,"a@example.invalid",
+                       "R15-local-synthetic-passphrase",None,max_attempts=5,window_seconds=900)
+    assert fail.value.status_code==428
+
+
+def test_pg_bootstrap_throttles_failed_passwords(auth_lookup_connection):
+    from fastapi import HTTPException
+    from app.pg_auth_bootstrap import login_postgres
+    for _ in range(5):
+        AUTH_MOD.record_login_attempt(auth_lookup_connection,"throttle@example.invalid",False)
+    auth_lookup_connection.commit()
+    with pytest.raises(HTTPException) as fail:
+        login_postgres(auth_lookup_connection,"throttle@example.invalid","anything",None,
+                       max_attempts=5,window_seconds=900)
+    assert fail.value.status_code==429
