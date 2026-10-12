@@ -476,6 +476,12 @@ def test_throttle_attempt_window_and_case_normalization(issuer_connection,auth_l
         cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(" A@EXAMPLE.INVALID ",False))
         cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",("a@example.invalid",False))
         cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",("a@example.invalid",True))
+    # A different LOGIN connection must not see uncommitted login history.
+    assert one(auth_lookup_connection,
+       "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
+       ("a@example.invalid",))==0
+    issuer_connection.commit()
+    # The read-only lookup is deliberately separate: visibility starts at COMMIT.
     assert one(auth_lookup_connection,
        "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
        ("a@example.invalid",))==2
