@@ -43,6 +43,7 @@ export default function OwnerBetaPage() {
       <section id="conversacion" aria-label="Conversación demo con DOMI">
         <DomiCompanionHome
           dataState="demo"
+          demoSafe={true}
           initialTheme="dawn"
           initialDomiState="listo"
           initialAppearance="original"

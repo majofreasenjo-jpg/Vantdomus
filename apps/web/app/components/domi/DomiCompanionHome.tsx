@@ -91,6 +91,7 @@ export default function DomiCompanionHome({
   data,
   hid,
   dataState = "real",
+  demoSafe = false,
   initialTheme,
   initialDomiState,
   initialAppearance,
@@ -100,6 +101,8 @@ export default function DomiCompanionHome({
   hid?: string;
   // MIN-2.2: honestidad de datos — real | session (expirada) | api (caído) | demo.
   dataState?: "real" | "session" | "api" | "demo";
+  /** Preview-only mode: no location, microphone/upload or auth actions. */
+  demoSafe?: boolean;
   // Estado inicial resuelto en el servidor (page.tsx) desde los query params,
   // para que server y cliente rendericen idéntico y no haya hydration mismatch.
   initialTheme?: "dawn" | "day" | "sunset" | "night";
@@ -112,6 +115,7 @@ export default function DomiCompanionHome({
   // window en el initializer → server y cliente coinciden (sin hydration mismatch).
   const [devModeActive, setDevModeActive] = useState(DEV_PANEL_ENABLED || initialDev === true);
   const [devPanelOpen, setDevPanelOpen] = useState(false);
+  const isStrictSynthetic = dataState === "demo" && demoSafe;
 
   // --- APPLICATION STATES ---
   const [activeTheme, setActiveTheme] = useState<"dawn" | "day" | "sunset" | "night">(
@@ -240,7 +244,7 @@ export default function DomiCompanionHome({
     setClock();
     const clockId = setInterval(setClock, 60000);
     let cancelled = false;
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
+    if (!isStrictSynthetic && typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           // Redondeo a 2 decimales (~1 km) por privacidad antes de enviar.
@@ -654,6 +658,10 @@ export default function DomiCompanionHome({
   };
 
   const triggerListeningSimulation = async () => {
+    if (isStrictSynthetic) {
+      addNotification("Modo de prueba", "Esta vista no solicita micrófono ni envía audio. Escríbele a DOMI.", "system");
+      return;
+    }
     // M4 — Voz REAL (reemplaza la simulación). Graba → transcribe (Whisper en el
     // backend, sin guardar audio) → envía el texto a Domi. La identidad es la
     // sesión, no la voz.
@@ -829,6 +837,11 @@ export default function DomiCompanionHome({
     accept: boolean,
     overrides?: Record<string, unknown>,
   ) => {
+    // The Owner Beta synthetic preview never mutates a real API.
+    if (isStrictSynthetic) {
+      addNotification("Modo de prueba", "Las propuestas reales no se ejecutan desde esta vista.", "system");
+      return;
+    }
     if (isSending) return;
     setIsSending(true);
     setDomiMood("thinking");
@@ -1026,7 +1039,7 @@ export default function DomiCompanionHome({
             {dataState === "api" && "No pudimos conectar con tu hogar: estás viendo datos de ejemplo."}
             {dataState === "demo" && "Modo demo: estos datos son de ejemplo."}
           </span>
-          {dataState !== "api" && <a href="/login" className="underline font-semibold whitespace-nowrap">Iniciar sesión</a>}
+          {!isStrictSynthetic && dataState !== "api" && <a href="/login" className="underline font-semibold whitespace-nowrap">Iniciar sesión</a>}
         </div>
       )}
 
@@ -1392,15 +1405,17 @@ export default function DomiCompanionHome({
               {/* Cerrar sesión: el navbar antiguo queda oculto en la home, así que
                   la salida vive aquí, en el menú Más. Usa el server action existente. */}
               <div className="my-1.5 h-px bg-white/10" />
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Cerrar sesión
-                </button>
-              </form>
+              {!isStrictSynthetic && (
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Cerrar sesión
+                  </button>
+                </form>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
