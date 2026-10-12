@@ -128,6 +128,7 @@ def _rotate_mfa_secret(auth_connection, user_id: str, previous: str, replacement
 
 def login_postgres(
     auth_connection,
+    issuer_connection,
     email: str,
     password: str,
     mfa_code: str | None,
@@ -162,8 +163,8 @@ def login_postgres(
         raise HTTPException(status_code=429, detail="Too many failed login attempts")
 
     def deny(reason: str):
-        record_login_attempt(auth_connection,email,False)
-        auth_connection.commit()
+        record_login_attempt(issuer_connection,email,False)
+        issuer_connection.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=reason)
 
     user_id = verify_password_only(auth_connection,email,password)
@@ -181,26 +182,26 @@ def login_postgres(
         verified_totp = verify_totp(secret,mfa_code)
         if verified_totp and should_reprotect_totp_secret(stored_secret):
             refreshed = protect_totp_secret(secret)
-            if not _rotate_mfa_secret(auth_connection,user_id,stored_secret,refreshed):
-                auth_connection.rollback()
+            if not _rotate_mfa_secret(issuer_connection,user_id,stored_secret,refreshed):
+                issuer_connection.rollback()
                 raise HTTPException(status_code=503, detail="MFA secret rotation failed")
         recovery_ok = False
         if not verified_totp:
             normalized = str(mfa_code).strip().upper().replace(" ","")
             recovery_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-            recovery_ok = consume_recovery_code(auth_connection,user_id,recovery_hash)
+            recovery_ok = consume_recovery_code(issuer_connection,user_id,recovery_hash)
         if not verified_totp and not recovery_ok:
             deny("Invalid MFA code")
 
     token_jti = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
     token, expires_in = create_access_token(sub=user_id,email=email,jti=token_jti)
-    if not issue_session(auth_connection,user_id,session_id,token_jti,expires_in):
-        auth_connection.rollback()
+    if not issue_session(issuer_connection,user_id,session_id,token_jti,expires_in):
+        issuer_connection.rollback()
         raise HTTPException(status_code=503, detail="Session issuance unavailable")
-    clear_failed_logins(auth_connection,email)
-    record_login_attempt(auth_connection,email,True)
-    auth_connection.commit()
+    clear_failed_logins(issuer_connection,email)
+    record_login_attempt(issuer_connection,email,True)
+    issuer_connection.commit()
     return {
         "access_token": token, "token_type": "bearer",
         "expires_in": expires_in, "session_id": session_id,
