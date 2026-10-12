@@ -629,7 +629,7 @@ def login(
         if body is None:
             raise HTTPException(status_code=400, detail="JSON login body required")
         return login_postgres(
-            db.conn, email, password, mfa_code,
+            db.conn, db.issuer_conn, email, password, mfa_code,
             max_attempts=max_attempts, window_seconds=_window_seconds,
         )
     if _recent_failed_login_count(db, email) >= max_attempts:
