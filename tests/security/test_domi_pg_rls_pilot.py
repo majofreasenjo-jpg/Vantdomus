@@ -25,6 +25,7 @@ SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_rls_pilot_v1.sql"
 AUTH_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_lookup_pilot_v1.sql"
 AUTH_MFA_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_mfa_pilot_v1.sql"
 AUTH_SESSION_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_session_pilot_v1.sql"
+AUTH_ROLE_SPLIT_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_role_split_pilot_v1.sql"
 
 
 def _check_disposable_dsn():
@@ -53,6 +54,7 @@ def app_password():
                 cur.execute(AUTH_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_MFA_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_SESSION_SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute(AUTH_ROLE_SPLIT_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
                 cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
                 cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
@@ -580,3 +582,63 @@ def test_pg_bootstrap_throttles_failed_passwords(auth_lookup_connection):
         login_postgres(auth_lookup_connection,"throttle@example.invalid","anything",None,
                        max_attempts=5,window_seconds=900)
     assert fail.value.status_code==429
+
+
+@pytest.fixture(scope="module")
+def issuer_password(auth_lookup_password):
+    pwd = secrets.token_urlsafe(32)
+    admin = psycopg2.connect(DSN)
+    try:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("ALTER ROLE domi_auth_session_issuer LOGIN PASSWORD %s", (pwd,))
+                cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_auth_session_issuer")
+    finally:
+        admin.close()
+    return pwd
+
+
+@pytest.fixture
+def issuer_connection(issuer_password):
+    conn = psycopg2.connect(DSN, user="domi_auth_session_issuer", password=issuer_password)
+    try:
+        yield conn
+    finally:
+        conn.rollback()
+        conn.close()
+
+
+def test_r23_lookup_cannot_issue_session(auth_lookup_connection):
+    import uuid
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(auth_lookup_connection, "SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+            ("u-b",str(uuid.uuid4()),str(uuid.uuid4()),3600))
+    auth_lookup_connection.rollback()
+
+
+def test_r23_issuer_cannot_lookup_credentials(issuer_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(issuer_connection, "SELECT count(*) FROM domi_auth.lookup_password_credential(%s)",
+            ("b@example.invalid",))
+    issuer_connection.rollback()
+
+
+def test_r23_issuer_no_privileged_flags(issuer_connection):
+    assert one(issuer_connection, "SELECT session_user") == "domi_auth_session_issuer"
+    assert one(issuer_connection,
+        "SELECT NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole "
+        "AND NOT rolcreatedb AND NOT rolinherit AND rolcanlogin FROM pg_roles "
+        "WHERE rolname=current_user") is True
+
+
+def test_r23_issuer_session_creation_remains_possible(issuer_connection):
+    import uuid
+    assert one(issuer_connection, "SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+        ("u-b", str(uuid.uuid4()), str(uuid.uuid4()), 3600)) is True
+
+
+def test_r23_lookup_cannot_write_login_attempts(auth_lookup_connection):
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(auth_lookup_connection,"SELECT domi_auth.record_login_attempt(%s,%s)",
+            ("b@example.invalid",False))
+    auth_lookup_connection.rollback()
