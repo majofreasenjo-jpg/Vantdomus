@@ -132,9 +132,9 @@ jobs:
         working-directory: apps/web
         run: npm run build
 
-      - name: npm audit (high & critical)
+      - name: npm audit (high & critical) — required
         working-directory: apps/web
-        continue-on-error: true
+        # Owner Beta stays isolated until high/critical production advisories are cleared.
         run: npm audit --omit=dev --audit-level=high
 
   # ----------------------------------------------------------------------
