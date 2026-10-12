@@ -538,7 +538,7 @@ def test_auth_bootstrap_login_mints_real_rls_session(auth_lookup_connection,issu
     from app.pg_auth_bootstrap import login_postgres
     from app.security import decode_access_token
     result=login_postgres(
-        auth_lookup_connection,
+        auth_lookup_connection,issuer_connection,
         "b@example.invalid","R15-local-synthetic-passphrase",None,
         max_attempts=5,window_seconds=900,
     )
@@ -555,7 +555,7 @@ def test_pg_bootstrap_bad_password_does_not_mint_session(auth_lookup_connection,
     from fastapi import HTTPException
     from app.pg_auth_bootstrap import login_postgres
     with pytest.raises(HTTPException) as fail:
-        login_postgres(auth_lookup_connection,"b@example.invalid","invalid",None,
+        login_postgres(auth_lookup_connection,issuer_connection,"b@example.invalid","invalid",None,
                        max_attempts=5,window_seconds=900)
     assert fail.value.status_code==401
     assert one(auth_lookup_connection,
@@ -567,7 +567,7 @@ def test_pg_bootstrap_password_without_mfa_does_not_mint_session(auth_lookup_con
     from fastapi import HTTPException
     from app.pg_auth_bootstrap import login_postgres
     with pytest.raises(HTTPException) as fail:
-        login_postgres(auth_lookup_connection,"a@example.invalid",
+        login_postgres(auth_lookup_connection,issuer_connection,"a@example.invalid",
                        "R15-local-synthetic-passphrase",None,max_attempts=5,window_seconds=900)
     assert fail.value.status_code==428
 
@@ -576,10 +576,10 @@ def test_pg_bootstrap_throttles_failed_passwords(auth_lookup_connection,issuer_c
     from fastapi import HTTPException
     from app.pg_auth_bootstrap import login_postgres
     for _ in range(5):
-        AUTH_MOD.record_login_attempt(auth_lookup_connection,"throttle@example.invalid",False)
-    auth_lookup_connection.commit()
+        AUTH_MOD.record_login_attempt(issuer_connection,"throttle@example.invalid",False)
+    issuer_connection.commit()
     with pytest.raises(HTTPException) as fail:
-        login_postgres(auth_lookup_connection,"throttle@example.invalid","anything",None,
+        login_postgres(auth_lookup_connection,issuer_connection,"throttle@example.invalid","anything",None,
                        max_attempts=5,window_seconds=900)
     assert fail.value.status_code==429
 
