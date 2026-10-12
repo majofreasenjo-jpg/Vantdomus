@@ -1,13 +1,10 @@
 import { revalidatePath } from "next/cache";
-import { Inter, Space_Grotesk } from "next/font/google";
 import { addExpense, listExpenses, getDashboard, getHouseholds } from "../../../lib/api";
 import DomiFaceMark from "../../components/domi/DomiFaceMark";
 import { redirect } from "next/navigation";
 import { INDUSTRY_PRESETS_UI } from "../../../lib/taxonomy";
 
-// CP1c-MIN-7 (Finanzas, a pedido del owner): reskin al lenguaje de Domi.
-const vfInter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--vf-inter", display: "swap" });
-const vfGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--vf-grotesk", display: "swap" });
+// CP1c-MIN-7: estilos DOMI con tipografías locales, independientes de Google Fonts.
 
 export default async function Finance({ params }: { params: Promise<{ householdId: string }> }) {
   const { householdId: hid } = await params;
@@ -96,13 +93,15 @@ export default async function Finance({ params }: { params: Promise<{ householdI
   };
 
   return (
-    <div id="vantdomus-finance" className={`${vfInter.variable} ${vfGrotesk.variable}`}>
+    <div id="vantdomus-finance" className="vf-local-fonts">
       <style>{`
         body:has(#vantdomus-finance) .nav,
         body:has(#vantdomus-finance) .bottomNav { display:none !important; }
         body:has(#vantdomus-finance) .container { max-width:none !important; padding:0 !important; }
         #vantdomus-finance {
           --vf-ink:#26224d; --vf-muted:#6b6795;
+          --vf-inter: var(--domi-font-inter);
+          --vf-grotesk: var(--domi-font-grotesk);
           font-family: var(--vf-inter), ui-sans-serif, system-ui, sans-serif;
           min-height:100dvh; color:var(--vf-ink); padding:26px 20px 48px;
           background:

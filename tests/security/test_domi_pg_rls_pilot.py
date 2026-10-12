@@ -488,14 +488,30 @@ def test_throttle_attempt_window_and_case_normalization(issuer_connection,auth_l
 
 
 def test_throttle_clear_failed_does_not_erase_successful(issuer_connection,auth_lookup_connection):
-    assert one(auth_lookup_connection,
-        "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
-        ("a@example.invalid",))>=0
+    # Independent fixture: a successful login must survive clearing failures.
+    email = "clear-test@example.invalid"
     with issuer_connection.cursor() as cur:
-        cur.execute("SELECT domi_auth.clear_failed_logins(%s)",("a@example.invalid",))
-    assert one(auth_lookup_connection,
-        "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
-        ("a@example.invalid",))==0
+        cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(email,False))
+        cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(email,False))
+        cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(email,True))
+    issuer_connection.commit()
+    count_sql = "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')"
+    assert one(auth_lookup_connection,count_sql,(email,)) == 2
+    with issuer_connection.cursor() as cur:
+        cur.execute("SELECT domi_auth.clear_failed_logins(%s)",(email,))
+    # PostgreSQL must hide deletion until the issuer commits.
+    assert one(auth_lookup_connection,count_sql,(email,)) == 2
+    issuer_connection.commit()
+    assert one(auth_lookup_connection,count_sql,(email,)) == 0
+    # An admin-only assertion in a disposable CI database verifies that
+    # clearing failed attempts did not erase the successful audit record.
+    admin = psycopg2.connect(DSN)
+    try:
+        assert one(admin,
+            "SELECT COUNT(*) FROM domi_pilot.auth_login_attempts WHERE email=%s AND success",
+            (email,)) == 1
+    finally:
+        admin.close()
 
 
 def test_auth_only_role_cannot_escalate_via_direct_writes(auth_lookup_connection):
