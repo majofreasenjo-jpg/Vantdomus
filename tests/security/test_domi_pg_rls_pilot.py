@@ -458,21 +458,21 @@ def test_mfa_state_visible_only_via_scoped_auth_function(auth_lookup_connection)
         assert cur.fetchone()==(0,)
 
 
-def test_recovery_token_consumed_once_even_after_commit(auth_lookup_connection):
-    auth_lookup_connection.autocommit=False
+def test_recovery_token_consumed_once_even_after_commit(issuer_connection):
+    issuer_connection.autocommit=False
     h="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a",h)) is True
-    auth_lookup_connection.commit()
-    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a",h)) is False
+    assert one(issuer_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a",h)) is True
+    issuer_connection.commit()
+    assert one(issuer_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a",h)) is False
 
 
-def test_wrong_recovery_code_rejected(auth_lookup_connection):
-    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a","invalid")) is False
-    assert one(auth_lookup_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-b","invalid")) is False
+def test_wrong_recovery_code_rejected(issuer_connection):
+    assert one(issuer_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-a","invalid")) is False
+    assert one(issuer_connection,"SELECT domi_auth.consume_recovery_code(%s,%s)",("u-b","invalid")) is False
 
 
-def test_throttle_attempt_window_and_case_normalization(auth_lookup_connection):
-    with auth_lookup_connection.cursor() as cur:
+def test_throttle_attempt_window_and_case_normalization(issuer_connection,auth_lookup_connection):
+    with issuer_connection.cursor() as cur:
         cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",(" A@EXAMPLE.INVALID ",False))
         cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",("a@example.invalid",False))
         cur.execute("SELECT domi_auth.record_login_attempt(%s,%s)",("a@example.invalid",True))
@@ -481,11 +481,11 @@ def test_throttle_attempt_window_and_case_normalization(auth_lookup_connection):
        ("a@example.invalid",))==2
 
 
-def test_throttle_clear_failed_does_not_erase_successful(auth_lookup_connection):
+def test_throttle_clear_failed_does_not_erase_successful(issuer_connection,auth_lookup_connection):
     assert one(auth_lookup_connection,
         "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
         ("a@example.invalid",))>=0
-    with auth_lookup_connection.cursor() as cur:
+    with issuer_connection.cursor() as cur:
         cur.execute("SELECT domi_auth.clear_failed_logins(%s)",("a@example.invalid",))
     assert one(auth_lookup_connection,
         "SELECT domi_auth.recent_failed_logins(%s,clock_timestamp()-interval '1 hour')",
@@ -523,14 +523,14 @@ def test_runtime_role_cannot_issue_auth_session(app_connection):
     app_connection.rollback()
 
 
-def test_auth_session_issuer_rejects_disabled_user_and_bad_expiry(auth_lookup_connection):
+def test_auth_session_issuer_rejects_disabled_user_and_bad_expiry(issuer_connection):
     import uuid
     for user,ttl in (("u-disabled",3600),("u-b",1),("u-b",100000)):
-        assert one(auth_lookup_connection,"SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+        assert one(issuer_connection,"SELECT domi_auth.issue_session(%s,%s,%s,%s)",
             (user,str(uuid.uuid4()),str(uuid.uuid4()),ttl)) is False
 
 
-def test_auth_bootstrap_login_mints_real_rls_session(auth_lookup_connection,app_connection):
+def test_auth_bootstrap_login_mints_real_rls_session(auth_lookup_connection,issuer_connection,app_connection):
     import sys
     from pathlib import Path
     project_api=str(Path(__file__).resolve().parents[2] / "apps/api")
@@ -551,7 +551,7 @@ def test_auth_bootstrap_login_mints_real_rls_session(auth_lookup_connection,app_
     app_connection.rollback()
 
 
-def test_pg_bootstrap_bad_password_does_not_mint_session(auth_lookup_connection):
+def test_pg_bootstrap_bad_password_does_not_mint_session(auth_lookup_connection,issuer_connection):
     from fastapi import HTTPException
     from app.pg_auth_bootstrap import login_postgres
     with pytest.raises(HTTPException) as fail:
@@ -563,7 +563,7 @@ def test_pg_bootstrap_bad_password_does_not_mint_session(auth_lookup_connection)
       ("b@example.invalid",))>=1
 
 
-def test_pg_bootstrap_password_without_mfa_does_not_mint_session(auth_lookup_connection):
+def test_pg_bootstrap_password_without_mfa_does_not_mint_session(auth_lookup_connection,issuer_connection):
     from fastapi import HTTPException
     from app.pg_auth_bootstrap import login_postgres
     with pytest.raises(HTTPException) as fail:
@@ -572,7 +572,7 @@ def test_pg_bootstrap_password_without_mfa_does_not_mint_session(auth_lookup_con
     assert fail.value.status_code==428
 
 
-def test_pg_bootstrap_throttles_failed_passwords(auth_lookup_connection):
+def test_pg_bootstrap_throttles_failed_passwords(auth_lookup_connection,issuer_connection):
     from fastapi import HTTPException
     from app.pg_auth_bootstrap import login_postgres
     for _ in range(5):
