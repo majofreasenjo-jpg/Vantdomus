@@ -197,7 +197,7 @@ CREATE POLICY domi_r31_memory_self_read ON public.memory_items AS PERMISSIVE FOR
    AND deleted_at IS NULL
    AND (expires_at IS NULL OR expires_at::timestamptz > pg_catalog.clock_timestamp())
    AND (inference_status IS NULL OR inference_status='confirmed')
-   AND pg_catalog.coalesce((consent_scope::jsonb -> 'visible_to') ? 'self',false)
+   AND COALESCE((consent_scope::jsonb -> 'visible_to') ? 'self',false)
    AND created_by_user_id=domi_r31.subject_id()
    AND domi_r31.household_ok(household_id,organization_id)
    AND EXISTS (
@@ -211,7 +211,7 @@ CREATE POLICY domi_r31_memory_self_insert ON public.memory_items AS PERMISSIVE F
  TO domi_app_runtime WITH CHECK (
    visibility_scope='private_self' AND sensitivity IN ('low','normal')
    AND deleted_at IS NULL AND inference_status IS NULL
-   AND pg_catalog.coalesce((consent_scope::jsonb -> 'visible_to') ? 'self',false)
+   AND COALESCE((consent_scope::jsonb -> 'visible_to') ? 'self',false)
    AND created_by_user_id=domi_r31.subject_id()
    AND domi_r31.household_ok(household_id,organization_id)
    AND EXISTS (SELECT 1 FROM public.persons p WHERE p.id=person_id
@@ -232,7 +232,7 @@ CREATE POLICY domi_r31_memory_self_update ON public.memory_items AS PERMISSIVE F
  )
  WITH CHECK (
    visibility_scope='private_self' AND sensitivity IN ('low','normal')
-   AND pg_catalog.coalesce((consent_scope::jsonb -> 'visible_to') ? 'self',false)
+   AND COALESCE((consent_scope::jsonb -> 'visible_to') ? 'self',false)
    AND created_by_user_id=domi_r31.subject_id()
    AND domi_r31.household_ok(household_id,organization_id)
    AND EXISTS (SELECT 1 FROM public.persons p WHERE p.id=person_id
