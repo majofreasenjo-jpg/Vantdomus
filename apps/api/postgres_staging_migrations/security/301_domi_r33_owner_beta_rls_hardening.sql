@@ -31,11 +31,11 @@ DECLARE v_expected text;
 DECLARE v_payload text;
 DECLARE v_now bigint;
 BEGIN
-  v_user=pg_catalog.nullif(pg_catalog.current_setting('domi.r31_subject',true),'');
-  v_jti=pg_catalog.nullif(pg_catalog.current_setting('domi.r31_jti',true),'');
-  v_issued=pg_catalog.nullif(pg_catalog.current_setting('domi.r31_issued',true),'');
-  v_nonce=pg_catalog.nullif(pg_catalog.current_setting('domi.r31_nonce',true),'');
-  v_mac=pg_catalog.nullif(pg_catalog.current_setting('domi.r31_mac',true),'');
+  v_user=NULLIF(pg_catalog.current_setting('domi.r31_subject',true),'');
+  v_jti=NULLIF(pg_catalog.current_setting('domi.r31_jti',true),'');
+  v_issued=NULLIF(pg_catalog.current_setting('domi.r31_issued',true),'');
+  v_nonce=NULLIF(pg_catalog.current_setting('domi.r31_nonce',true),'');
+  v_mac=NULLIF(pg_catalog.current_setting('domi.r31_mac',true),'');
   IF v_user IS NULL OR v_user !~ '^[A-Za-z0-9_-]{1,128}$'
      OR v_jti IS NULL OR v_jti !~ '^[A-Za-z0-9_-]{1,128}$'
      OR v_issued IS NULL OR v_issued !~ '^[0-9]{10}$'
