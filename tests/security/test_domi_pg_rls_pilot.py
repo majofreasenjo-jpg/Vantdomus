@@ -26,6 +26,7 @@ AUTH_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_lookup_pilo
 AUTH_MFA_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_mfa_pilot_v1.sql"
 AUTH_SESSION_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_session_pilot_v1.sql"
 AUTH_ROLE_SPLIT_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_role_split_pilot_v1.sql"
+AUTH_PROOF_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_proof_pilot_v1.sql"
 
 
 def _check_disposable_dsn():
@@ -55,6 +56,7 @@ def app_password():
                 cur.execute(AUTH_MFA_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_SESSION_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_ROLE_SPLIT_SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute(AUTH_PROOF_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
                 cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
                 cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
@@ -545,11 +547,17 @@ def test_runtime_role_cannot_issue_auth_session(app_connection):
     app_connection.rollback()
 
 
-def test_auth_session_issuer_rejects_disabled_user_and_bad_expiry(issuer_connection):
+def test_auth_session_issuer_rejects_disabled_user_and_bad_expiry(issuer_connection,auth_lookup_connection):
     import uuid
     for user,ttl in (("u-disabled",3600),("u-b",1),("u-b",100000)):
-        assert one(issuer_connection,"SELECT domi_auth.issue_session(%s,%s,%s,%s)",
-            (user,str(uuid.uuid4()),str(uuid.uuid4()),ttl)) is False
+        sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+        proof=one(auth_lookup_connection,
+                  "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",(user,sid,jti))
+        auth_lookup_connection.commit()
+        assert one(issuer_connection,
+          "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
+          (user,sid,jti,ttl,proof)) is False
+        issuer_connection.rollback()
 
 
 def test_auth_bootstrap_login_mints_real_rls_session(auth_lookup_connection,issuer_connection,app_connection):
@@ -653,10 +661,18 @@ def test_r23_issuer_no_privileged_flags(issuer_connection):
         "WHERE rolname=current_user") is True
 
 
-def test_r23_issuer_session_creation_remains_possible(issuer_connection):
+def test_r23_issuer_session_creation_remains_possible(issuer_connection,auth_lookup_connection):
+    # Issuer can create a legitimate session only with lookup-issued proof.
     import uuid
-    assert one(issuer_connection, "SELECT domi_auth.issue_session(%s,%s,%s,%s)",
-        ("u-b", str(uuid.uuid4()), str(uuid.uuid4()), 3600)) is True
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    proof=one(auth_lookup_connection,
+        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    assert proof
+    auth_lookup_connection.commit()
+    assert one(issuer_connection,
+        "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
+        ("u-b",sid,jti,3600,proof)) is True
+    issuer_connection.commit()
 
 
 def test_r23_lookup_cannot_write_login_attempts(auth_lookup_connection):
@@ -664,3 +680,99 @@ def test_r23_lookup_cannot_write_login_attempts(auth_lookup_connection):
         one(auth_lookup_connection,"SELECT domi_auth.record_login_attempt(%s,%s)",
             ("b@example.invalid",False))
     auth_lookup_connection.rollback()
+
+
+# R27 dual-role authorization: possession of issuer DSN alone is not login.
+def test_r27_legacy_unbound_issuer_is_revoked(issuer_connection):
+    import uuid
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(issuer_connection,"SELECT domi_auth.issue_session(%s,%s,%s,%s)",
+            ("u-b",str(uuid.uuid4()),str(uuid.uuid4()),3600))
+    issuer_connection.rollback()
+
+
+def test_r27_issuer_cannot_mint_proof(issuer_connection):
+    import uuid
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(issuer_connection,"SELECT domi_auth.prepare_session_proof(%s,%s,%s)",
+            ("u-b",str(uuid.uuid4()),str(uuid.uuid4())))
+    issuer_connection.rollback()
+
+
+def test_r27_lookup_cannot_consume_proof(auth_lookup_connection):
+    import uuid
+    with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+        one(auth_lookup_connection,
+            "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
+            ("u-b",str(uuid.uuid4()),str(uuid.uuid4()),3600,str(uuid.uuid4())))
+    auth_lookup_connection.rollback()
+
+
+def test_r27_bound_proof_cannot_be_reused(issuer_connection,auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    proof=one(auth_lookup_connection,
+        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    assert proof
+    auth_lookup_connection.commit()
+    sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
+    args=("u-b",sid,jti,3600,proof)
+    assert one(issuer_connection,sql,args) is True
+    issuer_connection.commit()
+    assert one(issuer_connection,sql,args) is False
+
+
+def test_r27_wrong_user_session_and_jti_do_not_consume_proof(issuer_connection,auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    proof=one(auth_lookup_connection,
+        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    assert proof
+    auth_lookup_connection.commit()
+    sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
+    for user,bad_sid,bad_jti in (
+       ("u-a",sid,jti),
+       ("u-b",str(uuid.uuid4()),jti),
+       ("u-b",sid,str(uuid.uuid4())),
+    ):
+        assert one(issuer_connection,sql,(user,bad_sid,bad_jti,3600,proof)) is False
+    assert one(issuer_connection,sql,("u-b",sid,jti,3600,proof)) is True
+
+
+def test_r27_expired_proof_and_bad_nonce_rejected(issuer_connection,auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    proof=one(auth_lookup_connection,
+        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    assert proof
+    auth_lookup_connection.commit()
+    sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
+    assert one(issuer_connection,sql,("u-b",sid,jti,3600,"not-a-uuid")) is False
+    assert one(issuer_connection,sql,("u-b",sid,jti,3600,None)) is False
+    admin=psycopg2.connect(DSN)
+    try:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute(
+                    "UPDATE domi_pilot.auth_session_proofs "
+                    "SET expires_at=clock_timestamp()-interval '1 second' "
+                    "WHERE proof_id=%s::uuid",(proof,))
+    finally:
+        admin.close()
+    assert one(issuer_connection,sql,("u-b",sid,jti,3600,proof)) is False
+
+
+def test_r27_proof_not_visible_before_lookup_commit(issuer_connection,auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    proof=one(auth_lookup_connection,
+        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    assert proof
+    assert one(issuer_connection,
+        "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
+        ("u-b",sid,jti,3600,proof)) is False
+    issuer_connection.rollback()
+    auth_lookup_connection.commit()
+    assert one(issuer_connection,
+        "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
+        ("u-b",sid,jti,3600,proof)) is True

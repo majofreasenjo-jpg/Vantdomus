@@ -99,18 +99,33 @@ def clear_failed_logins(auth_connection, email: str) -> None:
 
 
 
-def issue_session(auth_connection, user_id: str, session_id: str, token_jti: str, ttl_seconds: int) -> bool:
-    """Issue an opaque JWT-bound session via a narrow, audited SQL contract."""
-    cursor = auth_connection.cursor()
-    try:
+def prepare_session_proof(lookup_connection, user_id: str, session_id: str, token_jti: str) -> str | None:
+    """Mint a private 45-second one-use authorization from the lookup role.
+
+    Caller must verify bcrypt and MFA first. The issuer role cannot mint this
+    authorization even if its SQL credentials are exposed independently.
+    """
+    with lookup_connection.cursor() as cursor:
         cursor.execute(
-            "SELECT domi_auth.issue_session(%s,%s,%s,%s)",
-            (user_id, session_id, token_jti, ttl_seconds),
+            "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",
+            (user_id, session_id, token_jti),
         )
         row = cursor.fetchone()
-        return bool(row and row[0])
-    finally:
-        cursor.close()
+    return str(row[0]) if row and row[0] else None
+
+
+def issue_session(
+    issuer_connection, user_id: str, session_id: str,
+    token_jti: str, ttl_seconds: int, proof_id: str
+) -> bool:
+    """Atomically consume a subject/session/JTI-bound authorization exactly once."""
+    with issuer_connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
+            (user_id, session_id, token_jti, ttl_seconds, proof_id),
+        )
+        row = cursor.fetchone()
+    return bool(row and row[0])
 
 
 def _rotate_mfa_secret(auth_connection, user_id: str, previous: str, replacement: str) -> bool:
@@ -196,7 +211,16 @@ def login_postgres(
     token_jti = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
     token, expires_in = create_access_token(sub=user_id,email=email,jti=token_jti)
-    if not issue_session(issuer_connection,user_id,session_id,token_jti,expires_in):
+    proof_id = prepare_session_proof(auth_connection,user_id,session_id,token_jti)
+    if not proof_id:
+        auth_connection.rollback()
+        issuer_connection.rollback()
+        raise HTTPException(status_code=503, detail="Session authorization unavailable")
+    # The roles use separate PostgreSQL connections. Commit the lookup proof
+    # before consuming it in the issuer transaction; NEVER promote a signed
+    # JWT to the caller unless the bound session exists and commits.
+    auth_connection.commit()
+    if not issue_session(issuer_connection,user_id,session_id,token_jti,expires_in,proof_id):
         issuer_connection.rollback()
         raise HTTPException(status_code=503, detail="Session issuance unavailable")
     clear_failed_logins(issuer_connection,email)
