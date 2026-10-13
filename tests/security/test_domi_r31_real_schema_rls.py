@@ -13,6 +13,10 @@ import pytest
 
 psycopg2 = pytest.importorskip("psycopg2")
 DSN = os.getenv("DOMI_RLS_TEST_DSN", "")
+REQUIRED = os.getenv("DOMI_RLS_REQUIRE_LIVE", "") == "1"
+if REQUIRED and not DSN:
+    raise RuntimeError("Required R31 disposable PostgreSQL DSN missing: fail closed")
+pytestmark = pytest.mark.skipif(not DSN, reason="Dedicated disposable PostgreSQL CI job only")
 ROOT = Path(__file__).resolve().parents[2]
 MIG_DIR = ROOT / "apps/api/postgres_staging_migrations"
 UP = MIG_DIR / "security/300_domi_r31_owner_beta_rls_up.sql"
