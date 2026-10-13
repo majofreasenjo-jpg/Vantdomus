@@ -99,16 +99,58 @@ def clear_failed_logins(auth_connection, email: str) -> None:
 
 
 
-def prepare_session_proof(lookup_connection, user_id: str, session_id: str, token_jti: str) -> str | None:
-    """Mint a private 45-second one-use authorization from the lookup role.
 
-    Caller must verify bcrypt and MFA first. The issuer role cannot mint this
-    authorization even if its SQL credentials are exposed independently.
+def sign_session_attestation(
+    user_id: str, session_id: str, token_jti: str, ttl_seconds: int,
+    *, issued_epoch: int | None = None, nonce: str | None = None,
+) -> tuple[int, str, str]:
+    """Trusted-server HMAC attestation, minted only after bcrypt + MFA.
+
+    The HMAC key is distinct from the JWT signing key and SQL login passwords;
+    it is provisioned server-side and independently to the database definer
+    role. This does NOT make a compromised application server trustworthy.
     """
+    import hashlib
+    import hmac
+    import os
+    import secrets
+    import time
+
+    secret = os.getenv("DOMI_AUTH_ATTESTATION_SECRET", "")
+    if (len(secret.encode("utf-8")) < 32
+            or secret == os.getenv("JWT_SECRET", "CHANGE_ME_SUPER_SECRET")):
+        raise ValueError("Session attestation secret is missing or unsafe")
+    if not isinstance(ttl_seconds, int) or not 60 <= ttl_seconds <= 86400:
+        raise ValueError("Invalid attestation expiry")
+    # User IDs must have an unambiguous canonical representation, identical
+    # to the SQL verifier's allowlist. Signed delimiters are not user input.
+    import re
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", user_id or ""):
+        raise ValueError("Unsupported user ID for authorization")
+    if not re.fullmatch(r"[0-9a-f-]{36}", session_id or ""):
+        raise ValueError("Invalid session identifier")
+    if not re.fullmatch(r"[0-9a-f-]{36}", token_jti or ""):
+        raise ValueError("Invalid token JTI")
+    issued = int(time.time()) if issued_epoch is None else issued_epoch
+    one_time_nonce = secrets.token_hex(16) if nonce is None else nonce
+    if not isinstance(issued, int) or not re.fullmatch(r"[0-9a-f]{32}", one_time_nonce or ""):
+        raise ValueError("Invalid authorization timestamp or nonce")
+    signed = f"{user_id}|{session_id}|{token_jti}|{ttl_seconds}|{issued}|{one_time_nonce}"
+    digest = hmac.new(secret.encode("utf-8"), signed.encode("utf-8"), hashlib.sha256).hexdigest()
+    return issued, one_time_nonce, digest
+
+def prepare_session_proof(
+    lookup_connection, user_id: str, session_id: str,
+    token_jti: str, ttl_seconds: int
+) -> str | None:
+    """Prepare an HMAC-authorized proof. Bare SQL login cannot forge the HMAC."""
+    issued, nonce, signature = sign_session_attestation(
+        user_id, session_id, token_jti, ttl_seconds
+    )
     with lookup_connection.cursor() as cursor:
         cursor.execute(
-            "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",
-            (user_id, session_id, token_jti),
+            "SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",
+            (user_id, session_id, token_jti, ttl_seconds, issued, nonce, signature),
         )
         row = cursor.fetchone()
     return str(row[0]) if row and row[0] else None
@@ -211,7 +253,14 @@ def login_postgres(
     token_jti = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
     token, expires_in = create_access_token(sub=user_id,email=email,jti=token_jti)
-    proof_id = prepare_session_proof(auth_connection,user_id,session_id,token_jti)
+    try:
+        proof_id = prepare_session_proof(
+            auth_connection, user_id, session_id, token_jti, expires_in
+        )
+    except ValueError:
+        auth_connection.rollback()
+        issuer_connection.rollback()
+        raise HTTPException(status_code=503, detail="Session attestation unavailable")
     if not proof_id:
         auth_connection.rollback()
         issuer_connection.rollback()

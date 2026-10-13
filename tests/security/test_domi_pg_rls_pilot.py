@@ -27,6 +27,7 @@ AUTH_MFA_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_mfa_pil
 AUTH_SESSION_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_session_pilot_v1.sql"
 AUTH_ROLE_SPLIT_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_role_split_pilot_v1.sql"
 AUTH_PROOF_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_proof_pilot_v1.sql"
+AUTH_ATTEST_SQL_FILE = Path(__file__).resolve().parent / "sql" / "domi_auth_hmac_pilot_v1.sql"
 
 
 def _check_disposable_dsn():
@@ -57,6 +58,14 @@ def app_password():
                 cur.execute(AUTH_SESSION_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_ROLE_SPLIT_SQL_FILE.read_text(encoding="utf-8"))
                 cur.execute(AUTH_PROOF_SQL_FILE.read_text(encoding="utf-8"))
+                cur.execute(AUTH_ATTEST_SQL_FILE.read_text(encoding="utf-8"))
+                # Cryptographic test secret is random and never persisted in git.
+                secret = secrets.token_urlsafe(48)
+                cur.execute(
+                    "INSERT INTO domi_pilot.auth_attestation_secrets(key_name,secret_key) "
+                    "VALUES('active',convert_to(%s,'UTF8'))",(secret,)
+                )
+                os.environ["DOMI_AUTH_ATTESTATION_SECRET"] = secret
                 cur.execute("ALTER ROLE domi_pilot_app LOGIN PASSWORD %s", (password,))
                 cur.execute("REVOKE CONNECT ON DATABASE domi_rls_ci FROM PUBLIC")
                 cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_pilot_app")
@@ -344,6 +353,20 @@ AUTH_MOD = importlib.util.module_from_spec(AUTH_SPEC)
 AUTH_SPEC.loader.exec_module(AUTH_MOD)
 
 
+
+
+def signed_attestation_args(user_id: str, sid: str, jti: str, ttl: int = 3600,
+                             *, issued_epoch=None, nonce=None):
+    t,n,mac=AUTH_MOD.sign_session_attestation(user_id,sid,jti,ttl,
+        issued_epoch=issued_epoch,nonce=nonce)
+    return (user_id,sid,jti,ttl,t,n,mac)
+
+
+def prepare_signed_proof(conn,user_id,sid,jti,ttl: int = 3600,
+                         *, issued_epoch=None, nonce=None):
+    args=signed_attestation_args(user_id,sid,jti,ttl,issued_epoch=issued_epoch,nonce=nonce)
+    return one(conn,"SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",args)
+
 @pytest.fixture(scope="module")
 def auth_lookup_password(app_password):
     import bcrypt
@@ -551,8 +574,7 @@ def test_auth_session_issuer_rejects_disabled_user_and_bad_expiry(issuer_connect
     import uuid
     for user,ttl in (("u-disabled",3600),("u-b",1),("u-b",100000)):
         sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
-        proof=one(auth_lookup_connection,
-                  "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",(user,sid,jti))
+        proof=prepare_signed_proof(auth_lookup_connection,user,sid,jti)
         auth_lookup_connection.commit()
         assert one(issuer_connection,
           "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
@@ -665,8 +687,7 @@ def test_r23_issuer_session_creation_remains_possible(issuer_connection,auth_loo
     # Issuer can create a legitimate session only with lookup-issued proof.
     import uuid
     sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
-    proof=one(auth_lookup_connection,
-        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    proof=prepare_signed_proof(auth_lookup_connection,"u-b",sid,jti)
     assert proof
     auth_lookup_connection.commit()
     assert one(issuer_connection,
@@ -693,9 +714,10 @@ def test_r27_legacy_unbound_issuer_is_revoked(issuer_connection):
 
 def test_r27_issuer_cannot_mint_proof(issuer_connection):
     import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    args=signed_attestation_args("u-b",sid,jti)
     with pytest.raises(psycopg2.errors.InsufficientPrivilege):
-        one(issuer_connection,"SELECT domi_auth.prepare_session_proof(%s,%s,%s)",
-            ("u-b",str(uuid.uuid4()),str(uuid.uuid4())))
+        one(issuer_connection,"SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",args)
     issuer_connection.rollback()
 
 
@@ -711,8 +733,7 @@ def test_r27_lookup_cannot_consume_proof(auth_lookup_connection):
 def test_r27_bound_proof_cannot_be_reused(issuer_connection,auth_lookup_connection):
     import uuid
     sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
-    proof=one(auth_lookup_connection,
-        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    proof=prepare_signed_proof(auth_lookup_connection,"u-b",sid,jti)
     assert proof
     auth_lookup_connection.commit()
     sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
@@ -725,8 +746,7 @@ def test_r27_bound_proof_cannot_be_reused(issuer_connection,auth_lookup_connecti
 def test_r27_wrong_user_session_and_jti_do_not_consume_proof(issuer_connection,auth_lookup_connection):
     import uuid
     sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
-    proof=one(auth_lookup_connection,
-        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    proof=prepare_signed_proof(auth_lookup_connection,"u-b",sid,jti)
     assert proof
     auth_lookup_connection.commit()
     sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
@@ -742,8 +762,7 @@ def test_r27_wrong_user_session_and_jti_do_not_consume_proof(issuer_connection,a
 def test_r27_expired_proof_and_bad_nonce_rejected(issuer_connection,auth_lookup_connection):
     import uuid
     sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
-    proof=one(auth_lookup_connection,
-        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    proof=prepare_signed_proof(auth_lookup_connection,"u-b",sid,jti)
     assert proof
     auth_lookup_connection.commit()
     sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
@@ -765,8 +784,7 @@ def test_r27_expired_proof_and_bad_nonce_rejected(issuer_connection,auth_lookup_
 def test_r27_proof_not_visible_before_lookup_commit(issuer_connection,auth_lookup_connection):
     import uuid
     sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
-    proof=one(auth_lookup_connection,
-        "SELECT domi_auth.prepare_session_proof(%s,%s,%s)",("u-b",sid,jti))
+    proof=prepare_signed_proof(auth_lookup_connection,"u-b",sid,jti)
     assert proof
     assert one(issuer_connection,
         "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
@@ -776,3 +794,107 @@ def test_r27_proof_not_visible_before_lookup_commit(issuer_connection,auth_looku
     assert one(issuer_connection,
         "SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)",
         ("u-b",sid,jti,3600,proof)) is True
+
+
+
+# R28: server-only HMAC attestation closes R27's arbitrary-ID minting flaw.
+def test_r28_legacy_unsigned_proof_function_dropped(auth_lookup_connection):
+    import uuid
+    with pytest.raises(psycopg2.errors.UndefinedFunction):
+        one(auth_lookup_connection,"SELECT domi_auth.prepare_session_proof(%s,%s,%s)",
+            ("u-b",str(uuid.uuid4()),str(uuid.uuid4())))
+    auth_lookup_connection.rollback()
+
+
+def test_r28_lookup_without_correct_hmac_cannot_mint_proof(auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    args=list(signed_attestation_args("u-b",sid,jti))
+    for invalid in ("0"*64,None,"bad"):
+        args[-1]=invalid
+        assert one(auth_lookup_connection,
+            "SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",tuple(args)) is None
+
+
+def test_r28_hmac_cannot_be_transplanted_between_users_ttl_or_session(auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    good=signed_attestation_args("u-b",sid,jti)
+    cases=[
+       ("u-a",)+good[1:],
+       good[:3]+(7200,)+good[4:],
+       (good[0],str(uuid.uuid4()))+good[2:],
+       good[:2]+(str(uuid.uuid4()),)+good[3:],
+    ]
+    for args in cases:
+        assert one(auth_lookup_connection,
+            "SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",args) is None
+
+
+def test_r28_hmac_expired_future_or_changed_nonce_denied(auth_lookup_connection):
+    import time,uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    for epoch in (int(time.time())-100,int(time.time())+120):
+        args=signed_attestation_args("u-b",sid,jti,issued_epoch=epoch)
+        assert one(auth_lookup_connection,
+            "SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",args) is None
+    args=list(signed_attestation_args("u-b",sid,jti))
+    args[-2]="f"*32
+    assert one(auth_lookup_connection,
+        "SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)",tuple(args)) is None
+
+
+def test_r28_proof_signed_message_cannot_be_minted_twice(auth_lookup_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    args=signed_attestation_args("u-b",sid,jti)
+    sql="SELECT domi_auth.prepare_session_proof(%s,%s,%s,%s,%s,%s,%s)"
+    assert one(auth_lookup_connection,sql,args)
+    assert one(auth_lookup_connection,sql,args) is None
+
+
+def test_r28_hmac_secret_inaccessible_to_lookup_and_issuer(auth_lookup_connection,issuer_connection):
+    for conn in (auth_lookup_connection,issuer_connection):
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+            one(conn,"SELECT count(*) FROM domi_pilot.auth_attestation_secrets")
+        conn.rollback()
+
+
+def test_r28_issuer_cannot_increase_signed_session_ttl(auth_lookup_connection,issuer_connection):
+    import uuid
+    sid,jti=str(uuid.uuid4()),str(uuid.uuid4())
+    proof=prepare_signed_proof(auth_lookup_connection,"u-b",sid,jti,1800)
+    assert proof
+    auth_lookup_connection.commit()
+    sql="SELECT domi_auth.issue_session_bound(%s,%s,%s,%s,%s)"
+    assert one(issuer_connection,sql,("u-b",sid,jti,3600,proof)) is False
+    assert one(issuer_connection,sql,("u-b",sid,jti,1800,proof)) is True
+
+
+def test_r28_bad_password_does_not_create_signed_proof(auth_lookup_connection,issuer_connection):
+    from fastapi import HTTPException
+    from app.pg_auth_bootstrap import login_postgres
+    admin=psycopg2.connect(DSN)
+    try:
+        before=one(admin,"SELECT count(*) FROM domi_pilot.auth_session_proofs")
+        with pytest.raises(HTTPException) as fail:
+            login_postgres(auth_lookup_connection,issuer_connection,
+                "b@example.invalid","incorrect-password",None,max_attempts=5,window_seconds=900)
+        assert fail.value.status_code==401
+        after=one(admin,"SELECT count(*) FROM domi_pilot.auth_session_proofs")
+        assert before==after
+    finally:
+        admin.close()
+
+
+def test_r28_missing_server_key_fails_closed(monkeypatch,auth_lookup_connection,issuer_connection):
+    import uuid
+    from fastapi import HTTPException
+    from app.pg_auth_bootstrap import login_postgres
+    monkeypatch.delenv("DOMI_AUTH_ATTESTATION_SECRET",raising=False)
+    with pytest.raises(HTTPException) as failure:
+        login_postgres(auth_lookup_connection,issuer_connection,
+            "b@example.invalid","R15-local-synthetic-passphrase",None,
+            max_attempts=5,window_seconds=900)
+    assert failure.value.status_code==503
+
