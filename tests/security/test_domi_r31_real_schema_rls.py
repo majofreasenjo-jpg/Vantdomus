@@ -7,6 +7,8 @@ access another household's private memory, and safe rollback stays closed.
 from __future__ import annotations
 
 import os
+import secrets
+import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 import pytest
@@ -20,7 +22,12 @@ pytestmark = pytest.mark.skipif(not DSN, reason="Dedicated disposable PostgreSQL
 ROOT = Path(__file__).resolve().parents[2]
 MIG_DIR = ROOT / "apps/api/postgres_staging_migrations"
 UP = MIG_DIR / "security/300_domi_r31_owner_beta_rls_up.sql"
+HARDEN = MIG_DIR / "security/301_domi_r33_owner_beta_rls_hardening.sql"
 DOWN = MIG_DIR / "security/300_domi_r31_owner_beta_rls_safe_rollback.sql"
+API_PATH = str(ROOT / "apps/api")
+if API_PATH not in sys.path:
+    sys.path.insert(0,API_PATH)
+from app.pg_rls_context import bind_signed_rls_context
 ALL = ["000_110_part_a.sql", "120_260_part_b.sql", "270_287_part_c.sql"]
 
 
@@ -50,6 +57,13 @@ def admin():
                     cur.execute((MIG_DIR / name).read_text(encoding="utf8"))
                 assert scalar(conn, "SELECT COUNT(*) FROM pg_tables WHERE schemaname='public'") == 57
                 cur.execute(UP.read_text(encoding="utf8"))
+                cur.execute(HARDEN.read_text(encoding="utf8"))
+                secret=secrets.token_urlsafe(48)
+                os.environ["DOMI_RLS_CONTEXT_SECRET"]=secret
+                cur.execute(
+                    "INSERT INTO domi_r31.context_secrets(key_name,secret_key) "
+                    "VALUES('active',convert_to(%s,'UTF8'))",(secret,)
+                )
                 for uid in ("u-a","u-b"):
                     cur.execute("INSERT INTO users(id,email,password_hash,is_active,created_at) "
                                 "VALUES(%s,%s,'synthetic',1,'2026-10-13T00:00:00Z')",
@@ -82,8 +96,12 @@ def as_runtime(admin, uid, jti=None):
             self.conn.autocommit=False
             with self.conn.cursor() as cur:
                 cur.execute("SET LOCAL ROLE domi_app_runtime")
-                cur.execute("SELECT set_config('domi.r31_subject',%s,true)",(uid,))
-                cur.execute("SELECT set_config('domi.r31_jti',%s,true)",(jti or 'jti-'+uid,))
+                if uid:
+                    self.signed=bind_signed_rls_context(
+                        self.conn,uid,jti or 'jti-'+uid
+                    )
+                else:
+                    self.signed=False
             return self.conn
         def __exit__(self,*_):
             self.conn.rollback()
@@ -132,8 +150,7 @@ def test_sensitive_auth_and_other_domains_closed(admin):
             conn.rollback()
             with conn.cursor() as cur:
                 cur.execute("SET LOCAL ROLE domi_app_runtime")
-                cur.execute("SELECT set_config('domi.r31_subject','u-a',true)")
-                cur.execute("SELECT set_config('domi.r31_jti','jti-u-a',true)")
+                assert bind_signed_rls_context(conn,"u-a","jti-u-a")
 
 
 def test_owner_cannot_insert_cross_household_memory(admin):
@@ -159,6 +176,99 @@ def test_expiry_and_soft_delete_fail_closed(admin):
     with as_runtime(admin,"u-a") as conn:
         assert scalar(conn,"SELECT count(*) FROM public.memory_items")==0
 
+
+
+
+def test_r33_changing_guc_to_other_user_cannot_impersonate(admin):
+    with as_runtime(admin,"u-a") as conn:
+        assert scalar(conn,"SELECT COUNT(*) FROM public.memory_items")==1
+        with conn.cursor() as cur:
+            cur.execute("SELECT set_config('domi.r31_subject','u-b',true)")
+            cur.execute("SELECT set_config('domi.r31_jti','jti-u-b',true)")
+        assert scalar(conn,"SELECT COUNT(*) FROM public.memory_items")==0
+
+
+def test_r33_unsigned_guc_alone_cannot_read_private_memory(admin):
+    with as_runtime(admin,"") as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT set_config('domi.r31_subject','u-a',true)")
+            cur.execute("SELECT set_config('domi.r31_jti','jti-u-a',true)")
+        assert scalar(conn,"SELECT COUNT(*) FROM public.memory_items")==0
+
+
+def test_r33_transaction_replay_fails_after_rollback(admin):
+    with as_runtime(admin,"u-a") as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT current_setting('domi.r31_issued'),"
+                        "current_setting('domi.r31_nonce'),current_setting('domi.r31_mac')")
+            issued,nonce,mac=cur.fetchone()
+        conn.rollback()
+        with conn.cursor() as cur:
+            cur.execute("SET LOCAL ROLE domi_app_runtime")
+            for key,val in (
+                ("domi.r31_subject","u-a"),("domi.r31_jti","jti-u-a"),
+                ("domi.r31_issued",issued),("domi.r31_nonce",nonce),
+                ("domi.r31_mac",mac),
+            ):
+                cur.execute("SELECT set_config(%s,%s,true)",(key,val))
+        assert scalar(conn,"SELECT COUNT(*) FROM public.memory_items")==0
+
+
+def test_r33_direct_privacy_and_authority_updates_denied(admin):
+    with as_runtime(admin,"u-a") as conn:
+        for column,value in (
+            ("consent_scope",'{"visible_to":["self","household"]}'),
+            ("visibility_scope","household_shared"),
+            ("created_by_user_id","u-b"),
+            ("inference_status","confirmed"),
+            ("person_id","p-u-b"),
+        ):
+            with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE public.memory_items SET "+column+"=%s WHERE id='m-u-a'",(value,)
+                    )
+            conn.rollback()
+            with conn.cursor() as cur:
+                cur.execute("SET LOCAL ROLE domi_app_runtime")
+            assert bind_signed_rls_context(conn,"u-a","jti-u-a")
+
+
+def test_r33_private_content_correction_remains_allowed(admin):
+    with as_runtime(admin,"u-a") as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE public.memory_items SET content=%s,updated_at=%s WHERE id='m-u-a'",
+                ("fictional:corrected","2026-10-13T12:00:00Z")
+            )
+            assert cur.rowcount==1
+            cur.execute("SELECT content FROM public.memory_items WHERE id='m-u-a'")
+            assert cur.fetchone()[0]=="fictional:corrected"
+
+
+def test_r33_consented_memory_cannot_enable_doctor_sharing(admin):
+    with as_runtime(admin,"u-a") as conn:
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege,match="row-level security"):
+            with conn.cursor() as cur:
+                cur.execute(
+                  "INSERT INTO public.memory_items(id,person_id,household_id,memory_type,"
+                  "content,importance,consent_scope,visibility_scope,created_by_user_id,"
+                  "created_at,updated_at) VALUES "
+                  "('m-bad','p-u-a','h-u-a','preference','fictional:bad',0.5,"
+                  "'{\"visible_to\":[\"self\"],\"shareable_with_doctor\":true}',"
+                  "'private_self','u-a','2026-10-13T12:00:00Z','2026-10-13T12:00:00Z')"
+                )
+
+
+def test_r33_runtime_cannot_see_signing_secret_or_become_owner(admin):
+    with as_runtime(admin,"u-a") as conn:
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+            scalar(conn,"SELECT COUNT(*) FROM domi_r31.context_secrets")
+        conn.rollback()
+        with conn.cursor() as cur:
+            cur.execute("SET LOCAL ROLE domi_app_runtime")
+            with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+                cur.execute("SET ROLE domi_r31_auth_owner")
 
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
