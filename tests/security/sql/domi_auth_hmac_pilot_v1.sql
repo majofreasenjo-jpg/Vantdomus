@@ -47,7 +47,7 @@ BEGIN
     OR p_nonce IS NULL OR p_nonce !~ '^[0-9a-f]{32}$'
     OR p_signature IS NULL OR p_signature !~ '^[0-9a-f]{64}$'
  THEN RETURN NULL; END IF;
- v_clock=pg_catalog.floor(pg_catalog.extract(epoch FROM pg_catalog.clock_timestamp()))::bigint;
+ v_clock=pg_catalog.floor(pg_catalog.date_part('epoch',pg_catalog.clock_timestamp()))::bigint;
  IF p_issued_epoch < v_clock-45 OR p_issued_epoch>v_clock+5
  THEN RETURN NULL; END IF;
  SELECT k.secret_key INTO v_key FROM domi_pilot.auth_attestation_secrets k
