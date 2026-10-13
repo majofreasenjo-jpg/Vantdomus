@@ -611,8 +611,13 @@ def login(
     mfa_code: str | None = None,
     db=Depends(get_login_db),
 ):
-    # Accept credentials from JSON body (preferred) or legacy query params
-    # (deprecated). See _resolve_credentials for rationale.
+    # PostgreSQL authentication is strict JSON-only; deny any URL credentials
+    # before parsing or routing them into credential resolution and logging.
+    if isinstance(db, PgBootstrapAuthConnection) and (
+        body is None or email is not None or password is not None or mfa_code is not None
+    ):
+        raise HTTPException(status_code=400, detail="JSON-only login required")
+    # SQLite compatibility: legacy query params remain deprecated.
     body_email = body.email if body else None
     body_password = body.password if body else None
     body_mfa = body.mfa_code if body else None
@@ -626,8 +631,6 @@ def login(
     if isinstance(db, PgBootstrapAuthConnection):
         # PostgreSQL login never receives credentials in query parameters:
         # they leak into browser history, reverse proxies and access logs.
-        if body is None:
-            raise HTTPException(status_code=400, detail="JSON login body required")
         return login_postgres(
             db.conn, db.issuer_conn, email, password, mfa_code,
             max_attempts=max_attempts, window_seconds=_window_seconds,
