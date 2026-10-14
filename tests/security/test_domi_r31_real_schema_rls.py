@@ -29,6 +29,9 @@ if API_PATH not in sys.path:
     sys.path.insert(0,API_PATH)
 from app.pg_rls_context import bind_signed_rls_context
 ALL = ["000_110_part_a.sql", "120_260_part_b.sql", "270_287_part_c.sql"]
+# A real LOGIN identity, not the fixture's PostgreSQL superuser. Never store
+# this randomly generated CI-only password in GitHub or public logs.
+_CI_RUNTIME_PASSWORD = None
 
 
 def checked():
@@ -47,6 +50,7 @@ def scalar(conn, query, params=()):
 
 @pytest.fixture(scope="module")
 def admin():
+    global _CI_RUNTIME_PASSWORD
     checked()
     conn=psycopg2.connect(DSN)
     try:
@@ -58,6 +62,17 @@ def admin():
                 assert scalar(conn, "SELECT COUNT(*) FROM pg_tables WHERE schemaname='public'") == 57
                 cur.execute(UP.read_text(encoding="utf8"))
                 cur.execute(HARDEN.read_text(encoding="utf8"))
+                # Privilege-escalation negatives MUST run as a genuine SQL
+                # LOGIN without superuser/BYPASS/CREATEROLE inheritance.
+                # SET ROLE from postgres would invalidate those tests.
+                _CI_RUNTIME_PASSWORD=secrets.token_urlsafe(48)
+                cur.execute(
+                    "CREATE ROLE domi_r31_ci_client LOGIN NOINHERIT "
+                    "NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB "
+                    "NOREPLICATION PASSWORD %s", (_CI_RUNTIME_PASSWORD,)
+                )
+                cur.execute("GRANT domi_app_runtime TO domi_r31_ci_client")
+                cur.execute("GRANT CONNECT ON DATABASE domi_rls_ci TO domi_r31_ci_client")
                 secret=secrets.token_urlsafe(48)
                 os.environ["DOMI_RLS_CONTEXT_SECRET"]=secret
                 cur.execute(
@@ -92,7 +107,10 @@ def admin():
 def as_runtime(admin, uid, jti=None):
     class Context:
         def __enter__(self):
-            self.conn=psycopg2.connect(DSN)
+            assert _CI_RUNTIME_PASSWORD is not None
+            self.conn=psycopg2.connect(
+                DSN,user="domi_r31_ci_client",password=_CI_RUNTIME_PASSWORD
+            )
             self.conn.autocommit=False
             with self.conn.cursor() as cur:
                 cur.execute("SET LOCAL ROLE domi_app_runtime")
@@ -165,16 +183,23 @@ def test_owner_cannot_insert_cross_household_memory(admin):
 
 
 def test_expiry_and_soft_delete_fail_closed(admin):
-    with admin:
-        with admin.cursor() as cur:
-            cur.execute("UPDATE memory_items SET expires_at='2020-01-01T00:00:00Z' WHERE id='m-u-a'")
-    with as_runtime(admin,"u-a") as conn:
-        assert scalar(conn,"SELECT count(*) FROM public.memory_items")==0
-    with admin:
-        with admin.cursor() as cur:
-            cur.execute("UPDATE memory_items SET expires_at=NULL,deleted_at='2026-10-13T00:00:00Z' WHERE id='m-u-a'")
-    with as_runtime(admin,"u-a") as conn:
-        assert scalar(conn,"SELECT count(*) FROM public.memory_items")==0
+    # Preserve module-scoped fixtures for later positive tests. Always
+    # restore the fictional memory after both negative assertions.
+    try:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("UPDATE memory_items SET expires_at='2020-01-01T00:00:00Z' WHERE id='m-u-a'")
+        with as_runtime(admin,"u-a") as conn:
+            assert scalar(conn,"SELECT count(*) FROM public.memory_items")==0
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("UPDATE memory_items SET expires_at=NULL,deleted_at='2026-10-13T00:00:00Z' WHERE id='m-u-a'")
+        with as_runtime(admin,"u-a") as conn:
+            assert scalar(conn,"SELECT count(*) FROM public.memory_items")==0
+    finally:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("UPDATE memory_items SET expires_at=NULL,deleted_at=NULL WHERE id='m-u-a'")
 
 
 
@@ -262,6 +287,11 @@ def test_r33_consented_memory_cannot_enable_doctor_sharing(admin):
 
 def test_r33_runtime_cannot_see_signing_secret_or_become_owner(admin):
     with as_runtime(admin,"u-a") as conn:
+        assert scalar(conn,"SELECT session_user")=="domi_r31_ci_client"
+        assert scalar(conn,"SELECT current_user")=="domi_app_runtime"
+        assert scalar(conn,
+            "SELECT rolsuper OR rolbypassrls OR rolcreaterole FROM pg_roles "
+            "WHERE rolname=session_user") is False
         with pytest.raises(psycopg2.errors.InsufficientPrivilege):
             scalar(conn,"SELECT COUNT(*) FROM domi_r31.context_secrets")
         conn.rollback()
@@ -270,12 +300,36 @@ def test_r33_runtime_cannot_see_signing_secret_or_become_owner(admin):
             with pytest.raises(psycopg2.errors.InsufficientPrivilege):
                 cur.execute("SET ROLE domi_r31_auth_owner")
 
+
+def test_r35_runtime_login_is_not_superuser_or_rls_bypass(admin):
+    # Proves the test operator cannot use its login privilege to impersonate
+    # the migration owner even after a transaction rollback.
+    with as_runtime(admin,"u-a") as conn:
+        assert scalar(conn,"SELECT session_user")=="domi_r31_ci_client"
+        assert scalar(conn,"SELECT current_user")=="domi_app_runtime"
+        conn.rollback()
+        assert scalar(conn,"SELECT current_user")=="domi_r31_ci_client"
+        assert scalar(conn,
+            "SELECT rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb "
+            "FROM pg_roles WHERE rolname=current_user") is False
+        with conn.cursor() as cur:
+            with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+                cur.execute("SET ROLE domi_r31_auth_owner")
+
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:
             cur.execute(DOWN.read_text(encoding="utf8"))
     assert scalar(admin,"SELECT COUNT(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
                   "WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity")==57
-    with as_runtime(admin,"u-b") as conn:
+    # After rollback the signer itself is revoked; this must be visible as
+    # an explicit denial, not an unexpected fixture setup exception.
+    with as_runtime(admin,"") as conn:
+        with pytest.raises(psycopg2.errors.InsufficientPrivilege):
+            bind_signed_rls_context(conn,"u-b","jti-u-b")
+        conn.rollback()
+        with conn.cursor() as cur:
+            cur.execute("SET LOCAL ROLE domi_app_runtime")
         with pytest.raises(psycopg2.errors.InsufficientPrivilege):
             scalar(conn,"SELECT count(*) FROM public.memory_items")
