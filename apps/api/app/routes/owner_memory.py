@@ -56,6 +56,28 @@ def _require_owner_memory_enabled(db, user: dict) -> str:
     return subject
 
 
+
+@router.get("/persons")
+def list_owner_memory_persons(
+    response: Response,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Minimal authorized person picker; no household or org IDs disclosed."""
+    user_id = _require_owner_memory_enabled(db, user)
+    rows = db.execute(
+        "SELECT id,display_name FROM public.persons WHERE user_id=? "
+        "ORDER BY display_name,id LIMIT 20", (user_id,),
+    ).fetchall()
+    response.headers["Cache-Control"] = "no-store"
+    return {
+        "items": [
+            {"id":row["id"],"name":row["display_name"]}
+            for row in rows
+        ]
+    }
+
+
 @router.get("/private")
 def list_private_memories(
     response: Response,

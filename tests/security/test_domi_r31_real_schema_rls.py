@@ -565,6 +565,23 @@ def test_r39_chat_experimental_route_never_runs_in_production(r38_http,monkeypat
         headers=_r38_token("u-a","jti-u-a"),json=_r39_body())
     assert r.status_code==503
 
+
+def test_r40_owner_person_picker_uses_signed_rls(r38_http):
+    a=r38_http.get("/owner-beta/memory/persons",headers=_r38_token("u-a","jti-u-a"))
+    b=r38_http.get("/owner-beta/memory/persons",headers=_r38_token("u-b","jti-u-b"))
+    assert a.status_code==200 and b.status_code==200
+    assert a.headers["Cache-Control"]=="no-store"
+    assert [v["id"] for v in a.json()["items"]]==["p-u-a"]
+    assert [v["id"] for v in b.json()["items"]]==["p-u-b"]
+    assert all(set(v)=={"id","name"} for v in a.json()["items"])
+
+
+def test_r40_person_picker_denies_unsigned_and_invalid_sessions(r38_http):
+    assert r38_http.get("/owner-beta/memory/persons").status_code==401
+    assert r38_http.get("/owner-beta/memory/persons",
+        headers=_r38_token("u-a","wrong-jti")).status_code==401
+
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:
