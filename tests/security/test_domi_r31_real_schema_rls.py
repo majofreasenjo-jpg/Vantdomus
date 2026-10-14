@@ -349,6 +349,107 @@ def test_r36_signed_runtime_rejects_unprivileged_but_unverified_user(admin):
         wrapped.close()
 
 
+# R38 HTTP proof: real FastAPI dependency graph + signed JWT + PostgreSQL RLS.
+# This is a disposable HTTP TestClient, NOT an external owner-device test.
+@pytest.fixture
+def r38_http(admin, monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from app.deps import get_db
+    from app.db import PostgresConnectionWrapper
+    from app.routes.owner_memory import router
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "JWT_SECRET", "r38-ci-only-strong-jwt-signing-key-fake-2026")
+    monkeypatch.setenv("DOMI_ENABLE_OWNER_PG_MEMORY", "1")
+    monkeypatch.setenv("DOMI_ENABLE_SIGNED_RLS_RUNTIME", "1")
+    monkeypatch.setenv("DOMI_ENABLE_PG_AUTH_LOGIN", "1")
+    monkeypatch.setenv("APP_ENV", "local")
+
+    def isolated_pg():
+        raw = psycopg2.connect(
+            DSN, user="domi_r31_ci_client", password=_CI_RUNTIME_PASSWORD,
+        )
+        db = PostgresConnectionWrapper(raw, signed_rls=True)
+        try:
+            yield db
+        finally:
+            db.close()
+
+    http_app = FastAPI()
+    http_app.include_router(router)
+    http_app.dependency_overrides[get_db] = isolated_pg
+    with TestClient(http_app) as client:
+        yield client
+
+
+def _r38_token(user_id: str, jti: str) -> dict:
+    from app.security import create_access_token
+    token, _ = create_access_token(user_id, user_id+"@example.invalid",jti=jti)
+    return {"Authorization":"Bearer "+token}
+
+
+def test_r38_http_requires_signed_bearer(r38_http):
+    url="/owner-beta/memory/private"
+    assert r38_http.get(url).status_code==401
+    assert r38_http.get(url,headers={"Authorization":"Bearer invalid"}).status_code==401
+    assert r38_http.get(url,headers=_r38_token("u-a","wrong-jti")).status_code==401
+
+
+def test_r38_http_private_memory_survives_new_request_and_db_connection(r38_http):
+    url="/owner-beta/memory/private"
+    owner=_r38_token("u-a","jti-u-a")
+    data={"person_id":"p-u-a","content":"fictional:R38 memory continuity marker"}
+    created=r38_http.post(url,headers=owner,json=data)
+    assert created.status_code==201, created.text
+    memory_id=created.json()["id"]
+    # Next request obtains a NEW PostgreSQL SQL connection and transaction.
+    reopened=r38_http.get(url,headers=owner)
+    assert reopened.status_code==200, reopened.text
+    assert reopened.headers["Cache-Control"]=="no-store"
+    assert any(row["id"]==memory_id and row["content"]==data["content"]
+               for row in reopened.json()["items"])
+
+
+def test_r38_http_cross_household_memory_never_visible(r38_http):
+    url="/owner-beta/memory/private"
+    a=r38_http.get(url,headers=_r38_token("u-a","jti-u-a"))
+    b=r38_http.get(url,headers=_r38_token("u-b","jti-u-b"))
+    assert a.status_code==200 and b.status_code==200
+    assert all(row["content"]!="fictional:R38 memory continuity marker"
+               for row in b.json()["items"])
+    assert all(row["id"]!="m-u-b" for row in a.json()["items"])
+    # The owner cannot post against another household/person either.
+    forbidden=r38_http.post(url,headers=_r38_token("u-a","jti-u-a"),
+        json={"person_id":"p-u-b","content":"fictional:cross-home"})
+    assert forbidden.status_code==404
+
+
+def test_r38_http_client_cannot_change_consent_or_owner(r38_http):
+    url="/owner-beta/memory/private"
+    result=r38_http.post(url,headers=_r38_token("u-a","jti-u-a"),
+      json={
+        "person_id":"p-u-a","content":"fictional:R38",
+        "visibility_scope":"household_shared",
+      })
+    assert result.status_code==422
+
+
+def test_r38_http_private_memory_feature_off_is_closed(r38_http,monkeypatch):
+    monkeypatch.setenv("DOMI_ENABLE_OWNER_PG_MEMORY","0")
+    url="/owner-beta/memory/private"
+    resp=r38_http.get(url,headers=_r38_token("u-a","jti-u-a"))
+    assert resp.status_code==503
+    assert not resp.json().get("items")
+
+
+def test_r38_http_private_memory_rejects_production_mode(r38_http,monkeypatch):
+    monkeypatch.setenv("APP_ENV","production")
+    resp=r38_http.get("/owner-beta/memory/private",
+        headers=_r38_token("u-a","jti-u-a"))
+    assert resp.status_code==503
+
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:

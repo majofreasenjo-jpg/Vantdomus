@@ -38,6 +38,7 @@ from .routes import (
     tasks,
     unit_functions,
     unit_function_responsibles,
+    owner_memory,
     vantguide_library,
     vision,
 )
@@ -193,6 +194,7 @@ def healthcheck():
 
 
 app.include_router(auth.router)
+app.include_router(owner_memory.router)
 app.include_router(auth_oauth.router)
 app.include_router(households.router)
 app.include_router(guardians.router)
