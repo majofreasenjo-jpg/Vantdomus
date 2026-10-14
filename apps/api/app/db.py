@@ -86,9 +86,9 @@ class PostgresCursorWrapper:
         return self.cur.rowcount
 
 class PostgresConnectionWrapper:
-    def __init__(self, pg_conn):
+    def __init__(self, pg_conn, *, signed_rls: bool = False):
         self.conn = pg_conn
-        self._auth_context = PgSessionContext(pg_conn)
+        self._auth_context = PgSessionContext(pg_conn, signed_rls=signed_rls)
 
     def bind_verified_session(self, user_id: str, token_jti: str) -> bool:
         """Called only after the API cryptographically validates a bearer JWT."""
@@ -124,13 +124,16 @@ class PostgresConnectionWrapper:
 def connect():
     db_url = settings.DATABASE_URL or os.getenv("DATABASE_URL")
     if db_url and (db_url.startswith("postgres://") or db_url.startswith("postgresql://")):
+        signed_rls = os.getenv("DOMI_ENABLE_SIGNED_RLS_RUNTIME", "") == "1"
+        if signed_rls and os.getenv("DOMI_ENABLE_PG_AUTH_LOGIN", "") != "1":
+            raise RuntimeError("Signed RLS runtime requires explicitly enabled restricted PostgreSQL authentication")
         if not psycopg2:
             raise ImportError("psycopg2-binary is required for Postgres.")
         if "sslmode" not in db_url:
             db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
         try:
             conn = psycopg2.connect(db_url)
-            return PostgresConnectionWrapper(conn)
+            return PostgresConnectionWrapper(conn, signed_rls=signed_rls)
         except Exception as e:
             print(f"DATABASE CONNECTION ERROR: {e}")
             raise e
