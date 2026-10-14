@@ -59,7 +59,7 @@ export default function OwnerPrivateClient() {
     setBusy(true);setError("");
     try {
       const result=await ownerBetaChatWithMemory(text,true);
-      setMessages(old: Message[] => [...old,{sender:"me",text},{sender:"domi",text:result.reply}].slice(-20) as Message[]);
+      setMessages(old => [...old,{sender:"me" as const,text},{sender:"domi" as const,text:result.reply}].slice(-20));
       setQuestion("");
       setConsent(false);
     } catch {
