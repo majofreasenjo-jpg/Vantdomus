@@ -255,10 +255,14 @@ def test_separate_connections_cannot_inherit_identity(app_connection, app_passwo
 
 # R11: exercise the actual transaction-scoped Python runtime component
 # against the restricted PostgreSQL login used by all the R10 tests.
-SESSION_MODULE = Path(__file__).resolve().parents[2] / "apps/api/app/pg_session_context.py"
-SESSION_SPEC = importlib.util.spec_from_file_location("domi_pg_session_context", SESSION_MODULE)
-SESSION_MOD = importlib.util.module_from_spec(SESSION_SPEC)
-SESSION_SPEC.loader.exec_module(SESSION_MOD)
+# Import the application module by its real package name. A direct
+# importlib.spec_from_file_location() load loses package context, breaking
+# legitimate relative imports in pg_session_context.py.
+import sys
+APP_PATH = str(Path(__file__).resolve().parents[2] / "apps/api")
+if APP_PATH not in sys.path:
+    sys.path.insert(0,APP_PATH)
+import app.pg_session_context as SESSION_MOD
 
 
 def test_runtime_context_rebinds_after_commit(app_connection):
