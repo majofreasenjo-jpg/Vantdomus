@@ -53,6 +53,31 @@ def _require_owner_memory_enabled(db, user: dict) -> str:
         or identity[1] != user.get("jti")
     ):
         raise HTTPException(status_code=401, detail="Verified session required")
+    # Fail closed if any public table lacks RLS, FORCE RLS or a policy,
+    # or if the real 57-table schema differs from the vetted inventory.
+    # This runtime admission test prevents accidentally connecting the
+    # experimental Owner routes to an unprotected Neon branch.
+    try:
+        status = db.execute(
+            "SELECT COUNT(*) AS total, "
+            "COUNT(*) FILTER (WHERE NOT c.relrowsecurity "
+            "OR NOT c.relforcerowsecurity) AS unprotected, "
+            "COUNT(*) FILTER (WHERE NOT EXISTS ("
+            "SELECT 1 FROM pg_catalog.pg_policies p "
+            "WHERE p.schemaname='public' AND p.tablename=c.relname"
+            ")) AS without_policy "
+            "FROM pg_catalog.pg_class c "
+            "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
+            "WHERE n.nspname='public' AND c.relkind='r'"
+        ).fetchone()
+        approved = (status is not None
+                    and int(status["total"]) == 57
+                    and int(status["unprotected"]) == 0
+                    and int(status["without_policy"]) == 0)
+    except Exception:
+        approved = False
+    if not approved:
+        raise HTTPException(status_code=503, detail="Private RLS admission gate not satisfied")
     return subject
 
 

@@ -582,6 +582,40 @@ def test_r40_person_picker_denies_unsigned_and_invalid_sessions(r38_http):
         headers=_r38_token("u-a","wrong-jti")).status_code==401
 
 
+
+def test_r41_owner_api_denies_missing_force_rls_in_57_table_schema(r38_http,admin):
+    with admin:
+        with admin.cursor() as cur:
+            cur.execute("ALTER TABLE public.scheduler_runs NO FORCE ROW LEVEL SECURITY")
+    try:
+        response=r38_http.get("/owner-beta/memory/private",
+            headers=_r38_token("u-a","jti-u-a"))
+        assert response.status_code==503
+        assert "RLS admission" in response.text
+    finally:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("ALTER TABLE public.scheduler_runs FORCE ROW LEVEL SECURITY")
+
+
+def test_r41_owner_api_denies_schema_drift_with_force_rls(r38_http,admin):
+    with admin:
+        with admin.cursor() as cur:
+            cur.execute("CREATE TABLE public.r41_synthetic_drift(id text PRIMARY KEY)")
+            cur.execute("ALTER TABLE public.r41_synthetic_drift ENABLE ROW LEVEL SECURITY")
+            cur.execute("ALTER TABLE public.r41_synthetic_drift FORCE ROW LEVEL SECURITY")
+            cur.execute("CREATE POLICY r41_deny ON public.r41_synthetic_drift "
+                        "TO domi_app_runtime USING (false) WITH CHECK (false)")
+    try:
+        response=r38_http.get("/owner-beta/memory/private",
+            headers=_r38_token("u-a","jti-u-a"))
+        assert response.status_code==503
+    finally:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute("DROP TABLE public.r41_synthetic_drift")
+
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:
