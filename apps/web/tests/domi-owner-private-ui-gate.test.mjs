@@ -26,7 +26,11 @@ test("Private Owner UI only uses authenticated same-origin API helpers",()=>{
 });
 test("External processing needs explicit checkbox per message",()=>{
   assert.match(client,/setConsent\(false\)/);
-  assert.match(client,/share/);
+  // Check the exact consent path rather than an English word: the UI is in Spanish.
+  assert.match(client,/checked=\\{consent\\}/);
+  assert.match(client,/if \\(!question\\.trim\\(\\) \\|\\| busy \\|\\| !consent\\) return/);
+  assert.match(client,/ownerBetaChatWithMemory\\(text,true\\)/);
+  assert.match(client,/setConsent\\(false\\)/);
   assert.match(client,/checked=\{consent\}/);
   assert.match(client,/disabled=\{!ready\|\|busy\|\|!question.trim\(\)\|\|!consent\}/);
 });

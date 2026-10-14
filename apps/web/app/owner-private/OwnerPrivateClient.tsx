@@ -107,7 +107,7 @@ export default function OwnerPrivateClient() {
           <label htmlFor="op-question">Tu mensaje</label>
           <textarea id="op-question" rows={3} maxLength={1200} value={question} onChange={e=>setQuestion(e.target.value)} placeholder="¿Qué recuerdas de mí?" />
           <label className="op-check"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} />
-            Autorizo enviar mis recuerdos privados seleccionados al proveedor de IA para esta respuesta.
+            Autorizo enviar hasta seis de mis recuerdos privados más recientes al proveedor de IA únicamente para esta respuesta.
           </label>
           <button type="button" onClick={talk} disabled={!ready||busy||!question.trim()||!consent}>Enviar con mi autorización</button>
           <button type="button" className="op-muted" onClick={()=>setMessages([])}>Limpiar conversación visible</button>
