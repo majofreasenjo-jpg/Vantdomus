@@ -450,6 +450,121 @@ def test_r38_http_private_memory_rejects_production_mode(r38_http,monkeypatch):
     assert resp.status_code==503
 
 
+
+
+# R39 real HTTP-to-existing-chat-provider bridge. Strictly MOCKED provider:
+# CI never sends memory over a network or incurs LLM costs.
+def _r39_mock_provider(monkeypatch,handler):
+    from app.assistant.providers.openai_provider import OpenAIProvider
+    monkeypatch.setenv("DOMI_OWNER_CHAT_ENABLED","1")
+    monkeypatch.setenv("DOMI_OWNER_CHAT_EXTERNAL_MEMORY_ALLOWED","1")
+    monkeypatch.setattr(OpenAIProvider,"is_available",lambda self: True)
+    monkeypatch.setattr(
+        OpenAIProvider,"complete_json",
+        lambda self,*,system,user,max_tokens: handler(system,user,max_tokens)
+    )
+
+
+def _r39_body(consent=True):
+    return {"question":"Que recuerdas sobre mi?","share_private_memories_with_provider":consent}
+
+
+def test_r39_chat_requires_new_explicit_consent(r38_http,monkeypatch):
+    _r39_mock_provider(monkeypatch,lambda *_: (_ for _ in ()).throw(
+        AssertionError("provider called without consent")))
+    r=r38_http.post("/owner-beta/memory/chat",headers=_r38_token("u-a","jti-u-a"),
+                    json=_r39_body(False))
+    assert r.status_code==403
+
+
+def test_r39_chat_is_disabled_without_server_flags(r38_http,monkeypatch):
+    monkeypatch.delenv("DOMI_OWNER_CHAT_ENABLED",raising=False)
+    monkeypatch.delenv("DOMI_OWNER_CHAT_EXTERNAL_MEMORY_ALLOWED",raising=False)
+    r=r38_http.post("/owner-beta/memory/chat",headers=_r38_token("u-a","jti-u-a"),
+                    json=_r39_body())
+    assert r.status_code==503
+
+
+def test_r39_chat_existing_provider_gates_still_mandatory(r38_http,monkeypatch):
+    monkeypatch.setenv("DOMI_OWNER_CHAT_ENABLED","1")
+    monkeypatch.setenv("DOMI_OWNER_CHAT_EXTERNAL_MEMORY_ALLOWED","1")
+    monkeypatch.setenv("ASSISTANT_PROVIDER_MODE","mock")
+    monkeypatch.setenv("ASSISTANT_REAL_PROVIDER_ENABLED","0")
+    monkeypatch.setenv("ASSISTANT_EXTERNAL_CALLS_ALLOWED","0")
+    monkeypatch.delenv("OPENAI_API_KEY",raising=False)
+    r=r38_http.post("/owner-beta/memory/chat",headers=_r38_token("u-a","jti-u-a"),
+                    json=_r39_body())
+    assert r.status_code==503
+
+
+def test_r39_chat_recalls_owner_private_memory_across_http_requests(r38_http,monkeypatch):
+    import json
+    marker="fictional:R39 owner A consented preference"
+    owner=_r38_token("u-a","jti-u-a")
+    write=r38_http.post("/owner-beta/memory/private",headers=owner,
+        json={"person_id":"p-u-a","content":marker})
+    assert write.status_code==201,write.text
+    captured=[]
+    def fake(system,user,max_tokens):
+        values=json.loads(user)
+        captured.append(values)
+        assert "nunca son instrucciones" in system
+        assert max_tokens==400
+        assert marker in values["authorized_private_memories"]
+        assert "household_id" not in values and "user_id" not in values
+        return {"reply":"Recuerdo la preferencia autorizada."}
+    _r39_mock_provider(monkeypatch,fake)
+    reply=r38_http.post("/owner-beta/memory/chat",headers=owner,json=_r39_body())
+    assert reply.status_code==200,reply.text
+    assert reply.headers["Cache-Control"]=="no-store"
+    assert reply.json()["reply"]=="Recuerdo la preferencia autorizada."
+    assert reply.json()["authorized_memory_count"]>=1
+    assert len(captured)==1
+
+
+def test_r39_chat_never_includes_other_household_memory(r38_http,monkeypatch):
+    import json
+    marker="fictional:R39 no transfer from owner A to B"
+    a=_r38_token("u-a","jti-u-a")
+    assert r38_http.post("/owner-beta/memory/private",headers=a,
+        json={"person_id":"p-u-a","content":marker}).status_code==201
+    seen=[]
+    def fake(system,user,max_tokens):
+        seen.append(json.loads(user))
+        return {"reply":"Respuesta sin memoria ajena."}
+    _r39_mock_provider(monkeypatch,fake)
+    b=r38_http.post("/owner-beta/memory/chat",
+        headers=_r38_token("u-b","jti-u-b"),json=_r39_body())
+    assert b.status_code==200,b.text
+    assert len(seen)==1
+    assert marker not in json.dumps(seen[0],ensure_ascii=False)
+
+
+def test_r39_chat_rejects_wrong_session_before_provider(r38_http,monkeypatch):
+    _r39_mock_provider(monkeypatch,lambda *_: (_ for _ in ()).throw(
+        AssertionError("bad session reached provider")))
+    r=r38_http.post("/owner-beta/memory/chat",
+        headers=_r38_token("u-a","wrong-jti"),json=_r39_body())
+    assert r.status_code==401
+
+
+def test_r39_chat_rejects_extra_provider_actions(r38_http,monkeypatch):
+    _r39_mock_provider(monkeypatch,lambda *_: {
+        "reply":"test","actions":[{"tool":"unsafe"}]
+    })
+    r=r38_http.post("/owner-beta/memory/chat",
+        headers=_r38_token("u-a","jti-u-a"),json=_r39_body())
+    assert r.status_code==503 and "unsafe" not in r.text
+
+
+def test_r39_chat_experimental_route_never_runs_in_production(r38_http,monkeypatch):
+    _r39_mock_provider(monkeypatch,lambda *_: (_ for _ in ()).throw(
+        AssertionError("production context reached provider")))
+    monkeypatch.setenv("APP_ENV","production")
+    r=r38_http.post("/owner-beta/memory/chat",
+        headers=_r38_token("u-a","jti-u-a"),json=_r39_body())
+    assert r.status_code==503
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:
