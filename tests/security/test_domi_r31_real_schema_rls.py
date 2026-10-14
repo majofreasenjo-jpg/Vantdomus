@@ -24,6 +24,7 @@ MIG_DIR = ROOT / "apps/api/postgres_staging_migrations"
 UP = MIG_DIR / "security/300_domi_r31_owner_beta_rls_up.sql"
 HARDEN = MIG_DIR / "security/301_domi_r33_owner_beta_rls_hardening.sql"
 DOWN = MIG_DIR / "security/300_domi_r31_owner_beta_rls_safe_rollback.sql"
+DOWN_R36 = MIG_DIR / "security/302_domi_r36_owner_beta_rls_safe_rollback.sql"
 API_PATH = str(ROOT / "apps/api")
 if API_PATH not in sys.path:
     sys.path.insert(0,API_PATH)
@@ -317,10 +318,41 @@ def test_r35_runtime_login_is_not_superuser_or_rls_bypass(admin):
                 cur.execute("SET ROLE domi_r31_auth_owner")
 
 
+
+def test_r36_signed_runtime_wrapper_verifies_rls_and_transaction_rebind(admin):
+    from app.db import PostgresConnectionWrapper
+    assert _CI_RUNTIME_PASSWORD is not None
+    raw=psycopg2.connect(DSN,user="domi_r31_ci_client",password=_CI_RUNTIME_PASSWORD)
+    wrapped=PostgresConnectionWrapper(raw,signed_rls=True)
+    try:
+        assert wrapped.bind_verified_session("u-a","jti-u-a") is True
+        assert wrapped.execute("SELECT COUNT(*) AS n FROM public.memory_items").fetchone()["n"]==1
+        wrapped.commit()
+        assert wrapped.execute("SELECT COUNT(*) AS n FROM public.memory_items").fetchone()["n"]==1
+        wrapped.rollback()
+        assert wrapped.execute("SELECT COUNT(*) AS n FROM public.memory_items").fetchone()["n"]==1
+        assert wrapped.bind_verified_session("u-a","wrong-jti") is False
+        # Failure must invalidate the formerly successful identity.
+        assert wrapped._auth_context.authenticated is False
+    finally:
+        wrapped.close()
+
+
+def test_r36_signed_runtime_rejects_unprivileged_but_unverified_user(admin):
+    from app.db import PostgresConnectionWrapper
+    raw=psycopg2.connect(DSN,user="domi_r31_ci_client",password=_CI_RUNTIME_PASSWORD)
+    wrapped=PostgresConnectionWrapper(raw,signed_rls=True)
+    try:
+        assert wrapped.bind_verified_session("u-b","invalid") is False
+        assert wrapped._auth_context.authenticated is False
+    finally:
+        wrapped.close()
+
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:
-            cur.execute(DOWN.read_text(encoding="utf8"))
+            cur.execute(DOWN_R36.read_text(encoding="utf8"))
     assert scalar(admin,"SELECT COUNT(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
                   "WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity")==57
     # After rollback the signer itself is revoked; this must be visible as
