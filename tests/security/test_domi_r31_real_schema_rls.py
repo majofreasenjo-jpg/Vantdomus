@@ -616,6 +616,47 @@ def test_r41_owner_api_denies_schema_drift_with_force_rls(r38_http,admin):
                 cur.execute("DROP TABLE public.r41_synthetic_drift")
 
 
+
+
+def test_r44_signed_startup_gate_accepts_real_disposable_schema(admin):
+    from app.pg_staging_gate import check_postgres_staging_readiness
+    from app.db import PostgresConnectionWrapper
+    raw=psycopg2.connect(
+        DSN,user="domi_r31_ci_client",password=_CI_RUNTIME_PASSWORD
+    )
+    wrapper=PostgresConnectionWrapper(raw,signed_rls=True)
+    try:
+        check_postgres_staging_readiness(wrapper,signed_rls=True)
+    finally:
+        wrapper.close()
+
+
+def test_r44_signed_startup_gate_rejects_revoked_verifier_execute(admin):
+    from app.pg_staging_gate import check_postgres_staging_readiness
+    from app.db import PostgresConnectionWrapper
+    with admin:
+        with admin.cursor() as cur:
+            cur.execute(
+                "REVOKE EXECUTE ON FUNCTION domi_r31.subject_id() FROM domi_app_runtime"
+            )
+    try:
+        raw=psycopg2.connect(
+            DSN,user="domi_r31_ci_client",password=_CI_RUNTIME_PASSWORD
+        )
+        wrapper=PostgresConnectionWrapper(raw,signed_rls=True)
+        try:
+            with pytest.raises(RuntimeError,match="POSTGRES_SIGNED_AUTH_GATE"):
+                check_postgres_staging_readiness(wrapper,signed_rls=True)
+        finally:
+            wrapper.close()
+    finally:
+        with admin:
+            with admin.cursor() as cur:
+                cur.execute(
+                    "GRANT EXECUTE ON FUNCTION domi_r31.subject_id() TO domi_app_runtime"
+                )
+
+
 def test_safe_rollback_never_disables_rls(admin):
     with admin:
         with admin.cursor() as cur:

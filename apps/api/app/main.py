@@ -51,7 +51,9 @@ def initialize_app_state():
         from .pg_staging_gate import check_postgres_staging_readiness
         db = connect()
         try:
-            check_postgres_staging_readiness(db)
+            check_postgres_staging_readiness(
+                db, signed_rls=os.getenv('DOMI_ENABLE_SIGNED_RLS_RUNTIME', '') == '1'
+            )
         finally:
             db.close()
         # PostgreSQL schema migrations and tenant backfills are administered
