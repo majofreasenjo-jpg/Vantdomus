@@ -130,3 +130,19 @@ def test_pg_gate_signed_mode_still_checks_all_57_force_rls():
         assert "POSTGRES_FORCE_RLS_GATE" in str(e)
     else:
         raise AssertionError("Signed startup bypassed RLS")
+
+
+def test_pg_gate_signed_catalog_lookup_does_not_require_private_schema_usage():
+    # PostgreSQL to_regprocedure('schema.function()') throws if the caller lacks
+    # USAGE on that schema. Startup runs as an unprivileged LOGIN, not SET ROLE.
+    # The signed-mode check must inspect pg_proc by name + namespace + arity
+    # without calling to_regprocedure on a schema hidden from this login.
+    db=FakeDB(auth_ready=False)
+    db.rows.pop(5)
+    gate.check_postgres_staging_readiness(db,signed_rls=True)
+    sql=db.calls[6][0]
+    assert "p.proname='subject_id'" in sql
+    assert "p.pronargs=0" in sql
+    assert "p.prorettype='text'::regtype" in sql
+    assert "to_regprocedure('domi_r31.subject_id()')" not in sql
+
