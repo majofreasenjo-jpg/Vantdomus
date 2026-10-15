@@ -51,9 +51,13 @@ def initialize_app_state():
         from .pg_staging_gate import check_postgres_staging_readiness
         db = connect()
         try:
-            check_postgres_staging_readiness(
-                db, signed_rls=os.getenv('DOMI_ENABLE_SIGNED_RLS_RUNTIME', '') == '1'
-            )
+            signed_rls = os.getenv('DOMI_ENABLE_SIGNED_RLS_RUNTIME', '') == '1'
+            check_postgres_staging_readiness(db, signed_rls=signed_rls)
+            if signed_rls:
+                # Auth sign-in uses two independent restricted LOGIN roles.
+                # An RLS-only schema must never count as an operational beta.
+                from .pg_auth_readiness import check_signed_auth_login_readiness
+                check_signed_auth_login_readiness(db)
         finally:
             db.close()
         # PostgreSQL schema migrations and tenant backfills are administered
