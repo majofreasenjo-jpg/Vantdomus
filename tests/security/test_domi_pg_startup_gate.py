@@ -100,7 +100,16 @@ def test_pg_gate_signed_mode_accepts_real_signed_auth_without_legacy_helper():
     db.rows.pop(5)
     gate.check_postgres_staging_readiness(db,signed_rls=True)
     assert len(db.calls)==9
-    assert "domi_r31.subject_id()" in db.calls[6][0]
+    sql = db.calls[6][0]
+    # R46: R45 checks pg_proc metadata, not a schema-qualified function lookup
+    # that requires additional USAGE privileges for this restricted login.
+    assert "n.nspname='domi_r31'" in sql
+    assert "p.proname='subject_id'" in sql
+    assert "p.pronargs=0" in sql
+    assert "p.prosecdef" in sql
+    assert "r.rolname='domi_r31_auth_owner'" in sql
+    assert "has_function_privilege('domi_app_runtime',p.oid,'EXECUTE')" in sql
+    assert "to_regprocedure('domi_r31.subject_id()')" not in sql
     assert "activate_session" not in " ".join(query for query,_ in db.calls)
 
 
