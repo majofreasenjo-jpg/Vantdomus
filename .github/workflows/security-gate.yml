@@ -148,6 +148,8 @@ jobs:
           DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
           DOMI_RLS_REQUIRE_LIVE: '1'
         run: python -m pytest tests/security/test_domi_r31_real_schema_rls.py -q -ra
+      - name: R53 Anthropic promo offline smoke tests, zero network
+        run: python -m pytest tests/security/test_domi_anthropic_promo_smoke.py -q -ra
       - name: R53 apply R50 real auth SQL and prove fail-closed rollback
         env:
           DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
