@@ -152,6 +152,8 @@ jobs:
         run: python -m pytest tests/security/test_domi_anthropic_promo_smoke.py -q -ra
       - name: R55 Claude synthetic-only provider and gateway security tests
         run: python -m pytest tests/security/test_domi_anthropic_shadow.py -q -ra
+      - name: R56 Claude shadow bridge validation, zero network
+        run: python -m pytest tests/security/test_domi_anthropic_shadow_bridge.py -q -ra
       - name: R53 apply R50 real auth SQL and prove fail-closed rollback
         env:
           DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
