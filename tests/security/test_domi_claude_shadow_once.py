@@ -2,6 +2,13 @@
 import importlib.util
 from datetime import date
 from pathlib import Path
+import pytest
+
+@pytest.fixture(autouse=True)
+def isolated_r57_test_environment(monkeypatch):
+    # Prior tests may leave APP_ENV=production; the fixture must own its env.
+    # Production rejection remains separately verified below.
+    monkeypatch.setenv("APP_ENV", "local")
 
 ROOT=Path(__file__).resolve().parents[2]
 spec=importlib.util.spec_from_file_location("domi_shadow_once", ROOT/"tools/domi_claude_shadow_once.py")
