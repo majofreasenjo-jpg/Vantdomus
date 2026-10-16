@@ -1,4 +1,4 @@
-name: P1 FA3 P3 independent kernel
+name: P1 FA6 P3 and affine slice Lean kernel
 on:
   push:
     branches:
@@ -27,34 +27,41 @@ jobs:
           export PATH="$HOME/.elan/bin:$PATH"
           lake update
           lake exe cache get
-      - name: Build P3 certificate into OLEAN
+      - name: Build both P3 certificates into OLEAN
         shell: bash
         run: |
           set -euo pipefail
           export PATH="$HOME/.elan/bin:$PATH"
-          lake build ZeroGradientLean.TraceP3MomentCertificate 2>&1 | tee p3-moment-compile.log
-          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean; then exit 1; fi
-      - name: Audit P3 certificate axioms
+          lake build ZeroGradientLean.TraceP3MomentCertificate ZeroGradientLean.TraceP3AffineSliceCertificate 2>&1 | tee p3-compile.log
+          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean ZeroGradientLean/TraceP3AffineSliceCertificate.lean; then
+            exit 1
+          fi
+      - name: Audit all P3 theorem dependencies
         shell: bash
         run: |
           set -euo pipefail
           export PATH="$HOME/.elan/bin:$PATH"
           cat > P3AxiomAudit.lean <<'EOF'
           import ZeroGradientLean.TraceP3MomentCertificate
+          import ZeroGradientLean.TraceP3AffineSliceCertificate
           #print axioms ZeroGradientLean.p3_weighted_trace_sos
           #print axioms ZeroGradientLean.p3_weighted_trace_bound
           #print axioms ZeroGradientLean.p3_riesz_kernel_four_moments
           #print axioms ZeroGradientLean.p3_weighted_trace_sharp
+          #print axioms ZeroGradientLean.p3_affine_reference_slice
+          #print axioms ZeroGradientLean.p3_slice_endpoint
+          #print axioms ZeroGradientLean.p3_slice_trace_moment_bound
+          #print axioms ZeroGradientLean.affine_triangle_jacobian
           EOF
-          lake env lean P3AxiomAudit.lean 2>&1 | tee p3-moment-axioms.log
-          if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' p3-moment-axioms.log; then exit 1; fi
+          lake env lean P3AxiomAudit.lean 2>&1 | tee p3-axioms.log
+          if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' p3-axioms.log; then exit 1; fi
       - name: Persist receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: p1-fa3-p3-independent-kernel
+          name: p1-fa6-p3-and-affine-kernel
           path: |
-            p1_lean_verify/p3-moment-compile.log
-            p1_lean_verify/p3-moment-axioms.log
+            p1_lean_verify/p3-compile.log
+            p1_lean_verify/p3-axioms.log
             p1_lean_verify/lake-manifest.json
           retention-days: 30
