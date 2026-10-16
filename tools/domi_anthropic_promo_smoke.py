@@ -16,7 +16,7 @@ import urllib.request
 
 API_URL = "https://api.anthropic.com/v1/messages"
 EXPIRES_UTC = date(2026, 11, 13)
-MODELS = ("claude-haiku-5-5", "claude-sonnet-5-5")
+MODELS = ("claude-haiku-4-5-20251001",)
 MAX_OUTPUT_TOKENS = 256
 
 # This exact fixture contains no real people, households, memories or files.
@@ -78,14 +78,10 @@ def _is_enabled(*, utc_today: date | None = None) -> bool:
 def _transport(payload: dict) -> dict:
     api_key = os.environ["ANTHROPIC_API_KEY"].strip()
     request_headers = {
-        "Authorization": "Bearer " + api_key,
+        "x-api-key": api_key,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    workspace = os.getenv("ANTHROPIC_WORKSPACE_ID", "").strip()
-    if workspace:
-        # API keys spanning several workspaces need explicit routing.
-        request_headers["anthropic-workspace-id"] = workspace
     req = urllib.request.Request(
         API_URL,
         data=json.dumps(payload).encode("utf-8"),
