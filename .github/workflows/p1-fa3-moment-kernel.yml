@@ -1,0 +1,55 @@
+name: P1 FA3 P3 independent kernel
+on:
+  push:
+    branches:
+      - tmp-p1-fa3-lean-moment-20261016
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: p1_lean_verify
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lean 4.24.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sSf https://elan.lean-lang.org/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.24.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Resolve pinned mathlib
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake update
+          lake exe cache get
+      - name: Compile candidate P3 certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.elan/bin:$PATH"
+          lake env lean ZeroGradientLean/TraceP3MomentCertificate.lean 2>&1 | tee p3-moment-compile.log
+          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean; then exit 1; fi
+          cat > P3AxiomAudit.lean <<'EOF'
+          import Mathlib
+          import ZeroGradientLean.TraceP3MomentCertificate
+          #print axioms ZeroGradientLean.p3_weighted_trace_sos
+          #print axioms ZeroGradientLean.p3_weighted_trace_bound
+          #print axioms ZeroGradientLean.p3_riesz_kernel_four_moments
+          #print axioms ZeroGradientLean.p3_weighted_trace_sharp
+          EOF
+          lake env lean P3AxiomAudit.lean 2>&1 | tee p3-moment-axioms.log
+          if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' p3-moment-axioms.log; then exit 1; fi
+      - name: Persist receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p1-fa3-p3-independent-kernel
+          path: |
+            p1_lean_verify/p3-moment-compile.log
+            p1_lean_verify/p3-moment-axioms.log
+          retention-days: 30
