@@ -15,6 +15,10 @@ from app.tenancy import get_household_organization_id
 from .registry import get_contract
 
 
+class ProposalConflict(ValueError):
+    """The proposal is no longer claimable; no side effect was executed."""
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -211,11 +215,24 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
             metadata={"tool": tool, "edited_fields": sorted(clean_overrides.keys())},
         )
 
-    db.execute("UPDATE assistant_proposals SET status='confirmed', decided_by_user_id=?, decided_at=? WHERE id=?",
-               (user_id, _now(), proposal["id"]))
+    # R61: atomic compare-and-set. A second, stale confirmation cannot
+    # claim this same action while the first transaction is executing.
+    # Includes the household and expiry in the SQL predicate.
+    claim_time = _now()
+    claimed = db.execute(
+        "UPDATE assistant_proposals SET status='confirmed', "
+        "decided_by_user_id=?, decided_at=? "
+        "WHERE id=? AND household_id=? AND status=? "
+        "AND (expires_at IS NULL OR expires_at>?)",
+        (user_id, claim_time, proposal["id"], hid, proposal["status"], claim_time),
+    )
+    if claimed.rowcount != 1:
+        db.rollback()
+        raise ProposalConflict("La propuesta fue modificada o confirmada por otra solicitud.")
 
     result_type = None
     result_id = None
+    reminder_savepoint = False
     try:
         if tool == "propose_shopping_item":
             # MIN-3.3a: normalización canónica también en la EJECUCIÓN (última línea
@@ -243,6 +260,10 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
             result_type, result_id = "shopping_items", f"{len(created)} items"
 
         elif tool == "propose_family_reminder":
+            # R61: protect reminder INSERT + audit + status as one unit.
+            # Prevent a partial reminder surviving a later audit failure.
+            db.execute("SAVEPOINT domi_r61_reminder")
+            reminder_savepoint = True
             from app.assistant.reminders import create_reminder
             from datetime import datetime as _dt, timezone as _tz
             title = payload.get("title")
@@ -311,10 +332,17 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
             household_id=hid, user_id=user_id, resource_id=str(result_id),
             metadata={"tool": tool, "proposal_id": proposal["id"]},
         )
+        if reminder_savepoint:
+            db.execute("RELEASE SAVEPOINT domi_r61_reminder")
+            reminder_savepoint = False
         db.commit()
-        return get_proposal(db, proposal["id"])
 
     except Exception as exc:
+        if reminder_savepoint:
+            # Keep confirmed->failed and failure audit, but undo *all*
+            # reminder side effects and success audit from this attempt.
+            db.execute("ROLLBACK TO SAVEPOINT domi_r61_reminder")
+            db.execute("RELEASE SAVEPOINT domi_r61_reminder")
         db.execute("UPDATE assistant_proposals SET status='failed', error=? WHERE id=?",
                    (str(exc)[:500], proposal["id"]))
         write_assistant_action_log(
@@ -323,3 +351,5 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
         )
         db.commit()
         raise
+
+    return get_proposal(db, proposal["id"])
