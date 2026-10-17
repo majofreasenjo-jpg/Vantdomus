@@ -8,6 +8,8 @@ unformalized finite-element geometry, witness, or trace-slicing bridge.
 
 namespace ZeroGradientLean
 
+noncomputable section
+
 def p3WeightedEnergy (a b c d : ℝ) : ℝ :=
   a ^ 2 / 2 + a * b / 3 + a * c / 6 + a * d / 10 +
   b ^ 2 / 12 + b * c / 10 + b * d / 15 +
