@@ -223,3 +223,57 @@ def test_r60_missing_required_date_rejected_at_gateway(client, monkeypatch):
     out = _chat(client, token, hid)
     assert out["proposals"] == [], "Malformed model output must never persist"
     assert _rows(hid) == []
+
+
+def test_r61_stale_confirmation_cannot_execute_again(client, monkeypatch):
+    token, hid = _owner(client, "r61stale@example.com")
+    _provider(monkeypatch)
+    prop = _chat(client, token, hid)["proposals"][0]
+    from app.db import connect
+    from app.assistant.proposals import execute_proposal, ProposalConflict
+    db = connect()
+    try:
+        stale = dict(db.execute("SELECT * FROM assistant_proposals WHERE id=?",
+                                (prop["id"],)).fetchone())
+        import json
+        stale["proposed_payload"] = json.loads(stale["proposed_payload"])
+    finally:
+        db.close()
+    assert _confirm(client, token, prop).status_code == 200
+    assert len(_rows(hid)) == 1
+    db = connect()
+    try:
+        with pytest.raises(ProposalConflict):
+            execute_proposal(db, stale, "synthetic-owner")
+        assert len(_rows(hid)) == 1
+    finally:
+        db.close()
+
+
+def test_r61_failure_after_reminder_insert_rolls_back_all_side_effects(
+    client, monkeypatch
+):
+    token, hid = _owner(client, "r61rollback@example.com")
+    _provider(monkeypatch)
+    prop = _chat(client, token, hid)["proposals"][0]
+    from app.assistant import proposals as store
+    real = store.write_audit_log
+
+    def fail_success_audit(db, **kwargs):
+        if kwargs.get("action") == "assistant_executed":
+            raise ValueError("synthetic audit fault after insert")
+        return real(db, **kwargs)
+
+    monkeypatch.setattr(store, "write_audit_log", fail_success_audit)
+    r = _confirm(client, token, prop)
+    assert r.status_code in (400, 500), r.text
+    assert _rows(hid) == [], "INSERT must be rolled back with its audit"
+    failed = client.get("/assistant/proposals",
+                        params={"household_id": hid, "status": "failed"},
+                        headers=_headers(token))
+    assert failed.status_code == 200, failed.text
+    assert any(x["id"] == prop["id"] for x in failed.json()["items"])
+    # No orphan reminder; a subsequently authorized retry can succeed.
+    monkeypatch.setattr(store, "write_audit_log", real)
+    assert _confirm(client, token, prop).status_code == 200
+    assert len(_rows(hid)) == 1
