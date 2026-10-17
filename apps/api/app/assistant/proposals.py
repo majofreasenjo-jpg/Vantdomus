@@ -242,6 +242,32 @@ def execute_proposal(db, proposal, user_id: str, overrides: dict | None = None) 
                 created.append(iid)
             result_type, result_id = "shopping_items", f"{len(created)} items"
 
+        elif tool == "propose_family_reminder":
+            from app.assistant.reminders import create_reminder
+            from datetime import datetime as _dt, timezone as _tz
+            title = payload.get("title")
+            date_string = payload.get("remind_at")
+            if not isinstance(title, str) or not 1 <= len(title.strip()) <= 200:
+                raise ValueError("Título de recordatorio inválido.")
+            if not isinstance(date_string, str) or not date_string.strip():
+                raise ValueError("Fecha explícita obligatoria.")
+            try:
+                parsed = _dt.fromisoformat(date_string.strip().replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("Fecha ISO inválida.") from exc
+            if parsed.tzinfo is None or parsed.utcoffset() is None:
+                raise ValueError("Fecha requiere zona horaria explícita.")
+            if parsed.astimezone(_tz.utc) <= _dt.now(_tz.utc):
+                raise ValueError("El recordatorio debe ser futuro.")
+            result_id = create_reminder(
+                db, household_id=hid, organization_id=org, person_id=None,
+                created_by_user_id=user_id, title=title.strip(), body=None,
+                remind_at=parsed.astimezone(_tz.utc).isoformat(),
+                visibility_scope="household_shared",
+                dedupe_key="assistant-proposal-" + proposal["id"],
+            )
+            result_type = "family_reminder"
+
         elif tool == "propose_study_task":
             if not pid:
                 raise ValueError("Asigná un integrante para la tarea de estudio.")
