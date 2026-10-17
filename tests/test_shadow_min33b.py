@@ -279,15 +279,24 @@ def test_usage_and_cost_reported(env):
     assert FAKE_KEY not in json.dumps(r)
 
 
-# 14 — post-prueba: flags apagados por defecto + mock default en chat normal
-def test_flags_default_off_and_chat_always_mock(env):
+# 14 — OPS-1: mock by default; real permitted ONLY with explicit gates.
+# Transport is always patched: this test must never open a network connection.
+def test_flags_default_off_and_chat_respects_real_provider_gates(env):
     from app.assistant.gateway import provider_flags, select_provider, gateway
+    calls = []
+    _patch_transport(env, lambda p, t: _fake_response(GOOD_JSON), calls)
     f = provider_flags()
     assert f["real_provider_enabled"] is False and f["external_calls_allowed"] is False
     assert f["shadow_mode"] is False and f["provider_mode"] == "mock"
     assert select_provider().name == "mock"
-    # Incluso con TODOS los gates prendidos, el CHAT NORMAL sigue en mock:
+    mock_result = gateway.propose(_sreq())
+    assert mock_result.provider in ("mock", "gateway")
+    assert calls == []  # no network even with patched transport
+
+    # OPS-1 intentionally allows real proposals when every server gate is on.
     _all_gates_on(env)
-    assert select_provider().name == "mock"
-    r = gateway.propose(_sreq())
-    assert r.provider in ("mock", "gateway")
+    assert select_provider().name == "openai"
+    real_result = gateway.propose(_sreq())
+    assert real_result.provider == "openai"
+    assert real_result.valid and not real_result.fallback_used
+    assert len(calls) == 1  # fake transport only

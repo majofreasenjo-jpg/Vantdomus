@@ -788,3 +788,33 @@ export const dailyActivityCancel = (hid: string, activityId: string) =>
 // Seed v2 (Familia Demo VantDomus)
 export const seedDemoHomeV2 = (hid: string) =>
   apiFetch(`/demo/seed?household_id=${encodeURIComponent(hid)}&mode=home_v2`, { method: "POST", body: "{}" });
+
+
+// R40: Authenticated Owner Beta private-memory UI.
+// Browser calls use /api/proxy with HttpOnly auth cookie and CSRF header;
+// never copy tokens or private memories into browser storage.
+export type DomiOwnerPerson = { id: string; name: string };
+export type DomiOwnerMemory = { id: string; content: string; created_at: string };
+
+export const ownerBetaListPersons = () =>
+  apiFetch("/owner-beta/memory/persons") as Promise<{ items: DomiOwnerPerson[] }>;
+
+export const ownerBetaListMemories = () =>
+  apiFetch("/owner-beta/memory/private") as Promise<{ items: DomiOwnerMemory[] }>;
+
+export const ownerBetaSaveMemory = (personId: string, content: string) =>
+  apiFetch("/owner-beta/memory/private", {
+    method: "POST",
+    body: JSON.stringify({ person_id: personId, content }),
+  }) as Promise<{ id: string; created_at: string }>;
+
+export const ownerBetaChatWithMemory = (
+  question: string,
+  consent: boolean,
+) => apiFetch("/owner-beta/memory/chat", {
+  method: "POST",
+  body: JSON.stringify({
+    question,
+    share_private_memories_with_provider: consent,
+  }),
+}) as Promise<{ reply: string; authorized_memory_count: number; mode: string }>;

@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException, Request, status, Depends
 from pydantic import BaseModel
 from ..audit import write_audit_log
 from ..deps import get_current_user, get_db, require_household_role, require_verified_email_for_sensitive_action
+from ..pg_auth_connection import get_login_db, PgBootstrapAuthConnection
+from ..pg_auth_bootstrap import login_postgres
 from ..mfa import generate_totp_secret, otpauth_url, protect_totp_secret, reveal_totp_secret, should_reprotect_totp_secret, verify_totp
 from ..notify import notifier
 from ..security import hash_password, verify_password, create_access_token
@@ -607,10 +609,15 @@ def login(
     email: str | None = None,
     password: str | None = None,
     mfa_code: str | None = None,
-    db=Depends(get_db),
+    db=Depends(get_login_db),
 ):
-    # Accept credentials from JSON body (preferred) or legacy query params
-    # (deprecated). See _resolve_credentials for rationale.
+    # PostgreSQL authentication is strict JSON-only; deny any URL credentials
+    # before parsing or routing them into credential resolution and logging.
+    if isinstance(db, PgBootstrapAuthConnection) and (
+        body is None or email is not None or password is not None or mfa_code is not None
+    ):
+        raise HTTPException(status_code=400, detail="JSON-only login required")
+    # SQLite compatibility: legacy query params remain deprecated.
     body_email = body.email if body else None
     body_password = body.password if body else None
     body_mfa = body.mfa_code if body else None
@@ -621,6 +628,13 @@ def login(
     from app.rate_limit import enforce_action_limit
     enforce_action_limit("login", email)
     max_attempts, _window_seconds = _failed_login_limit()
+    if isinstance(db, PgBootstrapAuthConnection):
+        # PostgreSQL login never receives credentials in query parameters:
+        # they leak into browser history, reverse proxies and access logs.
+        return login_postgres(
+            db.conn, db.issuer_conn, email, password, mfa_code,
+            max_attempts=max_attempts, window_seconds=_window_seconds,
+        )
     if _recent_failed_login_count(db, email) >= max_attempts:
         write_security_event(
             db,

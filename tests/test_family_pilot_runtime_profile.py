@@ -168,7 +168,7 @@ def test_production_checks_remain_strict(monkeypatch, tmp_path):
     config = _fresh_config(
         monkeypatch, tmp_path,
         APP_ENV="production",
-        JWT_SECRET="production-strong-jwt-secret-32ch!!",
+        JWT_SECRET="test_fixture_" + "x" * 32,
     )
     with pytest.raises(RuntimeError):
         config.validate_runtime_security()

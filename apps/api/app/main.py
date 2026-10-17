@@ -38,6 +38,7 @@ from .routes import (
     tasks,
     unit_functions,
     unit_function_responsibles,
+    owner_memory,
     vantguide_library,
     vision,
 )
@@ -45,6 +46,25 @@ from .routes import (
 
 def initialize_app_state():
     validate_runtime_security()
+    db_url = os.getenv("DATABASE_URL", "").strip()
+    if db_url.startswith(("postgres://", "postgresql://")):
+        from .pg_staging_gate import check_postgres_staging_readiness
+        db = connect()
+        try:
+            signed_rls = os.getenv('DOMI_ENABLE_SIGNED_RLS_RUNTIME', '') == '1'
+            check_postgres_staging_readiness(db, signed_rls=signed_rls)
+            if signed_rls:
+                # Auth sign-in uses two independent restricted LOGIN roles.
+                # An RLS-only schema must never count as an operational beta.
+                from .pg_auth_readiness import check_signed_auth_login_readiness
+                check_signed_auth_login_readiness(db)
+        finally:
+            db.close()
+        # PostgreSQL schema migrations and tenant backfills are administered
+        # separately; the web process must never perform DDL at startup.
+        return
+    if os.getenv("APP_ENV", "").strip().lower() in {"staging", "production", "prod"}:
+        raise RuntimeError("STAGING_POSTGRES_REQUIRED: DATABASE_URL must use PostgreSQL")
     ensure_schema()
     db = connect()
     try:
@@ -180,6 +200,7 @@ def healthcheck():
 
 
 app.include_router(auth.router)
+app.include_router(owner_memory.router)
 app.include_router(auth_oauth.router)
 app.include_router(households.router)
 app.include_router(guardians.router)

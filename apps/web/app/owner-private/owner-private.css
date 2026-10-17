@@ -1,0 +1,27 @@
+#domi-owner-private{min-height:100vh;color:#28243e;background:linear-gradient(130deg,#fff3e1,#f1edff 58%,#fffbf3);font-family:var(--domi-font-inter),system-ui,sans-serif}
+body:has(#domi-owner-private) .nav,body:has(#domi-owner-private) .bottomNav{display:none!important}
+body:has(#domi-owner-private) .container{max-width:none;padding:0}
+#domi-owner-private .op-head{padding:clamp(20px,4vw,55px);background:rgba(255,255,255,.75);border-bottom:1px solid #ddd5eb}
+#domi-owner-private .op-head small{font-weight:750;letter-spacing:.09em;color:#72502d}
+#domi-owner-private h1{font-size:clamp(27px,4vw,45px);letter-spacing:-.04em;margin:12px 0}
+#domi-owner-private .op-head p{max-width:700px;line-height:1.65}
+#domi-owner-private .op-head a{color:#423279}
+#domi-owner-private .op-layout{display:grid;grid-template-columns:1fr 1.1fr;gap:20px;max-width:1250px;padding:28px 20px;margin:auto}
+#domi-owner-private .op-panel{background:white;border:1px solid #e6def0;border-radius:22px;padding:clamp(18px,3vw,32px);box-shadow:0 12px 36px #42327912}
+#domi-owner-private h2{font-size:23px;margin:0 0 12px}
+#domi-owner-private h3{margin:24px 0 8px;font-size:17px}
+#domi-owner-private p{line-height:1.55}
+#domi-owner-private label{display:block;margin:18px 0 7px;font-weight:650}
+#domi-owner-private select,#domi-owner-private textarea{display:block;width:100%;max-width:100%;border:1px solid #b9b0ca;border-radius:12px;padding:12px;background:#fff;color:#241e39;box-sizing:border-box;font:inherit}
+#domi-owner-private button{border:0;border-radius:12px;padding:11px 17px;margin:14px 10px 0 0;background:#443576;color:white;font:650 14px system-ui;cursor:pointer}
+#domi-owner-private button.op-muted{background:#eae5f3;color:#352b51}
+#domi-owner-private button:disabled{opacity:.52;cursor:not-allowed}
+#domi-owner-private .op-check{display:flex;align-items:flex-start;gap:9px;line-height:1.5;font-weight:500}
+#domi-owner-private .op-check input{margin-top:4px}
+#domi-owner-private .op-messages{min-height:170px;max-height:360px;overflow:auto;background:#f9f7fe;padding:14px;border-radius:12px}
+#domi-owner-private .op-memories{padding-left:18px;max-height:290px;overflow:auto}
+#domi-owner-private .op-memories li{margin:9px 0;line-height:1.5}
+#domi-owner-private .op-error{margin:10px auto;max-width:1200px;padding:13px;background:#fff0ec;border:1px solid #d89f89;border-radius:12px}
+#domi-owner-private footer{max-width:1200px;margin:10px auto;padding:20px;opacity:.78}
+@media(max-width:850px){#domi-owner-private .op-layout{grid-template-columns:1fr;padding:14px}}
+@media(prefers-reduced-motion:reduce){#domi-owner-private *{scroll-behavior:auto!important}}

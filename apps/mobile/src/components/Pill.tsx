@@ -1,8 +1,8 @@
 import React from "react";
-import { Text, StyleSheet } from "react-native";
+import { Text, StyleSheet, type TextStyle } from "react-native";
 
 export function Pill({ text, tone }: { text: string; tone?: "good"|"warn"|"bad"|"muted" }) {
-  const s = [styles.pill];
+  const s: TextStyle[] = [styles.pill];
   if (tone === "good") s.push(styles.good);
   if (tone === "warn") s.push(styles.warn);
   if (tone === "bad") s.push(styles.bad);
