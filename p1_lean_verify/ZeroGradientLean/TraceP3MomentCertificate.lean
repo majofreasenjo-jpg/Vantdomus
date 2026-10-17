@@ -42,4 +42,6 @@ theorem p3_weighted_trace_sharp :
     20 * p3WeightedEnergy 20 (-180) 420 (-280) = (20 : ℝ) ^ 2 := by
   norm_num [p3WeightedEnergy]
 
+end
+
 end ZeroGradientLean
