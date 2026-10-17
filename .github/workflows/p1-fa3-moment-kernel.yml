@@ -1,4 +1,4 @@
-name: P1 FA6 P3 and affine slice Lean kernel
+name: P1 FA9 P3 plus residual exact bridge kernel
 on:
   push:
     branches:
@@ -32,8 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$HOME/.elan/bin:$PATH"
-          lake build ZeroGradientLean.TraceP3MomentCertificate ZeroGradientLean.TraceP3AffineSliceCertificate 2>&1 | tee p3-compile.log
-          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean ZeroGradientLean/TraceP3AffineSliceCertificate.lean; then
+          lake build ZeroGradientLean.TraceP3MomentCertificate ZeroGradientLean.TraceP3AffineSliceCertificate ZeroGradientLean.ResidualExactBridge 2>&1 | tee p3-compile.log
+          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean ZeroGradientLean/TraceP3AffineSliceCertificate.lean ZeroGradientLean/ResidualExactBridge.lean; then
             exit 1
           fi
       - name: Audit all P3 theorem dependencies
@@ -44,6 +44,7 @@ jobs:
           cat > P3AxiomAudit.lean <<'EOF'
           import ZeroGradientLean.TraceP3MomentCertificate
           import ZeroGradientLean.TraceP3AffineSliceCertificate
+          import ZeroGradientLean.ResidualExactBridge
           #print axioms ZeroGradientLean.p3_weighted_trace_sos
           #print axioms ZeroGradientLean.p3_weighted_trace_bound
           #print axioms ZeroGradientLean.p3_riesz_kernel_four_moments
@@ -52,6 +53,9 @@ jobs:
           #print axioms ZeroGradientLean.p3_slice_endpoint
           #print axioms ZeroGradientLean.p3_slice_trace_moment_bound
           #print axioms ZeroGradientLean.affine_triangle_jacobian
+          #print axioms ZeroGradientLean.exact_velocity_floor_arithmetic
+          #print axioms ZeroGradientLean.selected_velocity_floor_strict_slack
+          #print axioms ZeroGradientLean.residual_implies_exact_response
           EOF
           lake env lean P3AxiomAudit.lean 2>&1 | tee p3-axioms.log
           if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' p3-axioms.log; then exit 1; fi
@@ -59,7 +63,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: p1-fa6-p3-and-affine-kernel
+          name: p1-fa9-p3-affine-residual-kernel
           path: |
             p1_lean_verify/p3-compile.log
             p1_lean_verify/p3-axioms.log
