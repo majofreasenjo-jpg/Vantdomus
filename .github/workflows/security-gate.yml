@@ -161,6 +161,11 @@ jobs:
         run: PYTHONPATH=apps/api python -m pytest tests/security/test_domi_claude_shadow_once.py -q -ra
       - name: R59 confirmation-only reminder contract, zero network
         run: PYTHONPATH=apps/api python -m pytest tests/security/test_domi_r59_reminder_contract.py -q -ra
+      - name: R62 PostgreSQL real two-connection confirmation and rollback
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r62_pg_reminder_concurrency.py -q -ra
       - name: R53 apply R50 real auth SQL and prove fail-closed rollback
         env:
           DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
