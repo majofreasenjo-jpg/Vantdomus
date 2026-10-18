@@ -93,7 +93,6 @@ def test_r63_only_scoped_read_policies_exist(piloted):
 def test_r63_without_verified_session_cannot_read_or_update(piloted):
     # SET ROLE is enough to exercise the unprivileged role; no signed JWT
     # context is bound and the RLS policies must not reveal any rows.
-    piloted.rollback()
     with piloted.cursor() as cur:
         cur.execute("SET LOCAL ROLE domi_app_runtime")
         cur.execute("SELECT COUNT(*) FROM public.assistant_proposals")
