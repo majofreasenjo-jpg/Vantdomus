@@ -13,6 +13,24 @@ BEGIN
  WHERE ns.nspname='public' AND c.relkind='r'
    AND c.relrowsecurity AND c.relforcerowsecurity;
  IF n<>57 THEN RAISE EXCEPTION 'R63_RLS_DRIFT: exact 57 FORCE RLS tables required'; END IF;
+
+ -- A successful R36 safety rollback intentionally removed these privileges
+ -- and the HMAC signer. A read-only candidate must never *reopen* them merely
+ -- by adding SELECT on two modules; it must refuse this state BEFORE grants.
+ IF NOT (
+   has_table_privilege('domi_app_runtime','public.households','SELECT')
+   AND has_table_privilege('domi_app_runtime','public.household_memberships','SELECT')
+   AND has_schema_privilege('domi_app_runtime','domi_r31','USAGE')
+   AND has_function_privilege('domi_app_runtime','domi_r31.subject_id()','EXECUTE')
+   AND has_function_privilege('domi_app_runtime','domi_r31.household_ok(text,text)','EXECUTE')
+ ) OR NOT EXISTS(
+   SELECT 1 FROM pg_catalog.pg_policies
+   WHERE schemaname='public' AND tablename='household_memberships'
+     AND policyname='domi_r31_memberships_self'
+ ) OR NOT EXISTS (
+   SELECT 1 FROM domi_r31.context_secrets WHERE key_name='active'
+ )
+ THEN RAISE EXCEPTION 'R63_BASE_PREREQUISITE_CLOSED'; END IF;
  IF NOT EXISTS(
    SELECT 1 FROM pg_catalog.pg_roles
     WHERE rolname='domi_app_runtime' AND NOT rolsuper AND NOT rolbypassrls
