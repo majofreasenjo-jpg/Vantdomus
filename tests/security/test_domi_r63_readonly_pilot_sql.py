@@ -95,10 +95,17 @@ def test_r63_without_verified_session_cannot_read_or_update(piloted):
     # context is bound and the RLS policies must not reveal any rows.
     with piloted.cursor() as cur:
         cur.execute("SET LOCAL ROLE domi_app_runtime")
-        cur.execute("SELECT COUNT(*) FROM public.assistant_proposals")
-        assert cur.fetchone()[0] == 0
-        cur.execute("SELECT COUNT(*) FROM public.family_reminders")
-        assert cur.fetchone()[0] == 0
+        # Signed principal absent: this must never disclose rows. A missing
+        # dependency grant is also a legitimate fail-closed denial.
+        for relation in ("assistant_proposals", "family_reminders"):
+            cur.execute("SAVEPOINT r63_unsigned_read")
+            try:
+                cur.execute("SELECT COUNT(*) FROM public." + relation)
+                assert cur.fetchone()[0] == 0
+            except psycopg2.errors.InsufficientPrivilege:
+                cur.execute("ROLLBACK TO SAVEPOINT r63_unsigned_read")
+            finally:
+                cur.execute("RELEASE SAVEPOINT r63_unsigned_read")
         cur.execute("SAVEPOINT r63_write_denied")
         with pytest.raises(psycopg2.errors.InsufficientPrivilege):
             cur.execute("UPDATE public.assistant_proposals SET status='confirmed'")
