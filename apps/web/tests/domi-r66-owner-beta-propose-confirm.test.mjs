@@ -16,7 +16,7 @@ test("strict synthetic shopping is proposed, never auto-inserted",()=>{
 });
 test("owner decision performs local change only after confirm",()=>{
   const region=src.split("// R66: the Owner Beta can validate human confirmation LOCAL ONLY.")[1]
-    ?.split("    if (isSending) return;")[0] || "";
+    ?.split("    if (isSending) return;\n    setIsSending(true);")[0] || "";
   assert.match(region,/if \(accept\) \{/);
   assert.match(region,/setShoppingItems\(prev =>/);
   assert.match(region,/status: accept \? "executed" : "rejected"/);
