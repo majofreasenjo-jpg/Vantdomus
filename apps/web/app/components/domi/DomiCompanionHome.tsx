@@ -752,13 +752,24 @@ export default function DomiCompanionHome({
         setTimeout(() => setDomiMood("happy"), 3500);
         setIsSending(false);
         return;
-      } catch (err) {
-        // Backend caído a mitad de sesión: avisar honesto y caer al demo local.
-        console.warn("[domi] orquestador no disponible, usando demo local", err);
+      } catch (_err) {
+        // R66: fail closed. Do not turn a real household operation into an
+        // apparently successful local simulation if the API is unavailable.
+        console.warn("[domi] backend no disponible; ninguna acción ejecutada");
+        setChatMessages(prev => [...prev, {
+          id: `domi-api-error-${Date.now()}`,
+          role: "model",
+          content: "No puedo conectarme al organizador familiar. No he guardado ni ejecutado nada. Vuelve a intentarlo cuando se restablezca la conexión.",
+          timestamp: new Date(),
+        }]);
+        setDomiState("protector");
+        setDomiMood("happy");
+        setIsSending(false);
+        return;
       }
     }
 
-    // --- Fallback DEMO LOCAL (sin sesión real o backend caído) ---
+    // --- DEMO LOCAL sin hogar real ni backend (marcado como simulación) ---
     try {
       await new Promise((r) => setTimeout(r, 650)); // pequena pausa "pensando"
       const data = generateDomiReply(text, {
@@ -770,12 +781,33 @@ export default function DomiCompanionHome({
         time
       });
 
+      // R66: the Preview synthetic pilot must exercise actual propose-first
+      // UI behaviour, not silently insert shopping items. Zero API, zero PII.
+      const demoItems = isStrictSynthetic && data.action?.type === "ADD_SHOPPING_ITEM"
+        ? (data.action.payload || "").split("|").map(x => x.trim()).filter(Boolean)
+        : [];
+      const demoProposal: DomiProposal | null = demoItems.length > 0
+        ? {
+            id: `demo-proposal-${Date.now()}`,
+            tool_name: "propose_shopping_item",
+            category: "shopping",
+            title: "Agregar productos de prueba",
+            summary: "Simulación local: solo se agregarán después de tu confirmación.",
+            status: "pending",
+            sensitive: true,
+            proposed_payload: { items: demoItems },
+            editable_fields: ["items"],
+          }
+        : null;
       const domiReply: ChatMessage = {
         id: `domi-${Date.now()}`,
         role: "model",
-        content: data.text || "He recibido tu mensaje correctamente, pero no logré estructurar la acción.",
+        content: demoProposal
+          ? `Te propongo agregar ${demoItems.join(", ")} a la lista de compras de prueba. ¿Confirmas o rechazas? No he guardado nada todavía.`
+          : (data.text || "He recibido tu mensaje, pero no logré estructurar la acción."),
         timestamp: new Date(),
-        isLocalDemo: true, // honestidad: esto NO es el orquestador real
+        proposals: demoProposal ? [demoProposal] : undefined,
+        isLocalDemo: true,
       };
 
       setChatMessages(prev => [...prev, domiReply]);
@@ -807,8 +839,9 @@ export default function DomiCompanionHome({
         }
       }, 4000);
 
-      // Execute AI action trigger if returned from Gemini
-      if (data.action && data.action.type !== "NONE") {
+      // Shopping in strict synthetic Preview only happens after the user
+      // presses Confirmar. Other local demonstration actions are unchanged.
+      if (data.action && data.action.type !== "NONE" && !demoProposal) {
         executeAIAction(data.action.type, data.action.payload);
       }
 
@@ -837,9 +870,50 @@ export default function DomiCompanionHome({
     accept: boolean,
     overrides?: Record<string, unknown>,
   ) => {
-    // The Owner Beta synthetic preview never mutates a real API.
+    // R66: the Owner Beta can validate human confirmation LOCAL ONLY.
+    // Neither this path nor a rejected proposal ever invokes the backend.
     if (isStrictSynthetic) {
-      addNotification("Modo de prueba", "Las propuestas reales no se ejecutan desde esta vista.", "system");
+      if (isSending) return;
+      const message = chatMessages.find(m => m.id === messageId);
+      const proposal = message?.proposals?.find(p => p.id === proposalId);
+      if (!proposal || proposal.status !== "pending" ||
+          proposal.tool_name !== "propose_shopping_item") return;
+      const rawItems: unknown = overrides?.items ?? proposal.proposed_payload?.items;
+      const items = Array.isArray(rawItems) ? rawItems : [];
+      const clean = items.map(x => typeof x === "string" ? x.trim() : "");
+      if (!Array.isArray(rawItems) || clean.length < 1 || clean.length > 12 ||
+          clean.some(x => x.length < 1 || x.length > 64)) {
+        addNotification("Propuesta inválida", "Revisa los productos de prueba.", "security");
+        return;
+      }
+      setChatMessages(prev => prev.map(m => m.id !== messageId ? m : ({
+        ...m,
+        proposals: (m.proposals || []).map(p => p.id !== proposalId ? p :
+          { ...p, status: accept ? "executed" : "rejected" }),
+      })));
+      if (accept) {
+        setShoppingItems(prev => {
+          const existing = new Set(prev.map(i => i.name.toLocaleLowerCase("es").trim()));
+          const deduped = [...new Set(clean)].filter(x => !existing.has(x.toLocaleLowerCase("es")));
+          return [...prev, ...deduped.map((name, index) => ({
+            id: `demo-confirmed-${Date.now()}-${index}`,
+            name, checked: false, qty: "1 ud", category: "Supermercado",
+          }))];
+        });
+        addNotification("Compra de prueba", "Productos confirmados en la lista local de demostración.", "shopping");
+      } else {
+        addNotification("Propuesta rechazada", "No se añadieron productos.", "system");
+      }
+      setChatMessages(prev => [...prev, {
+        id: `domi-demo-decision-${Date.now()}`,
+        role: "model",
+        content: accept
+          ? "Confirmado en esta simulación. La lista de prueba fue actualizada; no se guardó en tu hogar real."
+          : "De acuerdo: propuesta descartada, sin cambios en la lista.",
+        timestamp: new Date(),
+        isLocalDemo: true,
+      }]);
+      setDomiState(accept ? "alegre" : "listo");
       return;
     }
     if (isSending) return;
