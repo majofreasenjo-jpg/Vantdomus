@@ -22,10 +22,22 @@ noncomputable def argyrisCurlY (ψ : ArgyrisPoly2) : ArgyrisPoly2 :=
 noncomputable def argyrisPolyDivergence (vx vy : ArgyrisPoly2) : ArgyrisPoly2 :=
   (pderiv (0 : Fin 2)) vx + (pderiv (1 : Fin 2)) vy
 
+/-- Lean v4.24 does not provide the later Mathlib `pderiv_comm` lemma.
+    We prove commutation from polynomial induction and the Leibniz rule. -/
+private theorem argyris_pderiv_comm (i j : Fin 2) (p : ArgyrisPoly2) :
+    (pderiv i) ((pderiv j) p) = (pderiv j) ((pderiv i) p) := by
+  classical
+  induction p using MvPolynomial.induction_on with
+  | C a => simp
+  | add p q hp hq => simp [hp, hq]
+  | mul_X p a h =>
+    simp only [pderiv_mul, map_add, pderiv_X, Pi.single_apply, h]
+    split_ifs <;> simp [add_right_comm]
+
 theorem argyris_local_curl_divergence_zero (ψ : ArgyrisPoly2) :
     argyrisPolyDivergence (argyrisCurlX ψ) (argyrisCurlY ψ) = 0 := by
   unfold argyrisPolyDivergence argyrisCurlX argyrisCurlY
-  rw [map_neg, MvPolynomial.pderiv_comm (0 : Fin 2) (1 : Fin 2) ψ]
+  rw [map_neg, argyris_pderiv_comm (0 : Fin 2) (1 : Fin 2) ψ]
   exact add_neg_cancel_self _
 
 /-- A rotated gradient's normal trace along a straight edge is minus
