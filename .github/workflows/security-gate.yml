@@ -242,6 +242,9 @@ jobs:
       - name: R66 Owner Beta real-orchestrator honesty and consent test
         working-directory: apps/web
         run: node --test tests/domi-r66-owner-beta-propose-confirm.test.mjs
+      - name: R67 personal DOMI lineage test
+        working-directory: apps/web
+        run: node --test tests/domi-r67-personal-lineage.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
