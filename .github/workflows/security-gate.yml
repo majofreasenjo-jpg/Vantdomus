@@ -239,6 +239,10 @@ jobs:
         working-directory: apps/web
         run: npx tsc --noEmit
 
+      - name: R66 Owner Beta real-orchestrator honesty and consent test
+        working-directory: apps/web
+        run: node --test tests/domi-r66-owner-beta-propose-confirm.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
