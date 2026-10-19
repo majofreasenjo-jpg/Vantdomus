@@ -38,7 +38,7 @@ theorem argyris_local_curl_divergence_zero (ψ : ArgyrisPoly2) :
     argyrisPolyDivergence (argyrisCurlX ψ) (argyrisCurlY ψ) = 0 := by
   unfold argyrisPolyDivergence argyrisCurlX argyrisCurlY
   rw [map_neg, argyris_pderiv_comm (0 : Fin 2) (1 : Fin 2) ψ]
-  exact add_neg_cancel_self _
+  exact add_neg_cancel _
 
 /-- A rotated gradient's normal trace along a straight edge is minus
 the tangential derivative of the streamfunction. -/
