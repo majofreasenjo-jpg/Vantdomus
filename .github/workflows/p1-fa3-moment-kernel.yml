@@ -1,4 +1,4 @@
-name: P1 FA12 two-triangle patch plus previous kernel
+name: P1 FA13 boundary primitive plus prior verified modules
 on:
   push:
     branches:
@@ -32,8 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$HOME/.elan/bin:$PATH"
-          lake build ZeroGradientLean.TraceP3MomentCertificate ZeroGradientLean.TraceP3AffineSliceCertificate ZeroGradientLean.ResidualExactBridge ZeroGradientLean.ArgyrisCurlPolynomial ZeroGradientLean.ArgyrisTwoTrianglePatch 2>&1 | tee p3-compile.log
-          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean ZeroGradientLean/TraceP3AffineSliceCertificate.lean ZeroGradientLean/ResidualExactBridge.lean ZeroGradientLean/ArgyrisCurlPolynomial.lean ZeroGradientLean/ArgyrisTwoTrianglePatch.lean; then
+          lake build ZeroGradientLean.TraceP3MomentCertificate ZeroGradientLean.TraceP3AffineSliceCertificate ZeroGradientLean.ResidualExactBridge ZeroGradientLean.ArgyrisCurlPolynomial ZeroGradientLean.ArgyrisTwoTrianglePatch ZeroGradientLean.BoundaryTracePrimitive 2>&1 | tee p3-compile.log
+          if grep -nE '\b(sorry|admit|axiom|opaque)\b' ZeroGradientLean/TraceP3MomentCertificate.lean ZeroGradientLean/TraceP3AffineSliceCertificate.lean ZeroGradientLean/ResidualExactBridge.lean ZeroGradientLean/ArgyrisCurlPolynomial.lean ZeroGradientLean/ArgyrisTwoTrianglePatch.lean ZeroGradientLean/BoundaryTracePrimitive.lean; then
             exit 1
           fi
       - name: Audit all P3 theorem dependencies
@@ -47,6 +47,7 @@ jobs:
           import ZeroGradientLean.ResidualExactBridge
           import ZeroGradientLean.ArgyrisCurlPolynomial
           import ZeroGradientLean.ArgyrisTwoTrianglePatch
+          import ZeroGradientLean.BoundaryTracePrimitive
           #print axioms ZeroGradientLean.p3_weighted_trace_sos
           #print axioms ZeroGradientLean.p3_weighted_trace_bound
           #print axioms ZeroGradientLean.p3_riesz_kernel_four_moments
@@ -65,6 +66,10 @@ jobs:
           #print axioms ZeroGradientLean.patch_c1_dy_diagonal
           #print axioms ZeroGradientLean.patch_nonzero
           #print axioms ZeroGradientLean.patch_rotated_gradient_nonzero
+          #print axioms ZeroGradientLean.edge_beta_expand
+          #print axioms ZeroGradientLean.edge_primitive_endpoints
+          #print axioms ZeroGradientLean.edge_flux_increment
+          #print axioms ZeroGradientLean.edge_weighted_pairing_ratio
           EOF
           lake env lean P3AxiomAudit.lean 2>&1 | tee p3-axioms.log
           if grep -Eq 'sorryAx|Lean\.trustCompiler|Lean\.ofReduceBool' p3-axioms.log; then exit 1; fi
