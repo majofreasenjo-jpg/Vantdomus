@@ -16,7 +16,7 @@ test("strict synthetic shopping is proposed, never auto-inserted",()=>{
 });
 test("owner decision performs local change only after confirm",()=>{
   const region=src.split("// R66: the Owner Beta can validate human confirmation LOCAL ONLY.")[1]
-    ?.split("// CP1c-FUNC-MIN-3.1a")[0] || "";
+    ?.split("    if (isSending) return;")[0] || "";
   assert.match(region,/if \(accept\) \{/);
   assert.match(region,/setShoppingItems\(prev =>/);
   assert.match(region,/status: accept \? "executed" : "rejected"/);
@@ -24,7 +24,7 @@ test("owner decision performs local change only after confirm",()=>{
   assert.doesNotMatch(region,/await assistantChat/);
 });
 test("live backend failure never falls through to fake success",()=>{
-  const live=src.split("if (hid && dataState === \"real\") {")[1]?.split("// --- DEMO LOCAL")[0]||"";
+  const live=src.split("    // --- Camino REAL: orquestador seguro")[1]?.split("// --- DEMO LOCAL")[0]||"";
   assert.match(live,/No he guardado ni ejecutado nada/);
   assert.match(live,/setIsSending\(false\);\s*return;/);
 });
