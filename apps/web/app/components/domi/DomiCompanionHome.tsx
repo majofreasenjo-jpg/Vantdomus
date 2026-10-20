@@ -192,7 +192,7 @@ export default function DomiCompanionHome({
   const isReal = dataState === "real";
 
   // Default shopping list (solo demo; en real arranca vacío)
-  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : (isReal ? [] : [
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : (dataState !== "demo" ? [] : [
     { id: "1", name: "Leche semidescremada", checked: false, qty: "2 L", category: "Supermercado" },
     { id: "2", name: "Plátanos maduros", checked: false, qty: "1 Kg", category: "Frutería" },
     { id: "3", name: "Pan de molde integral", checked: false, qty: "1 ud", category: "Panadería" },
@@ -205,14 +205,14 @@ export default function DomiCompanionHome({
   ]));
 
   // Study blocks (solo demo; en real arranca vacío)
-  const [studyBlocks, setStudyBlocks] = useState<StudyBlock[]>(() => isReal ? [] : [
+  const [studyBlocks, setStudyBlocks] = useState<StudyBlock[]>(() => dataState !== "demo" ? [] : [
     { id: "1", time: "16:00 - 16:45", subject: "Álgebra y Ecuaciones", duration: "45m" },
     { id: "2", time: "17:00 - 17:45", subject: "Práctica de Geometría", duration: "45m" },
     { id: "3", time: "18:00 - 18:30", subject: "Simulacro de Examen", duration: "30m" }
   ]);
 
   // Family members list (en real, SOLO los integrantes reales del hogar)
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : (isReal ? [] : [
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : (dataState !== "demo" ? [] : [
     { id: "mama", name: "Mamá (Gabriela)", role: "Madre", avatar: "G", status: "En el trabajo" },
     { id: "papa", name: "Papá (Carlos)", role: "Padre", avatar: "C", status: "Preparando la cena" },
     { id: "diego", name: "Diego", role: "Hijo - Estudiante", avatar: "D", status: "Estudiando matemáticas" },
@@ -272,7 +272,7 @@ export default function DomiCompanionHome({
   const [domiMood, setDomiMood] = useState<"happy" | "speaking" | "breathing" | "thinking">("happy");
 
   // Notifications audit trail (solo demo; en real arranca vacío)
-  const [notifications, setNotifications] = useState<HomeNotification[]>(() => isReal ? [] : [
+  const [notifications, setNotifications] = useState<HomeNotification[]>(() => dataState !== "demo" ? [] : [
     { id: "n1", title: "Medicina programada", message: "Toma de metformina de Elena programada para las 21:30.", timestamp: "21:00", type: "care" },
     { id: "n2", title: "Bienestar sugerido", message: "Modo relajación recomendado por Domi debido al descanso nocturno.", timestamp: "20:30", type: "system" },
     { id: "n3", title: "Seguridad activa", message: "Cierre de puertas perimetrales y alarma nocturna conectada.", timestamp: "22:00", type: "security" }
@@ -335,7 +335,7 @@ export default function DomiCompanionHome({
     size: string;
     date: string;
     uploader: string;
-  }[]>(() => isReal ? [] : [
+  }[]>(() => dataState !== "demo" ? [] : [
     { id: "doc1", name: "Receta Metformina Elena.pdf", category: "salud", size: "342 KB", date: "Hoy, 10:15", uploader: "Domi" },
     { id: "doc2", name: "Boletín Académico Diego.pdf", category: "educacion", size: "1.2 MB", date: "Ayer, 16:30", uploader: "Papá (Carlos)" },
     { id: "doc3", name: "Manual Caldera Inteligente.pdf", category: "hogar", size: "4.5 MB", date: "15 Jun 2026", uploader: "Mamá (Gabriela)" },
