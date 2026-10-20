@@ -11,6 +11,7 @@
  */
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { getDashboard, shoppingList } from "../../../lib/api";
+import { classifyHouseholdData } from "../../../lib/domiHouseholdDataState.mjs";
 import { isPurchased, isExcluded } from "../../../lib/shoppingContract";
 import DomiCompanionHome, { DomiHomeData } from "../../components/domi/DomiCompanionHome";
 import { getInitialTheme } from "../../components/domi/domiThemes";
@@ -106,22 +107,14 @@ export default async function HogarCompanionPage({
       }));
   }
 
-  // CP1c-FUNC-MIN-2.2 — estado de datos honesto (fallback demo NO silencioso).
-  // Clasifica: real | session (401/expirada) | api (backend caído) | demo (sin datos).
-  // "real" si el hogar resolvió al menos integrantes reales; si no, se clasifica
-  // por el error para explicar HONESTAMENTE al usuario qué está viendo.
-  const gotReal = persons.length > 0;
-  const errMsg = String(dashErr?.message || shopErr?.message || "");
-  let dataState: "real" | "session" | "api" | "demo" = "real";
-  if (gotReal) {
-    dataState = "real";
-  } else if (/401|unauthorized|authentication|forbidden|403|expir|sesi[oó]n/i.test(errMsg)) {
-    dataState = "session";
-  } else if (/econnrefused|fetch failed|network|timeout|enotfound|econnreset|50[0-9]/i.test(errMsg)) {
-    dataState = "api";
-  } else {
-    dataState = "demo";
-  }
+  // R69: an authenticated *empty* household is REAL, not a demo.
+  // Both API responses must be valid; partial/error states must fail closed.
+  const dataState = classifyHouseholdData({
+    dashboard: dash,
+    shopping,
+    dashboardError: dashErr,
+    shoppingError: shopErr,
+  });
   if (dataState !== "real") {
     // Log operacional para QA (sin exponer token ni IDs largos).
     console.warn(`[hogar] estado de datos = ${dataState} (sin datos reales del hogar)`);
