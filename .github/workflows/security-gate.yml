@@ -248,6 +248,9 @@ jobs:
       - name: R68 ten-axis canonical scorecard integrity
         working-directory: apps/web
         run: node --test tests/domi-canon-10-scorecard.test.mjs
+      - name: R69 honest real household classification
+        working-directory: apps/web
+        run: node --test tests/domi-r69-household-truth.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
