@@ -609,7 +609,7 @@ export default function DomiCompanionHome({
     const clean = name.trim();
     if (!clean || clean.length > 120) return;
     if (realShopping) {
-      const match = qty.match(/^([0-9]+(?:[.,][0-9]+)?)\\s*(.*)$/);
+      const match = qty.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(.*)$/);
       const quantity = match ? Number(match[1].replace(",", ".")) : 1;
       const unit = (match?.[2] || "ud").slice(0,24);
       void runShoppingAction("Producto guardado y verificado.", () => shoppingCreate(hid!, {
