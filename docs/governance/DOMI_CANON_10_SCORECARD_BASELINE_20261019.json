@@ -1,0 +1,155 @@
+{
+  "canon": "V2.1+Addenda31-32",
+  "as_of": "2026-10-19",
+  "method": "C10+I15+T20+E25+A30; cada puerta es binaria y respaldada por evidencia",
+  "status": "BASELINE_AUDITED_CONSERVATIVE",
+  "axes": [
+    {
+      "id": "D01",
+      "name": "DOMI personal",
+      "gates": [
+        "C",
+        "I",
+        "T"
+      ],
+      "next": "Identidad personal autenticada y persistida entre sesiones en backend"
+    },
+    {
+      "id": "D02",
+      "name": "DOMI familiar",
+      "gates": [
+        "C",
+        "I",
+        "T"
+      ],
+      "next": "Prueba navegador→sesión→API→DB→recarga→teléfono con datos de ensayo"
+    },
+    {
+      "id": "D03",
+      "name": "DOMI desarrollativo",
+      "gates": [
+        "C",
+        "I"
+      ],
+      "next": "Afectividad funcional causal + estado personal integrado y test longitudinal"
+    },
+    {
+      "id": "D04",
+      "name": "DOMI federado",
+      "gates": [
+        "C",
+        "I",
+        "T"
+      ],
+      "next": "Enrutamiento real de dos proveedores o especialistas con trazabilidad"
+    },
+    {
+      "id": "D05",
+      "name": "DOMI multidispositivo",
+      "gates": [
+        "C",
+        "I",
+        "T"
+      ],
+      "next": "Continuidad completa teléfono, TV y simulador de automóvil"
+    },
+    {
+      "id": "D06",
+      "name": "DOMI organizacional",
+      "gates": [
+        "C"
+      ],
+      "next": "Motor de precedentes profesionales autorizado por tenant"
+    },
+    {
+      "id": "D07",
+      "name": "DOMI–EDIS",
+      "gates": [
+        "C"
+      ],
+      "next": "Contrato receptor-nativo EDIS y memoria de casos en dos tenants ficticios"
+    },
+    {
+      "id": "D08",
+      "name": "DOMI legado",
+      "gates": [
+        "C"
+      ],
+      "next": "Consentimiento premortem y consulta acotada falsables"
+    },
+    {
+      "id": "D09",
+      "name": "DOMI Titan/comercial",
+      "gates": [
+        "C",
+        "I"
+      ],
+      "next": "Titan Bench + demostración K1–K8 reproducible y aprobación de paquete"
+    },
+    {
+      "id": "D10",
+      "name": "DOMI MICR/ciencia",
+      "gates": [
+        "C",
+        "I"
+      ],
+      "next": "Validación experimental del DSR con falsadores y claims independientes"
+    }
+  ],
+  "evidence": [
+    {
+      "axis": "D01",
+      "ref": "apps/web/tests/domi-r67-personal-lineage.test.mjs",
+      "ci": "https://github.com/majofreasenjo-jpg/Vantdomus/actions/runs/39275807968"
+    },
+    {
+      "axis": "D02",
+      "ref": "tests/security/test_domi_r60_reminder_http_e2e.py",
+      "ci": "https://github.com/majofreasenjo-jpg/Vantdomus/actions/runs/39193198075"
+    },
+    {
+      "axis": "D03",
+      "ref": "apps/web/lib/domiLongitudinalConversationSpine.mjs",
+      "limit": "R3 prueba acotada no T DSR integrado"
+    },
+    {
+      "axis": "D04",
+      "ref": "apps/web/tests/domi-federated-cognitive-fabric.test.mjs"
+    },
+    {
+      "axis": "D05",
+      "ref": "apps/web/tests/domi-multi-surface-continuity.test.mjs",
+      "limit": "P5 RC2 físico acotado"
+    },
+    {
+      "axis": "D06",
+      "ref": "https://docs.google.com/document/d/1yODQYGlQAwoXOzybl7DhrlIsF5fjJxZlwhUdAYkNWBY/edit",
+      "limit": "diseño solo"
+    },
+    {
+      "axis": "D07",
+      "ref": "https://docs.google.com/document/d/1LxLutqFagDhAlCyz_QOJT9FH17-hSGuH2y-wK5P5WGA/edit",
+      "limit": "diseño solo"
+    },
+    {
+      "axis": "D08",
+      "ref": "https://docs.google.com/document/d/1zCrviV-CpCfO82QBYl-WuCNvYaWcomrG9lZkP_nfhTY/edit",
+      "limit": "diseño solo"
+    },
+    {
+      "axis": "D09",
+      "ref": "commercial/domi-titan/README.md",
+      "limit": "documentos internos; no OEM-ready"
+    },
+    {
+      "axis": "D10",
+      "ref": "docs/checkpoints/DOMI_R66_FAMILY_FIRST_MICR_PARALLEL_REALITY_GATE_20261018.md",
+      "limit": "MICR no transfiere prueba de conciencia"
+    }
+  ],
+  "last_head_sha": "9f9f04bcbb006afbd7039be3d4773b32b8699768",
+  "last_ci": "https://github.com/majofreasenjo-jpg/Vantdomus/actions/runs/39275807968",
+  "real_family_e2e": "NOT_VERIFIED",
+  "production_usable": "NOT_CERTIFIED",
+  "scientific_consciousness": "NOT_DEMONSTRATED"
+}
