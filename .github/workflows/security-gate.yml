@@ -245,6 +245,9 @@ jobs:
       - name: R67 personal DOMI lineage test
         working-directory: apps/web
         run: node --test tests/domi-r67-personal-lineage.test.mjs
+      - name: R68 ten-axis canonical scorecard integrity
+        working-directory: apps/web
+        run: node --test tests/domi-canon-10-scorecard.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
