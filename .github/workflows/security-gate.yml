@@ -254,6 +254,9 @@ jobs:
       - name: R70 real shopping API and confirmation source-of-truth contract
         working-directory: apps/web
         run: node --test tests/domi-r70-real-shopping-contract.test.mjs
+      - name: R71 initial shopping projection and failed-session data integrity
+        working-directory: apps/web
+        run: node --test tests/domi-r71-hydration-truth.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
