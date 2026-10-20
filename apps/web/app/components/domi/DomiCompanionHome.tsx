@@ -61,7 +61,8 @@ import { logoutAction } from "../../login/actions";
 import DomiDocPanel from "./DomiDocPanel";
 // CP1c-FUNC-MIN-3.1a — orquestador propose-first real (backend). El simulador
 // local (domiIntents) queda SOLO como fallback demo, marcado como tal.
-import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio } from "../../../lib/api";
+import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio, shoppingList, shoppingCreate, shoppingMarkPurchased, shoppingCancel } from "../../../lib/api";
+import { projectDomiShoppingResponse } from "../../../lib/domiShoppingProjection";
 import { startRecording, mimeToFilename, recordingSupported, type Recorder } from "../../../lib/voice";
 
 
@@ -563,39 +564,86 @@ export default function DomiCompanionHome({
     setDomiState("esperando_confirmacion");
   };
 
-  const handleToggleShoppingItem = (id: string) => {
-    setShoppingItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const nextState = !item.checked;
-        addNotification(
-          nextState ? "Artículo Comprado" : "Artículo Pendiente",
-          `"${item.name}" fue marcado como ${nextState ? "comprado" : "pendiente"}.`,
-          "shopping"
-        );
-        return { ...item, checked: nextState };
+  // R70: household shopping is persisted and then re-read, not simulated.
+  const shoppingBusyRef = useRef(false);
+  const realShopping = Boolean(hid && dataState === "real");
+  const refreshShopping = async () => {
+    if (!hid || dataState !== "real") return;
+    const response = await shoppingList(hid);
+    setShoppingItems(projectDomiShoppingResponse(response));
+  };
+  const runShoppingAction = async (description: string, fn: () => Promise<unknown>) => {
+    if (shoppingBusyRef.current) return;
+    shoppingBusyRef.current = true;
+    try {
+      await fn();
+      await refreshShopping();
+      addNotification("Compras actualizadas", description, "shopping");
+    } catch (_error) {
+      // A write may succeed even when the follow-up GET fails.
+      try {
+        await refreshShopping();
+        addNotification("Revisa la operación", "La lista se volvió a consultar. Comprueba el estado antes de repetir.", "security");
+      } catch (_refreshError) {
+        addNotification("Estado sin verificar", "No pude confirmar el estado de la lista. Recarga la página antes de intentar nuevamente.", "security");
       }
-      return item;
-    }));
-  };
-
-  const handleAddShoppingItem = (name: string, qty: string = "1 ud", category: string = "Supermercado") => {
-    const newItem: ShoppingItem = {
-      id: `shop-${Date.now()}`,
-      name,
-      checked: false,
-      qty,
-      category
-    };
-    setShoppingItems(prev => [...prev, newItem]);
-    addNotification("Lista de compras actualizada", `Se agregó "${name}" (${qty}) a la despensa.`, "shopping");
-  };
-
-  const handleDeleteShoppingItem = (id: string) => {
-    const item = shoppingItems.find(i => i.id === id);
-    if (item) {
-      setShoppingItems(prev => prev.filter(i => i.id !== id));
-      addNotification("Artículo Eliminado", `Se eliminó "${item.name}" de la lista.`, "shopping");
+    } finally {
+      shoppingBusyRef.current = false;
     }
+  };
+  const handleToggleShoppingItem = (id: string) => {
+    const item = shoppingItems.find(i => i.id === id);
+    if (!item) return;
+    if (realShopping) {
+      if (!item.checked) void runShoppingAction("Compra registrada en el hogar.", () => shoppingMarkPurchased(hid!, id));
+      else addNotification("Compra registrada", "No se puede desmarcar desde este control. Revisa el módulo Compras.", "system");
+      return;
+    }
+    if (dataState !== "demo") {
+      addNotification("Sin conexión", "No se guardó ningún cambio.", "security");
+      return;
+    }
+    setShoppingItems(prev => prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+  };
+  const handleAddShoppingItem = (name: string, qty = "1 ud", category = "Supermercado") => {
+    const clean = name.trim();
+    if (!clean || clean.length > 120) return;
+    if (realShopping) {
+      const match = qty.match(/^([0-9]+(?:[.,][0-9]+)?)\\s*(.*)$/);
+      const quantity = match ? Number(match[1].replace(",", ".")) : 1;
+      const unit = (match?.[2] || "ud").slice(0,24);
+      void runShoppingAction("Producto guardado y verificado.", () => shoppingCreate(hid!, {
+        item_name: clean, quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+        unit, category: category === "Farmacia" ? "pharmacy" : "grocery",
+        store_type: category === "Farmacia" ? "pharmacy" : "supermarket",
+        preferred_store: category,
+      }));
+      return;
+    }
+    if (dataState !== "demo") {
+      addNotification("Sin conexión", "No se agregó el producto.", "security");
+      return;
+    }
+    setShoppingItems(prev => [...prev, { id: "demo-shop-" + Date.now(), name: clean, checked: false, qty, category }]);
+  };
+  const handleDeleteShoppingItem = (id: string) => {
+    if (realShopping) {
+      void runShoppingAction("Producto cancelado y verificado.", () => shoppingCancel(hid!, id));
+      return;
+    }
+    if (dataState !== "demo") {
+      addNotification("Sin conexión", "No se modificó la lista.", "security");
+      return;
+    }
+    setShoppingItems(prev => prev.filter(i => i.id !== id));
+  };
+  const handleClearPurchased = () => {
+    if (realShopping) {
+      addNotification("Historial conservado", "Las compras registradas no se eliminan de forma local. Gestiona el historial desde Compras.", "system");
+      return;
+    }
+    if (dataState !== "demo") return;
+    setShoppingItems(prev => prev.filter(i => !i.checked));
   };
 
   const handlePrepareStudy = () => {
@@ -941,21 +989,11 @@ export default function DomiCompanionHome({
         timestamp: new Date(),
       }]);
 
-      // Si se confirmó agregar compras, reflejarlas al tiro en la card del hogar
-      // (respetando la versión EDITADA si el humano cambió los productos).
+      // R70: refresh verified server-side rows after proposal execution.
       if (accept && executedProposal?.tool_name === "propose_shopping_item") {
-        const names = (overrides?.items as string[] | undefined) || executedProposal.proposed_payload?.items || [];
-        if (names.length) {
-          setShoppingItems(prev => ([
-            ...prev,
-            ...names.map((n, i) => ({
-              id: `domi-prop-${Date.now()}-${i}`,
-              name: String(n),
-              checked: false,
-              qty: "1 ud",
-              category: "Supermercado",
-            })),
-          ]));
+        try { await refreshShopping(); }
+        catch (_error) {
+          addNotification("Estado sin verificar", "El servidor respondió, pero no pude actualizar la lista. Recarga antes de reintentar.", "security");
         }
       }
 
@@ -2090,10 +2128,7 @@ export default function DomiCompanionHome({
                   </div>
 
                   <button 
-                    onClick={() => {
-                      setShoppingItems(prev => prev.filter(i => !i.checked));
-                      addNotification("Lista de compras limpia", "Se han removido los artículos ya comprados de la lista.", "shopping");
-                    }}
+                    onClick={handleClearPurchased}
                     className={`w-full mt-4 py-2 text-[13px] font-semibold rounded-xl border cursor-pointer transition-all ${
                       isLight 
                         ? "bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200 shadow-sm" 
