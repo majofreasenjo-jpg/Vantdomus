@@ -15,7 +15,9 @@ test("one failed call or malformed data never becomes demo",()=>{
  assert.equal(classifyHouseholdData({dashboard:{persons:[]},shopping:null}),"api");
  assert.equal(classifyHouseholdData({dashboard:{persons:[]},shopping:{items:null}}),"api");
 });
-test("real family does not receive seeded demo data when empty",()=>{
+test("only explicit demo may seed synthetic household data; session/api cannot",()=>{
  assert.match(ui,/const isReal = dataState === "real"/);
- assert.match(ui,/\(isReal \? \[\] : \[/);
+ assert.equal(ui.includes("isReal ? [] : ["),false);
+ assert.ok((ui.match(/dataState !== "demo" \? \[\] : \[/g) || []).length >= 3);
+ assert.match(home,/if \(dataState === "real"\)/);
 });
