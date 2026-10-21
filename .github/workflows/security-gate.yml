@@ -60,6 +60,8 @@ jobs:
 
       - name: R60 reminder HTTP end-to-end tenant and confirmation tests
         run: python -m pytest tests/security/test_domi_r60_reminder_http_e2e.py -q -ra
+      - name: R72 two-household HTTP persistence and denial test
+        run: python -m pytest tests/test_domi_r72_family_two_households_http.py -q -ra
 
       - name: Backend tests — full suite (must pass)
         run: |
