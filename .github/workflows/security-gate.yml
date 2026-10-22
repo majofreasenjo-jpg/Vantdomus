@@ -265,6 +265,9 @@ jobs:
       - name: R75 family landing state and no-dashboard-loop
         working-directory: apps/web
         run: node --test tests/domi-r75-family-landing.test.mjs
+      - name: R76 Preview-only backend health probe boundaries
+        working-directory: apps/web
+        run: node --test tests/domi-r76-family-backend-check.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
