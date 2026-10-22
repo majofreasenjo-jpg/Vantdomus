@@ -259,6 +259,9 @@ jobs:
       - name: R71 initial shopping projection and failed-session data integrity
         working-directory: apps/web
         run: node --test tests/domi-r71-hydration-truth.test.mjs
+      - name: R74 honest backend login failure classification
+        working-directory: apps/web
+        run: node --test tests/domi-r74-login-truth.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
