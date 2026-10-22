@@ -262,6 +262,9 @@ jobs:
       - name: R74 honest backend login failure classification
         working-directory: apps/web
         run: node --test tests/domi-r74-login-truth.test.mjs
+      - name: R75 family landing state and no-dashboard-loop
+        working-directory: apps/web
+        run: node --test tests/domi-r75-family-landing.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
