@@ -7,6 +7,7 @@ import { API_BASE, loginWithPassword } from "../../lib/public-api";
 import { getHouseholds } from "../../lib/api";
 import { CSRF_COOKIE, newCsrfToken } from "../../lib/csrf";
 import { cookieSecure } from "../../lib/runtimeEnv";
+import { safeDomiLoginMessage } from "../../lib/domiLoginFailure.mjs";
 
 /**
  * Nivel de vista (densidad de la UI): "simple" oculta KPIs técnicos, márgenes
@@ -105,9 +106,7 @@ export async function loginAction(formData: FormData) {
       maxAge: Number(session.expires_in || 28800),
     });
   } catch (error) {
-    const message = error instanceof Error && error.message.includes("428")
-      ? "MFA requerido: ingresa tu codigo"
-      : "Credenciales invalidas o cuenta bloqueada";
+    const message = safeDomiLoginMessage(error);
     redirect(`/login?error=${encodeURIComponent(message)}&email=${encodeURIComponent(email)}`);
   }
 
