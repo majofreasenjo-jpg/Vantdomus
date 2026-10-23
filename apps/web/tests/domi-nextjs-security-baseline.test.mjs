@@ -55,7 +55,7 @@ test("Production dependency graph uses patched Next.js, Sharp, PostCSS, NanoID a
   assert.equal(manifest.overrides.postcss,"8.5.23");
   assert.equal(lock.packages["node_modules/next"].dependencies.postcss,"8.5.23");
   assert.equal(lock.packages["node_modules/next"].dependencies["@swc/helpers"],"0.5.23");
-  assert.equal(lock.packages["node_modules/next"].optionalDependencies.sharp,"^0.35.4");
+  assert.equal(lock.packages["node_modules/next"].optionalDependencies.sharp,"^0.35.5");
   assert.equal(lock.packages["node_modules/sharp"].dependencies.semver,"^7.8.5");
   assert.equal(lock.packages["node_modules/sharp"].dependencies["@img/colour"],"^1.1.0");
 });
