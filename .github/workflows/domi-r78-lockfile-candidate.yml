@@ -1,0 +1,47 @@
+name: DOMI R78 Next.js patched lockfile candidate
+
+on:
+  push:
+    branches:
+      - domi-neon-staging-pg-startup-gate-20261010
+    paths:
+      - .github/workflows/domi-r78-lockfile-candidate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  generate-patched-candidate:
+    if: github.repository == 'majofreasenjo-jpg/Vantdomus'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Node 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Recompute lock using npm registry without lifecycle scripts
+        working-directory: apps/web
+        run: |
+          npm install next@16.4.2 --save-exact --package-lock-only --ignore-scripts --no-fund
+          npm audit --omit=dev --audit-level=high
+      - name: Emit auditable UTF-8 manifest candidates, no secrets
+        working-directory: apps/web
+        run: |
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          for (const [key, path] of [["PACKAGE","package.json"], ["LOCK","package-lock.json"]]) {
+            const data=fs.readFileSync(path,"utf8");
+            console.log("DOMI_R78_"+key+"_BEGIN");
+            for(let i=0,k=0;i<data.length;i+=3500,k++){
+              console.log("DOMI_R78_"+key+"_CHUNK_"+String(k).padStart(3,"0")+":"+JSON.stringify(data.slice(i,i+3500)));
+            }
+            console.log("DOMI_R78_"+key+"_END");
+          }
+          JS
