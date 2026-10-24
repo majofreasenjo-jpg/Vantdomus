@@ -268,6 +268,9 @@ jobs:
       - name: R76 Preview-only backend health probe boundaries
         working-directory: apps/web
         run: node --test tests/domi-r76-family-backend-check.test.mjs
+      - name: R81 synthetic offline family pilot integrity
+        working-directory: apps/web
+        run: node --test tests/domi-r81-local-family-pilot.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
