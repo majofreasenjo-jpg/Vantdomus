@@ -262,7 +262,7 @@ Pasos sugeridos:
    - Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - Plan: Free
    - Env vars: APP_ENV=local (para bypass del validate_runtime_security),
-     JWT_SECRET=<fresh>, VANTDOMUS_MFA_SECRET_KEY=<fresh>,
+     JWT_SECRET=CHANGE_ME_WITH_32_PLUS_RANDOM_CHARACTERS,
      DATABASE_URL=<el connection string Neon rotado>,
      CORS_ALLOWED_ORIGINS=<la URL Vercel del web>,
      VANTDOMUS_ALLOW_DEMO_SEED=true,

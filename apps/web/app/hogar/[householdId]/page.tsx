@@ -2,16 +2,16 @@
  * U1-COMPANION CP1b-INTEGRATION — Home companion-first (port Google AI Studio).
  *
  * Server Component: obtiene datos REALES del hogar (integrantes, compras) y los
- * pasa al port aprobado (DomiCompanionHome). Si un endpoint falla, el componente
- * usa su fallback demo del prototipo (marcado como demo) — la integración visual
- * no se bloquea por datos.
+ * pasa al port aprobado (DomiCompanionHome). Si falla un endpoint,
+ * el hogar queda bloqueado por sesion/API: jamas se inventan datos de demo.
  *
  * La experiencia visible es la diseñada por Google AI Studio; aquí no se
  * rediseña nada, solo se conecta la arquitectura del repo.
  */
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { getDashboard, shoppingList } from "../../../lib/api";
-import { isPurchased, isExcluded } from "../../../lib/shoppingContract";
+import { classifyHouseholdData } from "../../../lib/domiHouseholdDataState.mjs";
+import { projectDomiShoppingResponse } from "../../../lib/domiShoppingProjection";
 import DomiCompanionHome, { DomiHomeData } from "../../components/domi/DomiCompanionHome";
 import { getInitialTheme } from "../../components/domi/domiThemes";
 import type { DomiState } from "../../components/domi/domiTypes";
@@ -75,52 +75,26 @@ export default async function HogarCompanionPage({
     shoppingList(hid).catch((e) => { shopErr = e; return null; }),
   ]);
 
+  // R71: evaluate both API responses BEFORE shaping any family data.
+  // Empty arrays are valid; malformed/expired data must not seed a family.
+  const dataState = classifyHouseholdData({
+    dashboard: dash,
+    shopping,
+    dashboardError: dashErr,
+    shoppingError: shopErr,
+  });
   const data: DomiHomeData = {};
-
-  // Integrantes reales → FamilyMember del prototipo
-  const persons = (dash?.persons || []) as any[];
-  if (persons.length > 0) {
-    data.familyMembers = persons.map((p) => ({
+  if (dataState === "real") {
+    data.familyMembers = (dash.persons as any[]).map(p => ({
       id: String(p.id),
       name: p.display_name || "Integrante",
       role: p.relation || "Integrante del hogar",
       avatar: (p.display_name || "?").trim().charAt(0).toUpperCase(),
       status: p.status_text || "En casa",
     }));
-  }
-
-  // Compras reales → ShoppingItem del prototipo.
-  // MIN-3.3a: la clasificación usa el CONTRATO CANÓNICO (lib/shoppingContract,
-  // espejo del backend shopping_contract.py) — este archivo ya no define
-  // criterios propios de estados.
-  const items = (shopping?.items || []) as any[];
-  if (items.length > 0) {
-    data.shoppingItems = items
-      .filter((s) => !isExcluded(s.status))
-      .map((s) => ({
-        id: String(s.id),
-        name: s.item_name || "Producto",
-        checked: isPurchased(s.status),
-        qty: `${s.quantity ?? 1}${s.unit ? ` ${s.unit}` : " ud"}`,
-        category: s.place_hint || s.category || "Supermercado",
-      }));
-  }
-
-  // CP1c-FUNC-MIN-2.2 — estado de datos honesto (fallback demo NO silencioso).
-  // Clasifica: real | session (401/expirada) | api (backend caído) | demo (sin datos).
-  // "real" si el hogar resolvió al menos integrantes reales; si no, se clasifica
-  // por el error para explicar HONESTAMENTE al usuario qué está viendo.
-  const gotReal = persons.length > 0;
-  const errMsg = String(dashErr?.message || shopErr?.message || "");
-  let dataState: "real" | "session" | "api" | "demo" = "real";
-  if (gotReal) {
-    dataState = "real";
-  } else if (/401|unauthorized|authentication|forbidden|403|expir|sesi[oó]n/i.test(errMsg)) {
-    dataState = "session";
-  } else if (/econnrefused|fetch failed|network|timeout|enotfound|econnreset|50[0-9]/i.test(errMsg)) {
-    dataState = "api";
-  } else {
-    dataState = "demo";
+    // Same R70 projector for first render and subsequent client-side refresh.
+    // Rejecting malformed rows happens in a single canonical mapper.
+    data.shoppingItems = projectDomiShoppingResponse(shopping);
   }
   if (dataState !== "real") {
     // Log operacional para QA (sin exponer token ni IDs largos).

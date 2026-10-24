@@ -1,0 +1,51 @@
+body:has(#domi-owner-beta) .nav,
+body:has(#domi-owner-beta) .bottomNav { display: none !important; }
+body:has(#domi-owner-beta) .container { max-width: none !important; padding: 0 !important; }
+#domi-owner-beta { min-height: 100vh; color: #302a44; }
+#domi-owner-beta .beta-intro {
+  padding: 24px clamp(16px,4vw,64px) 22px;
+  background: linear-gradient(120deg,#fff2dd,#f3eeff 60%,#fff0f2);
+  border-bottom: 1px solid #e9deea;
+}
+#domi-owner-beta .beta-label {
+  display: inline-block; font: 700 12px/1.2 system-ui,sans-serif;
+  border-radius: 999px; border: 1px solid #d4a864;
+  background: #fff9e9; padding: 7px 12px; color: #654118;
+  margin-bottom: 14px;
+}
+#domi-owner-beta .beta-intro h1 {
+  font: 750 clamp(26px,4vw,42px)/1.15 system-ui,sans-serif;
+  letter-spacing: -.035em; margin: 0 0 12px; color: #34264f;
+}
+#domi-owner-beta .beta-intro p { max-width: 860px; line-height: 1.6; margin: 8px 0; }
+#domi-owner-beta .beta-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+#domi-owner-beta .beta-links a {
+  display: inline-flex; padding: 10px 16px; border-radius: 999px;
+  background: #40345f; color: white; font: 700 14px system-ui,sans-serif;
+  text-decoration: none;
+}
+#domi-owner-beta .beta-links a:nth-child(2) { background: #705b37; }
+#domi-owner-beta .beta-warning {
+  max-width: 960px; border-left: 4px solid #bf8433; padding: 11px 14px;
+  margin-top: 16px; border-radius: 0 10px 10px 0;
+  background: rgba(255,255,255,.86); color: #66451b;
+  font: 600 13px/1.6 system-ui,sans-serif;
+}
+#domi-owner-beta .beta-memory {
+  padding: 32px clamp(16px,3vw,44px) 70px;
+  background: #fff9ef; color: #322a26; color-scheme: light;
+}
+#domi-owner-beta .beta-memory h2 {
+  margin: 0 0 10px; font: 750 clamp(24px,3vw,34px)/1.2 system-ui,sans-serif;
+  color: #352b29;
+}
+#domi-owner-beta .beta-memory > p {
+  max-width: 900px; color: #604f43; line-height: 1.6; margin: 0 0 24px;
+}
+#domi-owner-beta .beta-memory button { font-weight: 650; }
+#domi-owner-beta .beta-memory input,
+#domi-owner-beta .beta-memory textarea { color: white; background: #383633; }
+#domi-owner-beta .beta-memory button:disabled { opacity: .55; }
+@media (prefers-reduced-motion: reduce) {
+  #domi-owner-beta * { scroll-behavior: auto !important; }
+}

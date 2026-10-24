@@ -288,7 +288,8 @@ def _action_limits() -> dict:
         "invitation_accept": _pair("INV_ACCEPT", 10, 3600),   # 10/hora por usuario
         "invitation_register": _pair("INV_REGISTER", 10, 3600),  # 10/hora por IP y por token-fp
         "verification_resend": _pair("VERIFY_RESEND", 3, 3600),  # 3/hora por usuario
-        "backup": _pair("BACKUP", 3, 3600),              # 3/hora por usuario
+        "backup": _pair("BACKUP", 3, 3600),
+        "owner_chat": _pair("OWNER_CHAT", 10, 60),              # 3/hora por usuario
     }
 
 

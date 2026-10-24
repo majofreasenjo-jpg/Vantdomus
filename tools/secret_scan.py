@@ -102,6 +102,22 @@ def _looks_like_placeholder(value: str) -> bool:
     return any(marker.lower() in lowered for marker in PLACEHOLDER_MARKERS)
 
 
+def _is_verified_non_secret_fixture(path: Path, key: str, value: str, source: str) -> bool:
+    """Narrow documented exceptions; never suppress actual credential detectors."""
+    normalized = path.as_posix()
+    if normalized.endswith("/tools/windows/Setup-LocalDev.ps1"):
+        aliases = {
+            "JWT_SECRET": ("$jwtSecret", "$jwtSecret  = New-HexSecret 32"),
+            "VANTDOMUS_MFA_SECRET_KEY": ("$mfaSecret", "$mfaSecret  = New-HexSecret 32"),
+            "VANTDOMUS_BACKUP_ENCRYPTION_KEY": ("$backupKey", "$backupKey  = New-HexSecret 32"),
+        }
+        permitted = aliases.get(key)
+        return bool(permitted and value == permitted[0] and permitted[1] in source)
+    if normalized.endswith("/tests/test_family_pilot_runtime_profile.py"):
+        return key == "JWT_SECRET" and value == '"test_fixture_" + "x" * 32,'
+    return False
+
+
 def _scan_text(path: Path, text: str) -> list[dict]:
     findings: list[dict] = []
     for line_number, line in enumerate(text.splitlines(), start=1):
@@ -113,7 +129,7 @@ def _scan_text(path: Path, text: str) -> list[dict]:
             if not match:
                 continue
             value = match.group(1).strip().strip('"').strip("'")
-            if value and not _looks_like_placeholder(value):
+            if value and not (_looks_like_placeholder(value) or _is_verified_non_secret_fixture(path, key, value, text)):
                 findings.append({"rule": "secret_assignment", "key": key, "file": str(path), "line": line_number})
     return findings
 

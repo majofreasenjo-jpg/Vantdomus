@@ -113,6 +113,25 @@ TOOL_CONTRACTS: dict[str, ToolContract] = {
         },
         editable_fields=["items", "store_type"],
     ),
+    # R59: recordatorio familiar explícito. Solo crea una propuesta pending;
+    # el ejecutor conserva el gate de confirmación humana y valida UTC/offset.
+    "propose_family_reminder": ToolContract(
+        name="propose_family_reminder",
+        description=("Propone un recordatorio compartido con fecha y zona "
+                     "horaria explícitas. NO lo crea hasta confirmar."),
+        kind="write", category="family", required_role="member",
+        required_modules=["reminders"], sensitive=True,
+        requires_confirmation=True, side_effects=["family_reminders"],
+        input_schema={
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "remind_at": {"type": "string"},
+            },
+            "required": ["title", "remind_at"],
+        },
+        editable_fields=["title", "remind_at"],
+    ),
     "propose_study_task": ToolContract(
         name="propose_study_task",
         description="Propone una tarea/compromiso de estudio para un integrante. NO la crea hasta confirmar.",

@@ -1,26 +1,8 @@
 import { notFound } from "next/navigation";
-import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import DomiCompanionHome from "../components/domi/DomiCompanionHome";
 import OwnerAlphaLongitudinalHarness from "./OwnerAlphaLongitudinalHarness";
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--domi-font-inter",
-  display: "swap",
-});
-const grotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--domi-font-grotesk",
-  display: "swap",
-});
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--domi-font-jetbrains",
-  display: "swap",
-});
+// Font variables live in globals.css with deterministic local fallbacks.
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,7 +27,7 @@ export default function OwnerAlphaPage() {
   return (
     <div
       id="vantdomus-owner-alpha"
-      className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}
+      className="owner-alpha-fonts"
     >
       <style>{`
         body:has(#vantdomus-owner-alpha) .nav,
