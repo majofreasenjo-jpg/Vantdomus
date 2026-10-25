@@ -86,3 +86,38 @@ export function insertMissingGroceries(state, recipeId, createId) {
     id:createId(),name,quantity:"1",done:false,
   })))};
 }
+
+/**
+ * R82 — one-click, fictional example so the Owner can see real UI behavior
+ * immediately, without typing anything personal. Dates follow the selected
+ * local reference day; this does not query or read real calendars.
+ */
+export function createSyntheticExample(referenceDate) {
+  const initial = dateOrBlank(referenceDate);
+  if (!initial) throw new Error("INVALID_SYNTHETIC_EXAMPLE_DATE");
+  const after = days => {
+    const d = new Date(initial + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  return {
+    ...emptyPilot(),
+    members: [
+      {id:"example-alex",alias:"Alex (ficticio)",studyWindow:"tarde"},
+      {id:"example-sam",alias:"Sam (ficticio)",studyWindow:"manana"},
+    ],
+    events: [
+      {id:"example-1",memberId:"example-alex",title:"Prueba de matemáticas",kind:"prueba",date:after(2),time:"10:00",done:false},
+      {id:"example-2",memberId:"example-alex",title:"Actividad deportiva",kind:"actividad",date:after(2),time:"10:00",done:false},
+      {id:"example-3",memberId:"example-sam",title:"Prueba de historia",kind:"prueba",date:after(4),time:"09:00",done:false},
+      {id:"example-4",memberId:"example-alex",title:"Entregar investigación",kind:"tarea",date:after(5),time:"16:00",done:false},
+    ],
+    groceries:[
+      {id:"example-food-1",name:"Pasta",quantity:"1",done:false},
+      {id:"example-food-2",name:"Tomate",quantity:"2",done:false},
+    ],
+    recipes:[
+      {id:"example-recipe-1",name:"Pasta con verduras",ingredients:["Pasta","Tomate","Zanahoria","Cebolla"]},
+    ],
+  };
+}
