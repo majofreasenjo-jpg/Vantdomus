@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {emptyPilot,restorePilot,planOverview,missingIngredients,insertMissingGroceries,LOCAL_PILOT_KEY} from "../lib/domiLocalFamilyPilot.mjs";
+import {emptyPilot,restorePilot,planOverview,missingIngredients,insertMissingGroceries,createSyntheticExample,LOCAL_PILOT_KEY} from "../lib/domiLocalFamilyPilot.mjs";
 const page=readFileSync(new URL("../app/family-local-pilot/page.tsx",import.meta.url),"utf8");
 const ui=readFileSync(new URL("../app/family-local-pilot/FamilyLocalPilot.tsx",import.meta.url),"utf8");
 test("Pilot only opens on expected Preview branch; no real backend or cloud memory",()=>{
@@ -40,4 +40,14 @@ test("Recipe ingredients are a proposal; state changes only on explicit action",
  assert.equal(p.groceries.length,1);
  assert.equal(next.groceries.length,2);
  assert.equal(next.groceries[1].name,"Pasta");
+});
+
+test("R82 example is synthetic, catches schedule conflicts and proposes ingredients",()=>{
+ const example=createSyntheticExample("2026-10-25");
+ assert.equal(example.mode,"synthetic_only");
+ assert.equal(example.members.length,2);
+ assert.equal(planOverview(example,"2026-10-25").conflictPairs.length,1);
+ assert.deepEqual(missingIngredients(example.recipes[0],example.groceries),["Zanahoria","Cebolla"]);
+ assert.match(ui,/Cargar ejemplo ficticio/);
+ assert.match(ui,/createSyntheticExample\(today\(\)\)/);
 });
