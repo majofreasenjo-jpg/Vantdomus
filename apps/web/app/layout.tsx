@@ -47,6 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let tax = INDUSTRY_PRESETS_UI["default"];
   let meRole: string | null = null;
   let moduleVis: Record<string, string> = {};
+  const isLocalSyntheticPilot = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_GIT_COMMIT_REF === "domi-neon-staging-pg-startup-gate-20261010";
   const store = await cookies();
   const hasSession = Boolean(store.get("vantdomus_session_id")?.value || store.get("vantdomus_access_token")?.value);
   const cookieHid = store.get("hid")?.value || "";
@@ -128,7 +129,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         data-mode={isFamily ? domiMode : undefined}
         style={{ '--bg': tax.theme?.bg || '#0b0f17', '--primary': tax.theme?.primary || '#5b7cfa' } as React.CSSProperties}
       >
-        <div className="nav">
+        <div className="nav" data-domi-navigation="shared">
           <div className="navInner">
             <div className="brand">
               <div className="logo" />
@@ -186,6 +187,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   {viewLevel === "simple" ? "Vista simple" : "Vista completa"}
                 </button>
               </form>
+            ) : null}
+            {isLocalSyntheticPilot ? (
+              <a className="btn" href="/family-local-pilot">Ensayo local</a>
             ) : null}
             {hasSession ? (
               <form action={logoutAction}>
