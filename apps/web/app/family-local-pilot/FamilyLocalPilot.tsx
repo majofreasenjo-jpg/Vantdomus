@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   LOCAL_PILOT_KEY, emptyPilot, restorePilot, planOverview,
-  missingIngredients, insertMissingGroceries, suggestStudyPeriod
+  missingIngredients, insertMissingGroceries, suggestStudyPeriod, createSyntheticExample
 } from "../../lib/domiLocalFamilyPilot.mjs";
 
 type Member = {id:string;alias:string;studyWindow:"manana"|"tarde"|"noche"};
@@ -50,6 +50,18 @@ export default function FamilyLocalPilot() {
       <p style={{lineHeight:1.6,maxWidth:850,margin:"0 0 12px"}}>Prueba cómo DOMI coordina horarios, evaluaciones, compras y recetas con integrantes inventados. El contenido queda únicamente en este navegador; funciona sin Render ni inteligencia artificial externa.</p>
       <p style={{background:"#fff1d6",color:"#5b3700",padding:12,borderRadius:10,fontWeight:700,fontSize:14}}>Usa exclusivamente nombres e información ficticios. No hay cuentas, memoria real, sincronización de móvil ni ejecución de acciones externas. No es una beta familiar operativa.</p>
     </header>
+    <section style={{...card,marginBottom:18,background:"#eaf2ff"}} aria-label="Ejemplo listo para probar">
+      <strong style={{display:"block",fontSize:18}}>Prueba DOMI con un ejemplo ficticio</strong>
+      <p style={{margin:"8px 0 12px"}}>Carga dos integrantes inventados, pruebas escolares, un conflicto de horario, una receta y compras. No necesitas escribir datos de tu familia.</p>
+      <button type="button" style={action} onClick={()=>{
+        if(state.members.length||state.events.length||state.groceries.length||state.recipes.length){
+          if(!window.confirm("¿Reemplazar los datos ficticios existentes por el ejemplo?"))return;
+        }
+        setState(createSyntheticExample(today()) as PilotState);
+        setProposedRecipe(null);
+        setNotice("Ejemplo ficticio cargado. Revisa el conflicto de horario y confirma los ingredientes faltantes para observar los cambios.");
+      }}>Cargar ejemplo ficticio</button>
+    </section>
     {notice&&<p role="status" style={{background:"#eaf5ff",borderRadius:9,padding:12}}>{notice}</p>}
     <section aria-label="Resumen" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:18}}>
       {[["Integrantes",state.members.length],["Evaluaciones próximas",overview.upcomingTests.length],["Compras pendientes",overview.pendingGroceries],["Conflictos de horario",overview.conflictPairs.length]].map(([k,v])=><div key={k} style={card}><div style={{fontSize:13,color:"#475569"}}>{k}</div><strong style={{fontSize:29}}>{v}</strong></div>)}
