@@ -5,6 +5,8 @@ import {
   LOCAL_PILOT_KEY, emptyPilot, restorePilot, planOverview,
   missingIngredients, insertMissingGroceries, suggestStudyPeriod, createSyntheticExample
 } from "../../lib/domiLocalFamilyPilot.mjs";
+import { LOCAL_PILOT_LIMIT } from "../../lib/domiLocalFamilyPilot.mjs";
+import {encodeSyntheticTransfer,decodeSyntheticTransfer} from "../../lib/domiSyntheticTransfer.mjs";
 
 type Member = {id:string;alias:string;studyWindow:"manana"|"tarde"|"noche"};
 type Event = {id:string;memberId:string;title:string;kind:"prueba"|"tarea"|"actividad";date:string;time:string;done:boolean};
@@ -31,6 +33,7 @@ export default function FamilyLocalPilot() {
   const [recipeName,setRecipeName]=useState("");
   const [ingredients,setIngredients]=useState("");
   const [proposedRecipe,setProposedRecipe]=useState<string|null>(null);
+  const [fictionConfirmed,setFictionConfirmed]=useState(false);
   useEffect(()=>{try{setState(restorePilot(localStorage.getItem(LOCAL_PILOT_KEY)) as PilotState);}catch{}setReady(true);},[]);
   useEffect(()=>{if(!ready)return;try{localStorage.setItem(LOCAL_PILOT_KEY,JSON.stringify(state));}catch{setNotice("El navegador bloqueó el guardado local. Puedes seguir usando el ensayo, pero no se garantiza su persistencia.");}},[ready,state]);
   const overview=useMemo(()=>planOverview(state,today()),[state]);
@@ -42,10 +45,37 @@ export default function FamilyLocalPilot() {
   const remove=(which:"members"|"events"|"groceries"|"recipes",key:string)=>setState(s=>({...s,[which]:s[which].filter(x=>x.id!==key),...(which==="members"?{events:s.events.filter(x=>x.memberId!==key)}:{})}));
   const confirmIngredients=()=>{if(!proposedRecipe)return;setState(s=>insertMissingGroceries(s,proposedRecipe,id));setProposedRecipe(null);setNotice("Ingredientes pendientes agregados a la lista LOCAL. No se envió ninguna compra ni aviso.");};
   const clearData=()=>{if(!window.confirm("¿Borrar todos los datos ficticios de este navegador?"))return;setState(emptyPilot() as PilotState);setProposedRecipe(null);setNotice("Datos ficticios borrados del ensayo local.");};
+  const exportSynthetic=()=>{
+    if(!fictionConfirmed){setNotice("Confirma antes que todos los datos utilizados son inventados.");return;}
+    try{
+      const raw=encodeSyntheticTransfer(state);
+      const blob=new Blob([raw],{type:"application/json"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;a.download="domi-ejemplo-ficticio-"+today()+".json";
+      document.body.appendChild(a);a.click();a.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      setNotice("Archivo JSON ficticio generado en este navegador. Transfiérelo manualmente si deseas probarlo en otro dispositivo; no existe sincronización automática.");
+    }catch{setNotice("No se pudo generar el archivo: los datos no cumplen el formato ficticio estricto o exceden el límite permitido.");}
+  };
+  const importSynthetic=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const control=e.currentTarget;
+    const file=control.files?.[0];control.value="";
+    if(!file)return;
+    if(!fictionConfirmed){setNotice("Confirma antes que el archivo contiene exclusivamente información inventada.");return;}
+    try{
+      if(file.size>LOCAL_PILOT_LIMIT)throw Error("FILE_TOO_LARGE");
+      const imported=decodeSyntheticTransfer(await file.text()) as PilotState;
+      if(!window.confirm("¿Reemplazar los datos ficticios actuales por el contenido del archivo? No se hará ninguna conexión externa."))return;
+      setState(imported);
+      setProposedRecipe(null);
+      setNotice("Ejemplo ficticio importado y validado. Persistirá únicamente en este navegador; no se ha creado una cuenta ni sincronización real.");
+    }catch{setNotice("Archivo rechazado: se requiere un JSON ficticio DOMI válido, versión compatible y sin campos adicionales.");}
+  };
   if(!ready)return <p style={{padding:24}}>Preparando ensayo local…</p>;
   return <main style={{maxWidth:1100,margin:"28px auto",padding:"0 18px 50px",fontFamily:"system-ui,Arial,sans-serif",color:"#162139"}}>
     <header style={{background:"linear-gradient(125deg,#132b56,#2856ad)",padding:24,color:"white",borderRadius:20,marginBottom:18}}>
-      <p style={{margin:"0 0 8px",letterSpacing:2,fontSize:12,fontWeight:800}}>DOMI · ENSAYO LOCAL R81</p>
+      <p style={{margin:"0 0 8px",letterSpacing:2,fontSize:12,fontWeight:800}}>DOMI · ENSAYO LOCAL R84 (BASE R81)</p>
       <h1 style={{fontSize:"clamp(24px,4vw,36px)",margin:"0 0 10px"}}>Tu planificador familiar de prueba</h1>
       <p style={{lineHeight:1.6,maxWidth:850,margin:"0 0 12px"}}>Prueba cómo DOMI coordina horarios, evaluaciones, compras y recetas con integrantes inventados. El contenido queda únicamente en este navegador; funciona sin Render ni inteligencia artificial externa.</p>
       <p style={{background:"#fff1d6",color:"#5b3700",padding:12,borderRadius:10,fontWeight:700,fontSize:14}}>Usa exclusivamente nombres e información ficticios. No hay cuentas, memoria real, sincronización de móvil ni ejecución de acciones externas. No es una beta familiar operativa.</p>
@@ -101,6 +131,21 @@ export default function FamilyLocalPilot() {
         {proposedRecipe&&<div style={{background:"#fff4d5",padding:12,borderRadius:9,marginTop:14}} role="status"><strong>Confirmación humana</strong><p>¿Agregar los ingredientes faltantes de la receta a la lista local? No se hará ninguna compra externa.</p><button style={action} onClick={confirmIngredients}>Confirmar</button> <button onClick={()=>setProposedRecipe(null)}>Rechazar</button></div>}
       </section>
     </div>
+    <section style={{...card,marginTop:16,background:"#f4f8ff"}} aria-label="Transferencia manual de ensayo ficticio">
+      <h2>5 · Continuar un ejemplo ficticio en otro navegador</h2>
+      <p>R84 permite exportar e importar un archivo JSON local, sin servidores ni cuentas. Debes mover el archivo por tus propios medios. Esto <strong>no es sincronización automática</strong> ni continuidad de identidad o memoria real.</p>
+      <label style={{display:"flex",gap:9,alignItems:"flex-start",marginBottom:14,fontWeight:700}}>
+        <input type="checkbox" checked={fictionConfirmed} onChange={e=>setFictionConfirmed(e.target.checked)} />
+        Confirmo que los nombres, eventos, compras y recetas del ensayo son exclusivamente ficticios y no contienen datos personales reales.
+      </label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:12,alignItems:"center"}}>
+        <button type="button" disabled={!fictionConfirmed} onClick={exportSynthetic} style={{...action,opacity:fictionConfirmed?1:.5}}>Exportar archivo ficticio</button>
+        <label style={{fontWeight:700}}>Importar JSON de ensayo
+          <input type="file" accept=".json,application/json" disabled={!fictionConfirmed} onChange={importSynthetic} style={{display:"block",marginTop:7,maxWidth:290}} />
+        </label>
+      </div>
+      <p style={{fontSize:12,color:"#475569",marginTop:12}}>La importación exige confirmación antes de reemplazar el estado actual. Se rechazan versiones incompatibles, campos adicionales o archivos superiores a {LOCAL_PILOT_LIMIT} bytes. El archivo queda bajo tu custodia.</p>
+    </section>
     <section style={{...card,marginTop:16}}>
       <h2>Resumen que genera DOMI (reglas, no IA)</h2>
       <p>Próximas actividades: {overview.upcoming.length ? overview.upcoming.map(e=>e.date+" "+e.title+" de "+memberLabel(e.memberId)).join("; "):"Ninguna registrada"}. Compras pendientes: {overview.pendingGroceries}.</p>
