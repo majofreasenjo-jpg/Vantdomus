@@ -272,6 +272,10 @@ jobs:
         working-directory: apps/web
         run: node --test tests/domi-r81-local-family-pilot.test.mjs
 
+      - name: R84 fictional JSON manual-transfer security and integrity
+        working-directory: apps/web
+        run: node --test tests/domi-r84-synthetic-transfer.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
