@@ -282,6 +282,10 @@ jobs:
         working-directory: apps/web
         run: node --test tests/domi-r84-synthetic-transfer.test.mjs
 
+      - name: R87 local first-run synthetic account safety and gating
+        working-directory: apps/web
+        run: node --test tests/domi-r87-local-first-run.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
