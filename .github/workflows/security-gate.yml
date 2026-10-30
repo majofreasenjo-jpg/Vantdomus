@@ -66,6 +66,9 @@ jobs:
       - name: R85 cold restart, memory, calendar, actions and tenant isolation
         run: python -m pytest tests/test_domi_r85_cold_restart_family_http.py -q -ra
 
+      - name: R86 Windows local pilot fail-closed launcher contract
+        run: python -m pytest tests/test_domi_r86_local_launcher_contract.py -q -ra
+
       - name: Backend tests — full suite (must pass)
         run: |
           python -m pytest tests/ -q \
