@@ -131,9 +131,9 @@ if (-not $webHealthy) {
 }
 Write-Host "Web local: login page responds." -ForegroundColor Green
 
-Write-Host "Local pilot is reachable. Register ONLY fictional accounts." -ForegroundColor Yellow
+Write-Host "Local pilot is reachable. Use /local-first-run for fictional account and household." -ForegroundColor Yellow
 Write-Host "Local data stays on THIS Windows user profile; it does not sync with a phone." -ForegroundColor Yellow
 
 if (-not $NoBrowser) {
-    Start-Process "http://127.0.0.1:3000/login"
+    Start-Process "http://127.0.0.1:3000/local-first-run"
 }
