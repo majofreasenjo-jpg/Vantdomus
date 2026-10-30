@@ -63,6 +63,9 @@ jobs:
       - name: R72 two-household HTTP persistence and denial test
         run: python -m pytest tests/test_domi_r72_family_two_households_http.py -q -ra
 
+      - name: R85 cold restart, memory, calendar, actions and tenant isolation
+        run: python -m pytest tests/test_domi_r85_cold_restart_family_http.py -q -ra
+
       - name: Backend tests — full suite (must pass)
         run: |
           python -m pytest tests/ -q \
