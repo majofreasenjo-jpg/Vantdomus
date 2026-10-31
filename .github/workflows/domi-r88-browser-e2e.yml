@@ -10,6 +10,8 @@ on:
       - "apps/web/tests/domi-r88-origin-security.test.mjs"
       - "apps/web/lib/domiSameOrigin.mjs"
       - "apps/web/app/api/proxy/**"
+      - "apps/web/app/hogar/**"
+      - "apps/web/tests/domi-build-font-determinism.test.mjs"
       - ".github/workflows/domi-r88-browser-e2e.yml"
 
 permissions:
