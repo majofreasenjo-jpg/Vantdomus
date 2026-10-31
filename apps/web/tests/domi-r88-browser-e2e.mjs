@@ -193,28 +193,41 @@ async function run() {
   await page.waitForURL(/\/perfiles\/[0-9a-f-]{36}/);
   await page.getByPlaceholder("Escríbelo en tus palabras…").fill("R90 recuerdo familiar inventado");
   await page.getByRole("button",{name:"Enseñar a Domi"}).click();
-  const memoryRow = page.locator(".card").getByText("R90 recuerdo familiar inventado",{exact:true}).first();
-  await memoryRow.waitFor({timeout:25000});
+  // R92: match the database record by its stable opaque ID, never by a
+  // text-only container (the editor intentionally replaces its text).
+  const createdFromUi=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
+  assert.equal(createdFromUi.status,200);
+  const uiMemory = createdFromUi.body?.items?.filter(x=>x.content==="R90 recuerdo familiar inventado");
+  assert.equal(uiMemory?.length,1,"The UI should create exactly one fictional memory record");
+  const uiMemoryId=uiMemory[0].id;
+  const memRow=page.locator('[data-domi-memory-id="'+uiMemoryId+'"]');
+  const libRow=page.locator('[data-domi-library-memory-id="'+uiMemoryId+'"]');
+  await memRow.getByText("R90 recuerdo familiar inventado",{exact:true}).waitFor({timeout:25000});
   await page.reload({waitUntil:"domcontentloaded"});
-  await page.getByText("R90 recuerdo familiar inventado",{exact:true}).first().waitFor({timeout:25000});
-  // R91: correct through the existing library UI, then reload from DB.
-  const libraryRow=page.locator(".row").filter({has:page.locator("span").getByText("R90 recuerdo familiar inventado",{exact:true})}).first();
-  await libraryRow.getByRole("button",{name:"Corregir"}).click();
-  await libraryRow.getByRole("textbox",{name:"Corregir memoria"}).fill("R91 recuerdo familiar corregido");
-  await libraryRow.getByRole("button",{name:"Guardar"}).click();
-  await page.getByText("R91 recuerdo familiar corregido",{exact:true}).first().waitFor({timeout:25000});
+  await libRow.getByText("R90 recuerdo familiar inventado",{exact:true}).waitFor({timeout:25000});
+  await libRow.getByRole("button",{name:"Corregir",exact:true}).click();
+  await libRow.getByRole("textbox",{name:"Corregir memoria"}).fill("R92 recuerdo ficticio corregido");
+  await libRow.getByRole("button",{name:"Guardar",exact:true}).click();
+  await memRow.getByText("R92 recuerdo ficticio corregido",{exact:true}).waitFor({timeout:25000});
+  await libRow.getByText("R92 recuerdo ficticio corregido",{exact:true}).waitFor({timeout:25000});
   await page.reload({waitUntil:"domcontentloaded"});
-  await page.getByText("R91 recuerdo familiar corregido",{exact:true}).first().waitFor({timeout:25000});
+  await libRow.getByText("R92 recuerdo ficticio corregido",{exact:true}).waitFor({timeout:25000});
   const corrected=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
-  assert.ok(corrected.body?.items?.some(x=>x.content==="R91 recuerdo familiar corregido"));
-  const correctedId=corrected.body.items.find(x=>x.content==="R91 recuerdo familiar corregido").id;
+  assert.equal(corrected.status,200);
+  assert.equal(corrected.body?.items?.find(x=>x.id===uiMemoryId)?.content,"R92 recuerdo ficticio corregido");
+  assert.ok(!corrected.body?.items?.some(x=>x.id===uiMemoryId && x.content==="R90 recuerdo familiar inventado"));
+  // No implicit deletion: only the dialog-accepted action should erase visibility.
+  page.once("dialog",d=>d.dismiss());
+  await memRow.getByRole("button",{name:"Olvidar",exact:true}).click();
+  await memRow.getByText("R92 recuerdo ficticio corregido",{exact:true}).waitFor({timeout:25000});
   page.once("dialog",d=>d.accept());
-  const editorRow=page.locator("div").filter({has:page.getByText("R91 recuerdo familiar corregido",{exact:true})}).filter({has:page.getByRole("button",{name:"Olvidar"})}).last();
-  await editorRow.getByRole("button",{name:"Olvidar"}).click();
+  await memRow.getByRole("button",{name:"Olvidar",exact:true}).click();
+  await memRow.waitFor({state:"detached",timeout:25000});
+  await libRow.waitFor({state:"detached",timeout:25000});
   const forgotten=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
   assert.equal(forgotten.status,200);
-  assert.ok(!forgotten.body?.items?.some(x=>x.id===correctedId));
-  console.log("R91 PASS: correction and authorized soft deletion via DOMI UI");
+  assert.ok(!forgotten.body?.items?.some(x=>x.id===uiMemoryId));
+  console.log("R92 PASS: browser memory create/edit/reload/cancel delete/confirm delete/readback");
   console.log("R90 PASS: teaching and reloading persistent memory from the actual DOMI UI");
 
 
@@ -236,6 +249,7 @@ async function run() {
   const afterRestart=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
   assert.equal(afterRestart.status,200,"Previous session lost authorized access after process restart");
   assert.ok(afterRestart.body?.items?.some(x=>x.id===memoryId && x.content===memoryText));
+  assert.ok(!afterRestart.body?.items?.some(x=>x.id===uiMemoryId),"Deleted memory must not resurrect after a server restart");
   console.log("R88 PASS: cold backend restart and persistent readback via browser");
 
   // A fresh independent browser context, shaped like a phone, must log in
@@ -253,6 +267,7 @@ async function run() {
   const mobileRead=await browserProxy(mobilePage,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
   assert.equal(mobileRead.status,200);
   assert.ok(mobileRead.body?.items?.some(x=>x.id===memoryId));
+  assert.ok(!mobileRead.body?.items?.some(x=>x.id===uiMemoryId),"Deleted memory must stay hidden in a second authenticated browser");
   console.log("R88 PASS: new mobile-sized browser context, fresh login and identical memory");
 
   // Browser without a valid session must not obtain the memory via the web.
@@ -279,7 +294,13 @@ async function run() {
     "GET",undefined,otherToken,
   );
   assert.equal(forbidden.status,403);
-  console.log("R88 PASS: cross-household memory read is rejected");
+  const foreignCorrection=await apiJson("/assistant/memory/"+encodeURIComponent(memoryId)+"/correct","POST",
+    {household_id:hid,content:"not authorized"},otherToken);
+  assert.equal(foreignCorrection.status,403,"Foreign household cannot correct memories");
+  const foreignDeletion=await apiJson("/assistant/memory/"+encodeURIComponent(memoryId)+"?household_id="+encodeURIComponent(hid),
+    "DELETE",undefined,otherToken);
+  assert.equal(foreignDeletion.status,403,"Foreign household cannot delete memories");
+  console.log("R92 PASS: cross-household memory read, edit and deletion are rejected");
 
   console.log("R88 BROWSER E2E: PASS (synthetic local only; simulated mobile viewport is NOT a real phone)");
 }
