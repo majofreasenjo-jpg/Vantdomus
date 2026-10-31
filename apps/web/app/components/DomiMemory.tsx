@@ -177,7 +177,7 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {memories.map((m) => (
-            <div key={m.id} style={{
+            <div key={m.id} data-domi-memory-id={m.id} style={{
               display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
               borderRadius: 12, background: "rgba(127,127,127,0.08)",
             }}>
