@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 const read = (path) => readFileSync(join(process.cwd(),path),"utf8");
 test("No Google font compilation dependency", () => {
- for (const file of ["app/layout.tsx","app/owner-alpha/page.tsx","app/login/page.tsx","app/finance/[householdId]/page.tsx"]) {
+ for (const file of ["app/layout.tsx","app/owner-alpha/page.tsx","app/login/page.tsx","app/finance/[householdId]/page.tsx","app/hogar/[householdId]/page.tsx"]) {
   assert.doesNotMatch(read(file), /next\/font\/google/);
   assert.doesNotMatch(read(file), /fonts\.(?:googleapis|gstatic)\.com/);
  }
