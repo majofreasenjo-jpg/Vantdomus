@@ -186,6 +186,19 @@ async function run() {
   assert.ok(remembered.body?.items?.some(x=>x.id===memoryId && x.content===memoryText));
   console.log("R88 PASS: local browser account, household, HTTP auth+CSRF proxy and memory write/read");
 
+  // R90: use the actual UI, not a direct HTTP helper, to teach DOMI.
+  await page.goto(base + "/hogar/" + hid, {waitUntil:"domcontentloaded"});
+  await page.getByRole("button",{name:"Más ▾"}).click();
+  await page.getByRole("link",{name:"Memoria y perfiles de la familia"}).click();
+  await page.waitForURL(/\/perfiles\/[0-9a-f-]{36}/);
+  await page.getByPlaceholder("Escríbelo en tus palabras…").fill("R90 recuerdo familiar inventado");
+  await page.getByRole("button",{name:"Enseñar a Domi"}).click();
+  await page.getByText("R90 recuerdo familiar inventado").waitFor({timeout:25000});
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.getByText("R90 recuerdo familiar inventado").waitFor({timeout:25000});
+  console.log("R90 PASS: teaching and reloading persistent memory from the actual DOMI UI");
+
+
   // A genuinely fresh backend operating-system process must reconstruct state
   // from the same SQLite file; the browser is left running.
   stop(api);
