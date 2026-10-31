@@ -10,6 +10,7 @@
  */
 import { useEffect, useState } from "react";
 import { listDomiMemories, createDomiMemory, deleteDomiMemory } from "../../lib/api";
+import { notifyDomiMemoryChanged, onDomiMemoryChanged } from "../../lib/domiMemoryEvents";
 
 type Person = { id: string; name: string };
 type Memory = {
@@ -72,6 +73,7 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
 
   useEffect(() => {
     refresh();
+    return onDomiMemoryChanged(hid, () => { void refresh(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hid]);
 
@@ -89,6 +91,7 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
         visibility_scope: scope,
       });
       setContent("");
+      notifyDomiMemoryChanged(hid);
       await refresh();
     } catch {
       setError("No se pudo guardar. Intenta de nuevo.");
@@ -98,9 +101,11 @@ export default function DomiMemory({ hid, persons }: { hid: string; persons: Per
   }
 
   async function remove(id: string) {
+    if (!window.confirm("¿Olvidar este recuerdo? Se ocultará en todas las sesiones de este hogar.")) return;
     try {
       await deleteDomiMemory(id, hid);
-      setMemories((prev) => prev.filter((m) => m.id !== id));
+      notifyDomiMemoryChanged(hid);
+      await refresh();
     } catch {
       setError("No se pudo borrar.");
     }
