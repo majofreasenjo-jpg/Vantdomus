@@ -193,7 +193,12 @@ async function run() {
   await page.waitForURL(/\/perfiles\/[0-9a-f-]{36}/);
   await page.getByPlaceholder("Escríbelo en tus palabras…").fill("R90 recuerdo familiar inventado");
   await page.getByRole("button",{name:"Enseñar a Domi"}).click();
-  // R92: match the database record by its stable opaque ID, never by a
+  // R93: do not race the asynchronous UI save. The new row is rendered
+  // only AFTER FastAPI commits and the component's authenticated refresh.
+  await page.locator("[data-domi-memory-id]")
+    .filter({hasText:"R90 recuerdo familiar inventado"}).first()
+    .waitFor({state:"visible",timeout:30000});
+  // Match the database record by its stable opaque ID, never by a
   // text-only container (the editor intentionally replaces its text).
   const createdFromUi=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
   assert.equal(createdFromUi.status,200);
