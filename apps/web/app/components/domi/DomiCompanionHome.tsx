@@ -61,7 +61,8 @@ import { logoutAction } from "../../login/actions";
 import DomiDocPanel from "./DomiDocPanel";
 // CP1c-FUNC-MIN-3.1a — orquestador propose-first real (backend). El simulador
 // local (domiIntents) queda SOLO como fallback demo, marcado como tal.
-import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio } from "../../../lib/api";
+import { assistantChat, domiConfirmProposal, domiRejectProposal, transcribeAudio, shoppingList, shoppingCreate, shoppingMarkPurchased, shoppingCancel } from "../../../lib/api";
+import { projectDomiShoppingResponse } from "../../../lib/domiShoppingProjection";
 import { startRecording, mimeToFilename, recordingSupported, type Recorder } from "../../../lib/voice";
 
 
@@ -91,6 +92,7 @@ export default function DomiCompanionHome({
   data,
   hid,
   dataState = "real",
+  demoSafe = false,
   initialTheme,
   initialDomiState,
   initialAppearance,
@@ -100,6 +102,8 @@ export default function DomiCompanionHome({
   hid?: string;
   // MIN-2.2: honestidad de datos — real | session (expirada) | api (caído) | demo.
   dataState?: "real" | "session" | "api" | "demo";
+  /** Preview-only mode: no location, microphone/upload or auth actions. */
+  demoSafe?: boolean;
   // Estado inicial resuelto en el servidor (page.tsx) desde los query params,
   // para que server y cliente rendericen idéntico y no haya hydration mismatch.
   initialTheme?: "dawn" | "day" | "sunset" | "night";
@@ -112,6 +116,7 @@ export default function DomiCompanionHome({
   // window en el initializer → server y cliente coinciden (sin hydration mismatch).
   const [devModeActive, setDevModeActive] = useState(DEV_PANEL_ENABLED || initialDev === true);
   const [devPanelOpen, setDevPanelOpen] = useState(false);
+  const isStrictSynthetic = dataState === "demo" && demoSafe;
 
   // --- APPLICATION STATES ---
   const [activeTheme, setActiveTheme] = useState<"dawn" | "day" | "sunset" | "night">(
@@ -187,7 +192,7 @@ export default function DomiCompanionHome({
   const isReal = dataState === "real";
 
   // Default shopping list (solo demo; en real arranca vacío)
-  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : (isReal ? [] : [
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>(() => data?.shoppingItems?.length ? data.shoppingItems : (dataState !== "demo" ? [] : [
     { id: "1", name: "Leche semidescremada", checked: false, qty: "2 L", category: "Supermercado" },
     { id: "2", name: "Plátanos maduros", checked: false, qty: "1 Kg", category: "Frutería" },
     { id: "3", name: "Pan de molde integral", checked: false, qty: "1 ud", category: "Panadería" },
@@ -200,14 +205,14 @@ export default function DomiCompanionHome({
   ]));
 
   // Study blocks (solo demo; en real arranca vacío)
-  const [studyBlocks, setStudyBlocks] = useState<StudyBlock[]>(() => isReal ? [] : [
+  const [studyBlocks, setStudyBlocks] = useState<StudyBlock[]>(() => dataState !== "demo" ? [] : [
     { id: "1", time: "16:00 - 16:45", subject: "Álgebra y Ecuaciones", duration: "45m" },
     { id: "2", time: "17:00 - 17:45", subject: "Práctica de Geometría", duration: "45m" },
     { id: "3", time: "18:00 - 18:30", subject: "Simulacro de Examen", duration: "30m" }
   ]);
 
   // Family members list (en real, SOLO los integrantes reales del hogar)
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : (isReal ? [] : [
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => data?.familyMembers?.length ? data.familyMembers : (dataState !== "demo" ? [] : [
     { id: "mama", name: "Mamá (Gabriela)", role: "Madre", avatar: "G", status: "En el trabajo" },
     { id: "papa", name: "Papá (Carlos)", role: "Padre", avatar: "C", status: "Preparando la cena" },
     { id: "diego", name: "Diego", role: "Hijo - Estudiante", avatar: "D", status: "Estudiando matemáticas" },
@@ -240,7 +245,7 @@ export default function DomiCompanionHome({
     setClock();
     const clockId = setInterval(setClock, 60000);
     let cancelled = false;
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
+    if (!isStrictSynthetic && typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           // Redondeo a 2 decimales (~1 km) por privacidad antes de enviar.
@@ -267,7 +272,7 @@ export default function DomiCompanionHome({
   const [domiMood, setDomiMood] = useState<"happy" | "speaking" | "breathing" | "thinking">("happy");
 
   // Notifications audit trail (solo demo; en real arranca vacío)
-  const [notifications, setNotifications] = useState<HomeNotification[]>(() => isReal ? [] : [
+  const [notifications, setNotifications] = useState<HomeNotification[]>(() => dataState !== "demo" ? [] : [
     { id: "n1", title: "Medicina programada", message: "Toma de metformina de Elena programada para las 21:30.", timestamp: "21:00", type: "care" },
     { id: "n2", title: "Bienestar sugerido", message: "Modo relajación recomendado por Domi debido al descanso nocturno.", timestamp: "20:30", type: "system" },
     { id: "n3", title: "Seguridad activa", message: "Cierre de puertas perimetrales y alarma nocturna conectada.", timestamp: "22:00", type: "security" }
@@ -330,7 +335,7 @@ export default function DomiCompanionHome({
     size: string;
     date: string;
     uploader: string;
-  }[]>(() => isReal ? [] : [
+  }[]>(() => dataState !== "demo" ? [] : [
     { id: "doc1", name: "Receta Metformina Elena.pdf", category: "salud", size: "342 KB", date: "Hoy, 10:15", uploader: "Domi" },
     { id: "doc2", name: "Boletín Académico Diego.pdf", category: "educacion", size: "1.2 MB", date: "Ayer, 16:30", uploader: "Papá (Carlos)" },
     { id: "doc3", name: "Manual Caldera Inteligente.pdf", category: "hogar", size: "4.5 MB", date: "15 Jun 2026", uploader: "Mamá (Gabriela)" },
@@ -559,39 +564,86 @@ export default function DomiCompanionHome({
     setDomiState("esperando_confirmacion");
   };
 
-  const handleToggleShoppingItem = (id: string) => {
-    setShoppingItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const nextState = !item.checked;
-        addNotification(
-          nextState ? "Artículo Comprado" : "Artículo Pendiente",
-          `"${item.name}" fue marcado como ${nextState ? "comprado" : "pendiente"}.`,
-          "shopping"
-        );
-        return { ...item, checked: nextState };
+  // R70: household shopping is persisted and then re-read, not simulated.
+  const shoppingBusyRef = useRef(false);
+  const realShopping = Boolean(hid && dataState === "real");
+  const refreshShopping = async () => {
+    if (!hid || dataState !== "real") return;
+    const response = await shoppingList(hid);
+    setShoppingItems(projectDomiShoppingResponse(response));
+  };
+  const runShoppingAction = async (description: string, fn: () => Promise<unknown>) => {
+    if (shoppingBusyRef.current) return;
+    shoppingBusyRef.current = true;
+    try {
+      await fn();
+      await refreshShopping();
+      addNotification("Compras actualizadas", description, "shopping");
+    } catch (_error) {
+      // A write may succeed even when the follow-up GET fails.
+      try {
+        await refreshShopping();
+        addNotification("Revisa la operación", "La lista se volvió a consultar. Comprueba el estado antes de repetir.", "security");
+      } catch (_refreshError) {
+        addNotification("Estado sin verificar", "No pude confirmar el estado de la lista. Recarga la página antes de intentar nuevamente.", "security");
       }
-      return item;
-    }));
-  };
-
-  const handleAddShoppingItem = (name: string, qty: string = "1 ud", category: string = "Supermercado") => {
-    const newItem: ShoppingItem = {
-      id: `shop-${Date.now()}`,
-      name,
-      checked: false,
-      qty,
-      category
-    };
-    setShoppingItems(prev => [...prev, newItem]);
-    addNotification("Lista de compras actualizada", `Se agregó "${name}" (${qty}) a la despensa.`, "shopping");
-  };
-
-  const handleDeleteShoppingItem = (id: string) => {
-    const item = shoppingItems.find(i => i.id === id);
-    if (item) {
-      setShoppingItems(prev => prev.filter(i => i.id !== id));
-      addNotification("Artículo Eliminado", `Se eliminó "${item.name}" de la lista.`, "shopping");
+    } finally {
+      shoppingBusyRef.current = false;
     }
+  };
+  const handleToggleShoppingItem = (id: string) => {
+    const item = shoppingItems.find(i => i.id === id);
+    if (!item) return;
+    if (realShopping) {
+      if (!item.checked) void runShoppingAction("Compra registrada en el hogar.", () => shoppingMarkPurchased(hid!, id));
+      else addNotification("Compra registrada", "No se puede desmarcar desde este control. Revisa el módulo Compras.", "system");
+      return;
+    }
+    if (dataState !== "demo") {
+      addNotification("Sin conexión", "No se guardó ningún cambio.", "security");
+      return;
+    }
+    setShoppingItems(prev => prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+  };
+  const handleAddShoppingItem = (name: string, qty = "1 ud", category = "Supermercado") => {
+    const clean = name.trim();
+    if (!clean || clean.length > 120) return;
+    if (realShopping) {
+      const match = qty.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(.*)$/);
+      const quantity = match ? Number(match[1].replace(",", ".")) : 1;
+      const unit = (match?.[2] || "ud").slice(0,24);
+      void runShoppingAction("Producto guardado y verificado.", () => shoppingCreate(hid!, {
+        item_name: clean, quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+        unit, category: category === "Farmacia" ? "pharmacy" : "grocery",
+        store_type: category === "Farmacia" ? "pharmacy" : "supermarket",
+        preferred_store: category,
+      }));
+      return;
+    }
+    if (dataState !== "demo") {
+      addNotification("Sin conexión", "No se agregó el producto.", "security");
+      return;
+    }
+    setShoppingItems(prev => [...prev, { id: "demo-shop-" + Date.now(), name: clean, checked: false, qty, category }]);
+  };
+  const handleDeleteShoppingItem = (id: string) => {
+    if (realShopping) {
+      void runShoppingAction("Producto cancelado y verificado.", () => shoppingCancel(hid!, id));
+      return;
+    }
+    if (dataState !== "demo") {
+      addNotification("Sin conexión", "No se modificó la lista.", "security");
+      return;
+    }
+    setShoppingItems(prev => prev.filter(i => i.id !== id));
+  };
+  const handleClearPurchased = () => {
+    if (realShopping) {
+      addNotification("Historial conservado", "Las compras registradas no se eliminan de forma local. Gestiona el historial desde Compras.", "system");
+      return;
+    }
+    if (dataState !== "demo") return;
+    setShoppingItems(prev => prev.filter(i => !i.checked));
   };
 
   const handlePrepareStudy = () => {
@@ -654,6 +706,10 @@ export default function DomiCompanionHome({
   };
 
   const triggerListeningSimulation = async () => {
+    if (isStrictSynthetic) {
+      addNotification("Modo de prueba", "Esta vista no solicita micrófono ni envía audio. Escríbele a DOMI.", "system");
+      return;
+    }
     // M4 — Voz REAL (reemplaza la simulación). Graba → transcribe (Whisper en el
     // backend, sin guardar audio) → envía el texto a Domi. La identidad es la
     // sesión, no la voz.
@@ -744,13 +800,24 @@ export default function DomiCompanionHome({
         setTimeout(() => setDomiMood("happy"), 3500);
         setIsSending(false);
         return;
-      } catch (err) {
-        // Backend caído a mitad de sesión: avisar honesto y caer al demo local.
-        console.warn("[domi] orquestador no disponible, usando demo local", err);
+      } catch (_err) {
+        // R66: fail closed. Do not turn a real household operation into an
+        // apparently successful local simulation if the API is unavailable.
+        console.warn("[domi] backend no disponible; ninguna acción ejecutada");
+        setChatMessages(prev => [...prev, {
+          id: `domi-api-error-${Date.now()}`,
+          role: "model",
+          content: "No puedo conectarme al organizador familiar. No he guardado ni ejecutado nada. Vuelve a intentarlo cuando se restablezca la conexión.",
+          timestamp: new Date(),
+        }]);
+        setDomiState("protector");
+        setDomiMood("happy");
+        setIsSending(false);
+        return;
       }
     }
 
-    // --- Fallback DEMO LOCAL (sin sesión real o backend caído) ---
+    // --- DEMO LOCAL sin hogar real ni backend (marcado como simulación) ---
     try {
       await new Promise((r) => setTimeout(r, 650)); // pequena pausa "pensando"
       const data = generateDomiReply(text, {
@@ -762,12 +829,33 @@ export default function DomiCompanionHome({
         time
       });
 
+      // R66: the Preview synthetic pilot must exercise actual propose-first
+      // UI behaviour, not silently insert shopping items. Zero API, zero PII.
+      const demoItems = isStrictSynthetic && data.action?.type === "ADD_SHOPPING_ITEM"
+        ? (data.action.payload || "").split("|").map(x => x.trim()).filter(Boolean)
+        : [];
+      const demoProposal: DomiProposal | null = demoItems.length > 0
+        ? {
+            id: `demo-proposal-${Date.now()}`,
+            tool_name: "propose_shopping_item",
+            category: "shopping",
+            title: "Agregar productos de prueba",
+            summary: "Simulación local: solo se agregarán después de tu confirmación.",
+            status: "pending",
+            sensitive: true,
+            proposed_payload: { items: demoItems },
+            editable_fields: ["items"],
+          }
+        : null;
       const domiReply: ChatMessage = {
         id: `domi-${Date.now()}`,
         role: "model",
-        content: data.text || "He recibido tu mensaje correctamente, pero no logré estructurar la acción.",
+        content: demoProposal
+          ? `Te propongo agregar ${demoItems.join(", ")} a la lista de compras de prueba. ¿Confirmas o rechazas? No he guardado nada todavía.`
+          : (data.text || "He recibido tu mensaje, pero no logré estructurar la acción."),
         timestamp: new Date(),
-        isLocalDemo: true, // honestidad: esto NO es el orquestador real
+        proposals: demoProposal ? [demoProposal] : undefined,
+        isLocalDemo: true,
       };
 
       setChatMessages(prev => [...prev, domiReply]);
@@ -799,8 +887,9 @@ export default function DomiCompanionHome({
         }
       }, 4000);
 
-      // Execute AI action trigger if returned from Gemini
-      if (data.action && data.action.type !== "NONE") {
+      // Shopping in strict synthetic Preview only happens after the user
+      // presses Confirmar. Other local demonstration actions are unchanged.
+      if (data.action && data.action.type !== "NONE" && !demoProposal) {
         executeAIAction(data.action.type, data.action.payload);
       }
 
@@ -829,6 +918,52 @@ export default function DomiCompanionHome({
     accept: boolean,
     overrides?: Record<string, unknown>,
   ) => {
+    // R66: the Owner Beta can validate human confirmation LOCAL ONLY.
+    // Neither this path nor a rejected proposal ever invokes the backend.
+    if (isStrictSynthetic) {
+      if (isSending) return;
+      const message = chatMessages.find(m => m.id === messageId);
+      const proposal = message?.proposals?.find(p => p.id === proposalId);
+      if (!proposal || proposal.status !== "pending" ||
+          proposal.tool_name !== "propose_shopping_item") return;
+      const rawItems: unknown = overrides?.items ?? proposal.proposed_payload?.items;
+      const items = Array.isArray(rawItems) ? rawItems : [];
+      const clean = items.map(x => typeof x === "string" ? x.trim() : "");
+      if (!Array.isArray(rawItems) || clean.length < 1 || clean.length > 12 ||
+          clean.some(x => x.length < 1 || x.length > 64)) {
+        addNotification("Propuesta inválida", "Revisa los productos de prueba.", "security");
+        return;
+      }
+      setChatMessages(prev => prev.map(m => m.id !== messageId ? m : ({
+        ...m,
+        proposals: (m.proposals || []).map(p => p.id !== proposalId ? p :
+          { ...p, status: accept ? "executed" : "rejected" }),
+      })));
+      if (accept) {
+        setShoppingItems(prev => {
+          const existing = new Set(prev.map(i => i.name.toLocaleLowerCase("es").trim()));
+          const deduped = [...new Set(clean)].filter(x => !existing.has(x.toLocaleLowerCase("es")));
+          return [...prev, ...deduped.map((name, index) => ({
+            id: `demo-confirmed-${Date.now()}-${index}`,
+            name, checked: false, qty: "1 ud", category: "Supermercado",
+          }))];
+        });
+        addNotification("Compra de prueba", "Productos confirmados en la lista local de demostración.", "shopping");
+      } else {
+        addNotification("Propuesta rechazada", "No se añadieron productos.", "system");
+      }
+      setChatMessages(prev => [...prev, {
+        id: `domi-demo-decision-${Date.now()}`,
+        role: "model",
+        content: accept
+          ? "Confirmado en esta simulación. La lista de prueba fue actualizada; no se guardó en tu hogar real."
+          : "De acuerdo: propuesta descartada, sin cambios en la lista.",
+        timestamp: new Date(),
+        isLocalDemo: true,
+      }]);
+      setDomiState(accept ? "alegre" : "listo");
+      return;
+    }
     if (isSending) return;
     setIsSending(true);
     setDomiMood("thinking");
@@ -854,21 +989,11 @@ export default function DomiCompanionHome({
         timestamp: new Date(),
       }]);
 
-      // Si se confirmó agregar compras, reflejarlas al tiro en la card del hogar
-      // (respetando la versión EDITADA si el humano cambió los productos).
+      // R70: refresh verified server-side rows after proposal execution.
       if (accept && executedProposal?.tool_name === "propose_shopping_item") {
-        const names = (overrides?.items as string[] | undefined) || executedProposal.proposed_payload?.items || [];
-        if (names.length) {
-          setShoppingItems(prev => ([
-            ...prev,
-            ...names.map((n, i) => ({
-              id: `domi-prop-${Date.now()}-${i}`,
-              name: String(n),
-              checked: false,
-              qty: "1 ud",
-              category: "Supermercado",
-            })),
-          ]));
+        try { await refreshShopping(); }
+        catch (_error) {
+          addNotification("Estado sin verificar", "El servidor respondió, pero no pude actualizar la lista. Recarga antes de reintentar.", "security");
         }
       }
 
@@ -1026,7 +1151,7 @@ export default function DomiCompanionHome({
             {dataState === "api" && "No pudimos conectar con tu hogar: estás viendo datos de ejemplo."}
             {dataState === "demo" && "Modo demo: estos datos son de ejemplo."}
           </span>
-          {dataState !== "api" && <a href="/login" className="underline font-semibold whitespace-nowrap">Iniciar sesión</a>}
+          {!isStrictSynthetic && dataState !== "api" && <a href="/login" className="underline font-semibold whitespace-nowrap">Iniciar sesión</a>}
         </div>
       )}
 
@@ -1389,18 +1514,32 @@ export default function DomiCompanionHome({
                 </button>
               ))}
 
+              {/* R90: salida visible hacia la memoria longitudinal auténtica del hogar.
+                  Reutiliza las pantallas ya existentes: no se replica memoria
+                  en este componente ni se exponen datos fuera de sesión. */}
+              {isReal && !isStrictSynthetic && hid ? (
+                <a href={`/perfiles/${encodeURIComponent(hid)}`}
+                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-amber-300 hover:bg-slate-900/80 transition-colors"
+                  aria-label="Memoria y perfiles de la familia"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Memoria y perfiles
+                </a>
+              ) : null}
               {/* Cerrar sesión: el navbar antiguo queda oculto en la home, así que
                   la salida vive aquí, en el menú Más. Usa el server action existente. */}
               <div className="my-1.5 h-px bg-white/10" />
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Cerrar sesión
-                </button>
-              </form>
+              {!isStrictSynthetic && (
+                <form action={logoutAction}>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-rose-300 hover:bg-slate-900/80 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Cerrar sesión
+                  </button>
+                </form>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -2001,10 +2140,7 @@ export default function DomiCompanionHome({
                   </div>
 
                   <button 
-                    onClick={() => {
-                      setShoppingItems(prev => prev.filter(i => !i.checked));
-                      addNotification("Lista de compras limpia", "Se han removido los artículos ya comprados de la lista.", "shopping");
-                    }}
+                    onClick={handleClearPurchased}
                     className={`w-full mt-4 py-2 text-[13px] font-semibold rounded-xl border cursor-pointer transition-all ${
                       isLight 
                         ? "bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200 shadow-sm" 

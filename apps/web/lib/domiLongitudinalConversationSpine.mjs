@@ -179,6 +179,26 @@ export function createLongitudinalConversationState({ householdId, lineageId }) 
   };
 }
 
+// R67: a personal DOMI is bound to one household member across sessions.
+// This is a target-native, synthetic-ready state contract, NOT login/auth or
+// cross-device persistence. Authenticated server ownership is a separate gate.
+export function createPersonalDomiState({ householdId, lineageId, personId }) {
+  const state = createLongitudinalConversationState({ householdId, lineageId });
+  state.personalPersonId = assertNonEmpty(personId, "PERSONAL_DOMI_PERSON_REQUIRED");
+  appendAudit(state, "PERSONAL_DOMI_BOUND", {
+    householdId: state.householdId,
+    lineageId: state.lineageId,
+    personId: state.personalPersonId,
+  });
+  return state;
+}
+
+function enforcePersonalDomiOwner(state, personId) {
+  if (state.personalPersonId && state.personalPersonId !== personId) {
+    throw new Error("PERSONAL_DOMI_PERSON_MISMATCH");
+  }
+}
+
 export function openConversationSession(inputState, {
   sessionId,
   personId,
@@ -188,6 +208,7 @@ export function openConversationSession(inputState, {
   const state = clone(inputState);
   assertNonEmpty(sessionId, "SESSION_ID_REQUIRED");
   assertNonEmpty(personId, "PERSON_ID_REQUIRED");
+  enforcePersonalDomiOwner(state, personId);
   if (!SURFACE_CLASSES.has(surfaceClass)) throw new Error("SURFACE_CLASS_NOT_ALLOWED");
   if (state.sessions.some((item) => item.sessionId === sessionId)) throw new Error("SESSION_ALREADY_EXISTS");
   const session = {
@@ -498,6 +519,7 @@ export function buildLongitudinalContext(inputState, {
 }) {
   const state = clone(inputState);
   const session = getSession(state, sessionId);
+  enforcePersonalDomiOwner(state, personId);
   if (session.personId !== personId) throw new Error("RECALL_PERSON_SESSION_MISMATCH");
   const nowIso = normalizeTimestamp(now);
   const allowed = new Set((authorizedScopes ?? []).filter((scope) => ALLOWED_SCOPES.has(scope)));

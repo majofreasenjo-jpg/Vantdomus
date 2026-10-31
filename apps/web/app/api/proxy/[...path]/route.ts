@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE } from "../../../../lib/public-api";
 import { CSRF_COOKIE, CSRF_HEADER, isUnsafeMethod } from "../../../../lib/csrf";
+import { sameOriginForProxy } from "../../../../lib/domiSameOrigin.mjs";
 import { AUTHENTICATED_PROXY_MAX_BODY_BYTES, requestBodyTooLarge } from "../../../../lib/proxy-limits";
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -53,7 +54,7 @@ function upstreamHeaders(request: NextRequest, token: string) {
 function sameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) return true;
-  return origin === request.nextUrl.origin;
+  return sameOriginForProxy(origin, request.headers.get("host"), request.nextUrl.origin);
 }
 
 async function validateCsrf(request: NextRequest) {

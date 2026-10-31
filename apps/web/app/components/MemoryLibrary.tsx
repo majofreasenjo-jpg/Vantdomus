@@ -14,6 +14,7 @@ import {
   getMemoryLibrary, listMemoryInferences, confirmMemoryInference,
   dismissMemoryInference, correctDomiMemory, exportMemory,
 } from "../../lib/api";
+import {notifyDomiMemoryChanged,onDomiMemoryChanged} from "../../lib/domiMemoryEvents";
 
 type Item = {
   id: string; about: string; content: string; layer: string; layer_label: string;
@@ -47,7 +48,7 @@ export default function MemoryLibrary({ hid }: { hid: string }) {
     } catch { /* silencioso */ }
   }
 
-  useEffect(() => { refresh(); }, [hid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); return onDomiMemoryChanged(hid, () => { void refresh(); }); }, [hid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function confirmInf(id: string) {
     try { await confirmMemoryInference(id, hid); await refresh(); } catch { /* noop */ }
@@ -61,6 +62,7 @@ export default function MemoryLibrary({ hid }: { hid: string }) {
     try {
       await correctDomiMemory(id, hid, t);
       setEditing(null); setDraft("");
+      notifyDomiMemoryChanged(hid);
       await refresh();
     } catch { setNote("No se pudo corregir."); }
   }
@@ -124,7 +126,7 @@ export default function MemoryLibrary({ hid }: { hid: string }) {
             </div>
             <div className="grid" style={{ gap: 6 }}>
               {l.items.map((it) => (
-                <div key={it.id} className="row" style={{ justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                <div key={it.id} data-domi-library-memory-id={it.id} className="row" style={{ justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
                   {editing === it.id ? (
                     <span style={{ flex: 1, display: "flex", gap: 6 }}>
                       <input value={draft} onChange={(e) => setDraft(e.target.value)}

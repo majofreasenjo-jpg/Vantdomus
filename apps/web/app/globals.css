@@ -1,4 +1,9 @@
 :root{
+  /* Build-safe font stacks: no network access needed during compilation. */
+  --font-nunito: "Nunito", "Trebuchet MS", "Arial Rounded MT Bold", ui-rounded, system-ui, sans-serif;
+  --domi-font-inter: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --domi-font-grotesk: "Space Grotesk", "Avenir Next", "Trebuchet MS", system-ui, sans-serif;
+  --domi-font-jetbrains: "JetBrains Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
   --bg:#0b0f17;
   --primary:#5b7cfa;
   --card:#121a26;

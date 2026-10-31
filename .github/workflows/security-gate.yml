@@ -56,12 +56,23 @@ jobs:
       - name: Backend tests — tenant isolation (must pass)
         run: |
           python -m pytest tests/security/test_tenant_isolation.py -q \
-            --basetemp /tmp/vantdomus-pytest -p no:cacheprovider
+            --basetemp /home/runner/.cache/vantdomus-pytest -p no:cacheprovider
+
+      - name: R60 reminder HTTP end-to-end tenant and confirmation tests
+        run: python -m pytest tests/security/test_domi_r60_reminder_http_e2e.py -q -ra
+      - name: R72 two-household HTTP persistence and denial test
+        run: python -m pytest tests/test_domi_r72_family_two_households_http.py -q -ra
+
+      - name: R85 cold restart, memory, calendar, actions and tenant isolation
+        run: python -m pytest tests/test_domi_r85_cold_restart_family_http.py -q -ra
+
+      - name: R86 Windows local pilot fail-closed launcher contract
+        run: python -m pytest tests/test_domi_r86_local_launcher_contract.py -q -ra
 
       - name: Backend tests — full suite (must pass)
         run: |
           python -m pytest tests/ -q \
-            --basetemp /tmp/vantdomus-pytest-full -p no:cacheprovider \
+            --basetemp /home/runner/.cache/vantdomus-pytest-full -p no:cacheprovider \
             --ignore=tests/security/test_tenant_isolation.py
 
       - name: Python dependency audit (pip-audit)
@@ -69,6 +80,148 @@ jobs:
         run: |
           python -m pip install pip-audit
           pip-audit -r apps/api/requirements.txt --strict
+
+
+  # Real PostgreSQL RLS contract proof on synthetic data in a disposable CI
+  # container. This job NEVER connects to Neon or deploys infrastructure.
+  postgres-rls-pilot:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only_rls_ci_not_a_secret
+          POSTGRES_DB: domi_rls_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d domi_rls_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install disposable PostgreSQL pilot dependencies
+        run: python -m pip install pytest psycopg2-binary==2.9.10 bcrypt==4.2.1 fastapi==0.111.0 python-jose==3.3.0 cryptography==42.0.0 pydantic-settings==2.3.4 httpx==0.27.0
+      - name: Prove cross-household and cross-organization RLS in PostgreSQL
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_pg_rls_pilot.py -q -ra
+      - name: R49 live PostgreSQL auth catalog falsification
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_pg_auth_readiness_live.py -q -ra
+      - name: R31 full-schema 57-table RLS and personal memory negative tests
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r31_real_schema_rls.py -q -ra
+
+  # ----------------------------------------------------------------------
+  # R53 isolated R50 real-schema authentication candidate
+  # Never share cluster-global auth roles/schemas with R8 pilot fixtures.
+  # ----------------------------------------------------------------------
+  postgres-real-auth-candidate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only_rls_ci_not_a_secret
+          POSTGRES_DB: domi_rls_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d domi_rls_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install disposable PostgreSQL candidate dependencies
+        run: python -m pip install pytest psycopg2-binary==2.9.10 bcrypt==4.2.1 fastapi==0.111.0 python-jose==3.3.0 cryptography==42.0.0 pydantic-settings==2.3.4 httpx==0.27.0
+      - name: R53 create the 57-table RLS schema in an isolated cluster
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r31_real_schema_rls.py -q -ra
+      - name: R53 Anthropic promo offline smoke tests, zero network
+        run: python -m pytest tests/security/test_domi_anthropic_promo_smoke.py -q -ra
+      - name: R55 Claude synthetic-only provider and gateway security tests
+        run: python -m pytest tests/security/test_domi_anthropic_shadow.py -q -ra
+      - name: R56 Claude shadow bridge validation, zero network
+        run: python -m pytest tests/security/test_domi_anthropic_shadow_bridge.py -q -ra
+      - name: R57 CLI secret-safe dry run, zero network
+        run: PYTHONPATH=apps/api python -m pytest tests/security/test_domi_claude_shadow_once.py -q -ra
+      - name: R59 confirmation-only reminder contract, zero network
+        run: PYTHONPATH=apps/api python -m pytest tests/security/test_domi_r59_reminder_contract.py -q -ra
+      - name: R62 PostgreSQL real two-connection confirmation and rollback
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r62_pg_reminder_concurrency.py -q -ra
+      - name: R63 deny direct reminder writes and forged confirmation in disposable PostgreSQL
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r64_post_rollback_denial.py -q -ra
+      - name: R53 apply R50 real auth SQL and prove fail-closed rollback
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r50_real_auth_sql.py -q -ra
+
+  # R64: separate disposable cluster; R31 positive policies stay active.
+  # Never share with R36 rollback test or remote Neon credentials.
+  postgres-r64-readable-pilot:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only_rls_ci_not_a_secret
+          POSTGRES_DB: domi_rls_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d domi_rls_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install disposable R64 dependencies
+        run: python -m pip install pytest psycopg2-binary==2.9.10 bcrypt==4.2.1 fastapi==0.111.0 python-jose==3.3.0 cryptography==42.0.0 pydantic-settings==2.3.4 httpx==0.27.0
+      - name: R64 prepare active R31 and R33; exclude terminal rollback
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r31_real_schema_rls.py -q -ra -k "not test_safe_rollback_never_disables_rls"
+      - name: R64 read-only pilot with active signing context, no grants to write
+        env:
+          DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+          DOMI_RLS_REQUIRE_LIVE: '1'
+        run: python -m pytest tests/security/test_domi_r63_readonly_pilot_sql.py -q -ra
 
   # ----------------------------------------------------------------------
   # Web (Next.js) typecheck + build + npm audit
@@ -94,13 +247,56 @@ jobs:
         working-directory: apps/web
         run: npx tsc --noEmit
 
+      - name: R66 Owner Beta real-orchestrator honesty and consent test
+        working-directory: apps/web
+        run: node --test tests/domi-r66-owner-beta-propose-confirm.test.mjs
+      - name: R67 personal DOMI lineage test
+        working-directory: apps/web
+        run: node --test tests/domi-r67-personal-lineage.test.mjs
+      - name: R68 ten-axis canonical scorecard integrity
+        working-directory: apps/web
+        run: node --test tests/domi-canon-10-scorecard.test.mjs
+      - name: R69 honest real household classification
+        working-directory: apps/web
+        run: node --test tests/domi-r69-household-truth.test.mjs
+      - name: R70 real shopping API and confirmation source-of-truth contract
+        working-directory: apps/web
+        run: node --test tests/domi-r70-real-shopping-contract.test.mjs
+      - name: R71 initial shopping projection and failed-session data integrity
+        working-directory: apps/web
+        run: node --test tests/domi-r71-hydration-truth.test.mjs
+      - name: R74 honest backend login failure classification
+        working-directory: apps/web
+        run: node --test tests/domi-r74-login-truth.test.mjs
+      - name: R75 family landing state and no-dashboard-loop
+        working-directory: apps/web
+        run: node --test tests/domi-r75-family-landing.test.mjs
+      - name: R76 Preview-only backend health probe boundaries
+        working-directory: apps/web
+        run: node --test tests/domi-r76-family-backend-check.test.mjs
+      - name: R81 synthetic offline family pilot integrity
+        working-directory: apps/web
+        run: node --test tests/domi-r81-local-family-pilot.test.mjs
+
+      - name: R84 fictional JSON manual-transfer security and integrity
+        working-directory: apps/web
+        run: node --test tests/domi-r84-synthetic-transfer.test.mjs
+
+      - name: R87 local first-run synthetic account safety and gating
+        working-directory: apps/web
+        run: node --test tests/domi-r87-local-first-run.test.mjs
+
+      - name: R90 authenticated household memory navigation
+        working-directory: apps/web
+        run: node --test tests/domi-r90-memory-navigation.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
 
-      - name: npm audit (high & critical)
+      - name: npm audit (high & critical) — required
         working-directory: apps/web
-        continue-on-error: true
+        # Owner Beta stays isolated until high/critical production advisories are cleared.
         run: npm audit --omit=dev --audit-level=high
 
   # ----------------------------------------------------------------------

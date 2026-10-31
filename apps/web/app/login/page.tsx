@@ -1,11 +1,8 @@
-import { Inter, Space_Grotesk } from "next/font/google";
 import { loginAction } from "./actions";
 import DomiFaceMark from "../components/domi/DomiFaceMark";
 import { isFamilyProfileEnv } from "../../lib/runtimeEnv";
 
-// Tipografías de Domi (mismas que la home companion) para coherencia visual.
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--vdl-inter", display: "swap" });
-const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--vdl-grotesk", display: "swap" });
+// Tipografías consistentes con DOMI: pilas locales sin descarga en build.
 
 /**
  * Login reskin (CP1c) — alineado al lenguaje visual de Domi (tema dawn: lavanda
@@ -30,7 +27,7 @@ export default async function LoginPage({
   const oauthVisible = !isFamilyProfileEnv();
 
   return (
-    <div id="vantdomus-login" className={`${inter.variable} ${grotesk.variable}`}>
+    <div id="vantdomus-login" className="vdl-local-fonts">
       {/* Oculta el navbar/chrome antiguo solo en esta ruta, como hace la home. */}
       <style>{`
         body:has(#vantdomus-login) .nav,
@@ -38,6 +35,8 @@ export default async function LoginPage({
         body:has(#vantdomus-login) .container { max-width: none !important; padding: 0 !important; }
         #vantdomus-login {
           --vdl-ink: #26224d; --vdl-muted: #6b6795;
+          --vdl-inter: var(--domi-font-inter);
+          --vdl-grotesk: var(--domi-font-grotesk);
           font-family: var(--vdl-inter), ui-sans-serif, system-ui, sans-serif;
           position: fixed; inset: 0; overflow: auto;
           display: flex; align-items: center; justify-content: center; padding: 24px;

@@ -183,6 +183,9 @@ def validate_provider_output(result: ProviderResult, request: GatewayRequest) ->
         if not isinstance(payload, dict):
             raise OutputInvalid("payload inválido")
         schema_props = set((contract.input_schema or {}).get("properties", {}).keys())
+        required_fields = set((contract.input_schema or {}).get("required", []))
+        if not required_fields.issubset(payload):
+            raise OutputInvalid("faltan campos requeridos para la propuesta")
         for key, value in payload.items():
             if key in dangerous:
                 raise OutputInvalid(f"campo peligroso en payload: {key}")

@@ -4,6 +4,7 @@ import re
 import sqlite3
 from pathlib import Path
 from .config import settings
+from .pg_session_context import PgSessionContext
 
 logger = logging.getLogger(__name__)
 
@@ -58,19 +59,20 @@ class PostgresRow(dict):
             raise e
 
 class PostgresCursorWrapper:
-    def __init__(self, pg_cursor):
+    def __init__(self, pg_cursor, session_context=None):
         self.cur = pg_cursor
+        self.session_context = session_context
 
     def execute(self, sql, params=None):
         translated_sql = translate_sqlite_to_pg(sql)
         try:
+            if self.session_context is not None:
+                self.session_context.ensure_bound()
             return self.cur.execute(translated_sql, params)
-        except Exception as e:
-            print(f"PG EXECUTE ERROR: {e}")
-            print(f"ORIGINAL SQL: {sql}")
-            print(f"TRANSLATED SQL: {translated_sql}")
-            print(f"PARAMS: {params}")
-            raise e
+        except Exception:
+            # SQL parameters may hold secrets or private household data.
+            logger.error("PostgreSQL execution failed; SQL and parameters withheld")
+            raise
 
     def fetchone(self):
         r = self.cur.fetchone()
@@ -84,11 +86,19 @@ class PostgresCursorWrapper:
         return self.cur.rowcount
 
 class PostgresConnectionWrapper:
-    def __init__(self, pg_conn):
+    def __init__(self, pg_conn, *, signed_rls: bool = False):
         self.conn = pg_conn
+        self._auth_context = PgSessionContext(pg_conn, signed_rls=signed_rls)
+
+    def bind_verified_session(self, user_id: str, token_jti: str) -> bool:
+        """Called only after the API cryptographically validates a bearer JWT."""
+        return self._auth_context.bind_verified_claims(user_id, token_jti)
 
     def cursor(self):
-        return PostgresCursorWrapper(self.conn.cursor(cursor_factory=RealDictCursor))
+        return PostgresCursorWrapper(
+            self.conn.cursor(cursor_factory=RealDictCursor),
+            session_context=self._auth_context,
+        )
 
     def execute(self, sql, params=None):
         cur = self.cursor()
@@ -96,21 +106,34 @@ class PostgresConnectionWrapper:
         return cur
 
     def commit(self):
-        return self.conn.commit()
+        try:
+            return self.conn.commit()
+        finally:
+            self._auth_context.after_transaction()
+
+    def rollback(self):
+        try:
+            return self.conn.rollback()
+        finally:
+            self._auth_context.after_transaction()
 
     def close(self):
+        self._auth_context.clear()
         return self.conn.close()
 
 def connect():
     db_url = settings.DATABASE_URL or os.getenv("DATABASE_URL")
     if db_url and (db_url.startswith("postgres://") or db_url.startswith("postgresql://")):
+        signed_rls = os.getenv("DOMI_ENABLE_SIGNED_RLS_RUNTIME", "") == "1"
+        if signed_rls and os.getenv("DOMI_ENABLE_PG_AUTH_LOGIN", "") != "1":
+            raise RuntimeError("Signed RLS runtime requires explicitly enabled restricted PostgreSQL authentication")
         if not psycopg2:
             raise ImportError("psycopg2-binary is required for Postgres.")
         if "sslmode" not in db_url:
             db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
         try:
             conn = psycopg2.connect(db_url)
-            return PostgresConnectionWrapper(conn)
+            return PostgresConnectionWrapper(conn, signed_rls=signed_rls)
         except Exception as e:
             print(f"DATABASE CONNECTION ERROR: {e}")
             raise e

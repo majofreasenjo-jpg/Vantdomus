@@ -2,16 +2,18 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": [
-      "ES2020"
+      "ES2020",
+      "DOM"
     ],
     "jsx": "react-jsx",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": false,
     "skipLibCheck": true,
     "noEmit": true,
     "types": [
       "react",
-      "react-native"
+      "react-native",
+      "node"
     ]
   },
   "extends": "expo/tsconfig.base"
