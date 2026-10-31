@@ -1514,6 +1514,18 @@ export default function DomiCompanionHome({
                 </button>
               ))}
 
+              {/* R90: salida visible hacia la memoria longitudinal auténtica del hogar.
+                  Reutiliza las pantallas ya existentes: no se replica memoria
+                  en este componente ni se exponen datos fuera de sesión. */}
+              {isReal && !isStrictSynthetic && hid ? (
+                <a href={`/perfiles/${encodeURIComponent(hid)}`}
+                  className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-amber-300 hover:bg-slate-900/80 transition-colors"
+                  aria-label="Memoria y perfiles de la familia"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Memoria y perfiles
+                </a>
+              ) : null}
               {/* Cerrar sesión: el navbar antiguo queda oculto en la home, así que
                   la salida vive aquí, en el menú Más. Usa el server action existente. */}
               <div className="my-1.5 h-px bg-white/10" />
