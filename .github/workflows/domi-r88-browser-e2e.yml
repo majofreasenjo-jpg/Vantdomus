@@ -11,6 +11,8 @@ on:
       - "apps/web/lib/domiSameOrigin.mjs"
       - "apps/web/app/api/proxy/**"
       - "apps/web/app/hogar/**"
+      - "apps/web/app/components/domi/DomiCompanionHome.tsx"
+      - "apps/web/app/components/DomiMemory.tsx"
       - "apps/web/tests/domi-build-font-determinism.test.mjs"
       - ".github/workflows/domi-r88-browser-e2e.yml"
 
