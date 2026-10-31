@@ -8,7 +8,6 @@
  * La experiencia visible es la diseñada por Google AI Studio; aquí no se
  * rediseña nada, solo se conecta la arquitectura del repo.
  */
-import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import { getDashboard, shoppingList } from "../../../lib/api";
 import { classifyHouseholdData } from "../../../lib/domiHouseholdDataState.mjs";
 import { projectDomiShoppingResponse } from "../../../lib/domiShoppingProjection";
@@ -29,11 +28,9 @@ function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
-// Tipografías del prototipo aprobado, servidas por next/font (sin @import de
-// red en runtime). domi.css las consume vía --domi-font-*.
-const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--domi-font-inter", display: "swap" });
-const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--domi-font-grotesk", display: "swap" });
-const jetbrains = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--domi-font-jetbrains", display: "swap" });
+// R89: tipografías deterministas definidas en app/globals.css.
+// Se conservan los mismos alias --domi-font-* que usa domi.css, sin
+// depender de descargas externas ni de next/font durante la compilación.
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -102,7 +99,7 @@ export default async function HogarCompanionPage({
   }
 
   return (
-    <div className={`${inter.variable} ${grotesk.variable} ${jetbrains.variable}`}>
+    <div className="domi-local-fonts">
       <DomiCompanionHome
         data={data}
         hid={hid}
