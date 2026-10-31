@@ -193,9 +193,28 @@ async function run() {
   await page.waitForURL(/\/perfiles\/[0-9a-f-]{36}/);
   await page.getByPlaceholder("Escríbelo en tus palabras…").fill("R90 recuerdo familiar inventado");
   await page.getByRole("button",{name:"Enseñar a Domi"}).click();
-  await page.getByText("R90 recuerdo familiar inventado").waitFor({timeout:25000});
+  const memoryRow = page.locator(".card").getByText("R90 recuerdo familiar inventado",{exact:true}).first();
+  await memoryRow.waitFor({timeout:25000});
   await page.reload({waitUntil:"domcontentloaded"});
-  await page.getByText("R90 recuerdo familiar inventado").waitFor({timeout:25000});
+  await page.getByText("R90 recuerdo familiar inventado",{exact:true}).first().waitFor({timeout:25000});
+  // R91: correct through the existing library UI, then reload from DB.
+  const libraryRow=page.locator(".row").filter({has:page.locator("span").getByText("R90 recuerdo familiar inventado",{exact:true})}).first();
+  await libraryRow.getByRole("button",{name:"Corregir"}).click();
+  await libraryRow.getByRole("textbox",{name:"Corregir memoria"}).fill("R91 recuerdo familiar corregido");
+  await libraryRow.getByRole("button",{name:"Guardar"}).click();
+  await page.getByText("R91 recuerdo familiar corregido",{exact:true}).first().waitFor({timeout:25000});
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.getByText("R91 recuerdo familiar corregido",{exact:true}).first().waitFor({timeout:25000});
+  const corrected=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
+  assert.ok(corrected.body?.items?.some(x=>x.content==="R91 recuerdo familiar corregido"));
+  const correctedId=corrected.body.items.find(x=>x.content==="R91 recuerdo familiar corregido").id;
+  page.once("dialog",d=>d.accept());
+  const editorRow=page.locator("div").filter({has:page.getByText("R91 recuerdo familiar corregido",{exact:true})}).filter({has:page.getByRole("button",{name:"Olvidar"})}).last();
+  await editorRow.getByRole("button",{name:"Olvidar"}).click();
+  const forgotten=await browserProxy(page,"GET","/assistant/memory?household_id="+encodeURIComponent(hid));
+  assert.equal(forgotten.status,200);
+  assert.ok(!forgotten.body?.items?.some(x=>x.id===correctedId));
+  console.log("R91 PASS: correction and authorized soft deletion via DOMI UI");
   console.log("R90 PASS: teaching and reloading persistent memory from the actual DOMI UI");
 
 
