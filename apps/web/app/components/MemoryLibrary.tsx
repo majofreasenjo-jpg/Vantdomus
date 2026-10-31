@@ -126,7 +126,7 @@ export default function MemoryLibrary({ hid }: { hid: string }) {
             </div>
             <div className="grid" style={{ gap: 6 }}>
               {l.items.map((it) => (
-                <div key={it.id} className="row" style={{ justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+                <div key={it.id} data-domi-library-memory-id={it.id} className="row" style={{ justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
                   {editing === it.id ? (
                     <span style={{ flex: 1, display: "flex", gap: 6 }}>
                       <input value={draft} onChange={(e) => setDraft(e.target.value)}
