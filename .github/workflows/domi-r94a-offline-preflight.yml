@@ -1,0 +1,31 @@
+name: DOMI R94-A offline LAN design gate
+
+on:
+  push:
+    branches:
+      - domi-r94a-https-lan-prep-20261102
+    paths:
+      - "tools/r94a/**"
+      - ".github/workflows/domi-r94a-offline-preflight.yml"
+  pull_request:
+    paths:
+      - "tools/r94a/**"
+      - ".github/workflows/domi-r94a-offline-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  design-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: R94-A pure validation, adversarial cases, no network setup
+        run: node --test tools/r94a/domiR94aLanPreflight.test.mjs
+      - name: R94-A reproducible design report (not deployment approval)
+        run: node tools/r94a/domiR94aLanPreflight.mjs tools/r94a/example.plan.json
