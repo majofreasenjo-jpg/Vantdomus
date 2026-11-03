@@ -98,3 +98,35 @@ test("R94-A example CLI yields only design result, never mutates network",()=>{
  assert.equal(result.physicalDeviceCertified,false);
  assert.doesNotMatch(output,/BEGIN CERTIFICATE|PRIVATE KEY|password|bearer|access_token/i);
 });
+
+// NAMING POLICY (ratified for R94-A): controlled ASCII hostnames only; IDN /
+// punycode `xn--` labels are refused before any certificate or DNS work.
+test("R94-A accepts a controlled ASCII private hostname",()=>{
+ const result=assess({
+  familyOrigin:"https://domi-bench.lab.example.invalid",
+  allowedHosts:["domi-bench.lab.example.invalid"],
+  corsOrigins:["https://domi-bench.lab.example.invalid"],
+ });
+ assert.equal(result.status,"DESIGN_ONLY_VALID",JSON.stringify(result));
+ assert.equal(result.physicalDeviceCertified,false);
+});
+test("R94-A refuses IDN/punycode hostnames that could be homographs",()=>{
+ // A-labels survive the ASCII regex but render as a different-looking name,
+ // so a certificate could be issued for something a phone reads as legitimate.
+ for(const host of [
+  "xn--dmi-0na.lab.example",           // IDN en la primera etiqueta
+  "domi.xn--lb-xza.example",           // IDN en una etiqueta intermedia
+  "domi.lab.xn--e1afmkfd",             // IDN en el TLD
+ ]){
+  rejects({familyOrigin:`https://${host}`,allowedHosts:[host],corsOrigins:[`https://${host}`]},
+   "PUBLIC_ORIGIN_NOT_EXACT_HTTPS_DNS");
+ }
+});
+test("R94-A keeps rejecting an IDN host even if the allowlist agrees with it",()=>{
+ // La coherencia interna del plan no puede comprar una excepción de política.
+ const host="xn--dmi-0na.lab.example";
+ const result=assess({familyOrigin:`https://${host}`,allowedHosts:[host],corsOrigins:[`https://${host}`]});
+ assert.equal(result.status,"REJECTED");
+ assert.ok(result.errors.includes("PUBLIC_ORIGIN_NOT_EXACT_HTTPS_DNS"));
+ assert.ok(result.errors.includes("HOST_ALLOWLIST_NOT_EXACT"));
+});
