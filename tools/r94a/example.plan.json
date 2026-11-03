@@ -1,0 +1,28 @@
+{
+  "schema": "DOMI_R94A_PRIVATE_HTTPS_LAN_DESIGN_V1",
+  "intent": "DESIGN_ONLY",
+  "familyOrigin": "https://domi.lab.example.invalid",
+  "allowedHosts": [
+    "domi.lab.example.invalid"
+  ],
+  "corsOrigins": [
+    "https://domi.lab.example.invalid"
+  ],
+  "webUpstream": "http://127.0.0.1:3000",
+  "apiUpstream": "http://127.0.0.1:8001",
+  "apiReachableFromLan": false,
+  "publicRegistration": false,
+  "secureCookies": true,
+  "mockAiOnly": true,
+  "familyProfile": "family-pilot",
+  "tlsTrust": "UNRESOLVED",
+  "privateDns": "UNRESOLVED",
+  "apiHostRouting": "UNRESOLVED",
+  "invitationBootstrap": "UNRESOLVED",
+  "physicalPhoneTest": "NOT_RUN",
+  "firewallState": "UNMODIFIED",
+  "caInstallState": "NOT_INSTALLED",
+  "listenerState": "NOT_STARTED",
+  "wanExposure": false,
+  "mutationsApplied": []
+}
