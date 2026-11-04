@@ -87,6 +87,35 @@ def _production_like_env() -> bool:
 
 
 def _allowed_hosts() -> list[str]:
+    """
+    R94-A: allowlist that THIS API accepts in the Host header.
+
+    `VANTDOMUS_ALLOWED_HOSTS` declares the PUBLIC, browser-facing surface, and
+    for family profiles `config.py` deliberately forbids loopback there. But the
+    Next.js server-side proxy reaches this API over loopback (`API_BASE` =
+    http://127.0.0.1:8001), so that internal hop presents `Host: 127.0.0.1:8001`.
+    Using a single variable for both jobs makes a family profile reject its own
+    proxy hop with `400 Invalid host header` (reproduced in
+    tests/test_domi_r94a_internal_host_routing.py).
+
+    `VANTDOMUS_API_ALLOWED_HOSTS`, when set, governs ONLY which Host values this
+    API accepts on its loopback listener. It never widens the public surface:
+    `VANTDOMUS_ALLOWED_HOSTS` and its family-profile validation are untouched.
+
+    Fail-closed: a wildcard is refused here even though the legacy variable
+    still allows one in non-production, because this list exists precisely to
+    be narrow.
+
+    INVARIANT (not enforceable from inside the process): the API listener must
+    stay bound to loopback. This allowlist is not a substitute for the bind
+    address or the firewall — a Host header cannot keep a LAN client out of a
+    socket that is listening on the LAN.
+    """
+    api_scoped = [host.strip() for host in os.getenv("VANTDOMUS_API_ALLOWED_HOSTS", "").split(",") if host.strip()]
+    if api_scoped:
+        if "*" in api_scoped:
+            raise RuntimeError("VANTDOMUS_API_ALLOWED_HOSTS must not contain a wildcard")
+        return api_scoped
     configured = [host.strip() for host in os.getenv("VANTDOMUS_ALLOWED_HOSTS", "").split(",") if host.strip()]
     if configured:
         return configured
