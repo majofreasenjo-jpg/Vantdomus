@@ -109,6 +109,37 @@ test("privacidad: el servidor manda contenido genérico y el detalle no viaja", 
   assert.equal(n.options.renotify, false);
 });
 
+test("privacidad: un payload con título y cuerpo SENSIBLES nunca llega a la pantalla", async () => {
+  // Defensa en profundidad: el backend ya manda genérico, pero el service
+  // worker es la última capa antes de la pantalla bloqueada. Un payload
+  // manipulado —o un emisor futuro descuidado— no puede filtrar nada.
+  const sw = loadServiceWorker();
+  const sensible = {
+    title: "Cita con el psicólogo de Diego",
+    body: "Resultado del examen de Elena: hablar del tratamiento",
+    url: "/recordatorios/h1",
+    tag: "reminder-xyz",
+  };
+  const n = await dispatchPush(sw, sensible);
+  assert.equal(n.title, "VantDomus", "el título del payload NO puede mostrarse");
+  assert.equal(n.options.body, "Tienes un recordatorio", "el cuerpo del payload NO puede mostrarse");
+  const visible = JSON.stringify({ title: n.title, body: n.options.body });
+  for (const secreto of ["psicólogo", "Diego", "Elena", "examen", "tratamiento"]) {
+    assert.ok(!visible.includes(secreto), `no debe filtrarse "${secreto}"`);
+  }
+  // Lo legítimo del payload se conserva: navegación interna y deduplicación.
+  assert.equal(n.options.data.url, "/recordatorios/h1");
+  assert.equal(n.options.tag, "reminder-xyz");
+});
+
+test("privacidad: un tag no textual se descarta en vez de contaminar la notificación", async () => {
+  const sw = loadServiceWorker();
+  const n = await dispatchPush(sw, { tag: { secreto: "Elena" }, url: "/x" });
+  assert.equal(n.options.tag, undefined);
+  assert.equal(n.title, "VantDomus");
+  assert.equal(n.options.body, "Tienes un recordatorio");
+});
+
 test("navegación: un destino EXTERNO en el payload se degrada a la raíz", async () => {
   const hostiles = [
     "https://evil.example/phish",

@@ -169,9 +169,18 @@ test("21. Push hardening: sw.js restringe navegación al propio origen y dedupli
   assert.match(sw, /function sameOriginPath/);
   assert.match(sw, /resolved\.origin !== self\.location\.origin/);  // destino externo -> "/"
   assert.match(sw, /data: \{ url \}/);                              // se guarda ya saneada
-  assert.match(sw, /tag: data\.tag/);                               // dedupe de reenvíos
+  assert.match(sw, /\btag\b/);                                      // dedupe de reenvíos
   // El clic navega a la ruta saneada, no al valor crudo del payload.
   assert.match(sw, /sameOriginPath\(event\.notification\.data/);
+  // R94-FastShip: el texto visible es CONSTANTE; el payload no puede
+  // sobrescribir título ni cuerpo (privacidad en pantalla bloqueada).
+  assert.match(sw, /const NOTIFICATION_TITLE/);
+  assert.match(sw, /const NOTIFICATION_BODY/);
+  assert.doesNotMatch(sw, /showNotification\(\s*data\.title/);
+  assert.doesNotMatch(sw, /body:\s*data\.body/);
+  // Nota: estas son aserciones sobre el CÓDIGO FUENTE. La prueba de CONDUCTA
+  // vive en tests/domi-r94-fastship-sw-notification-origin.test.mjs, que
+  // ejecuta los handlers reales en un sandbox node:vm.
 });
 
 // OPS-2 M8 — Biblioteca 6 capas + inferencias confirmables.

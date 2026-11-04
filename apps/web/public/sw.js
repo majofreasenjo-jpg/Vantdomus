@@ -26,22 +26,29 @@ function sameOriginPath(raw) {
   }
 }
 
+/* PRIVACIDAD EN PANTALLA BLOQUEADA — el texto visible es CONSTANTE y no se
+ * puede sobrescribir desde el payload. El backend ya envía contenido genérico,
+ * pero esta es la última capa antes de la pantalla: si un payload llegara con
+ * título o cuerpo sensibles (manipulado, o un emisor futuro descuidado), NO
+ * pueden mostrarse. El detalle del recordatorio vive dentro de la app, tras la
+ * sesión. Del payload solo se honran `url` (saneada) y `tag` (deduplicación). */
+const NOTIFICATION_TITLE = "VantDomus";
+const NOTIFICATION_BODY = "Tienes un recordatorio";
+
 self.addEventListener("push", (event) => {
-  /* Contenido GENÉRICO por defecto: la notificación se ve en la pantalla
-   * bloqueada, así que el detalle del recordatorio vive dentro de la app (tras
-   * la sesión), nunca en el aviso. */
-  let data = { title: "VantDomus", body: "Tienes un recordatorio", url: "/" };
-  try { if (event.data) data = Object.assign(data, event.data.json()); } catch (_e) { /* payload no-JSON */ }
-  const url = sameOriginPath(data.url);
+  let payload = {};
+  try { if (event.data) payload = event.data.json() || {}; } catch (_e) { payload = {}; }
+  const url = sameOriginPath(payload.url);
+  /* `tag` (id del recordatorio): un reenvío del cron REEMPLAZA el aviso
+   * anterior en vez de apilar duplicados en la pantalla. */
+  const tag = typeof payload.tag === "string" && payload.tag ? payload.tag : undefined;
   event.waitUntil(
-    self.registration.showNotification(data.title || "VantDomus", {
-      body: data.body || "",
+    self.registration.showNotification(NOTIFICATION_TITLE, {
+      body: NOTIFICATION_BODY,
       icon: "/pwa/icon-192",
       badge: "/pwa/icon-192",
       data: { url },
-      /* `tag` (id del recordatorio): un reenvío del cron REEMPLAZA el aviso
-       * anterior en vez de apilar duplicados en la pantalla. */
-      tag: data.tag || undefined,
+      tag,
       renotify: false,
     })
   );
