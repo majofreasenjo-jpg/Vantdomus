@@ -190,22 +190,39 @@ def safe_relative_url(url: str | None) -> str:
     return raw[:300]
 
 
+# R94-FastShip — PRIVACIDAD EN PANTALLA BLOQUEADA, garantizada en el EMISOR.
+#
+# Antes, `notify_person` aceptaba `title`/`body` libres y un docstring pedía que
+# fueran genéricos: eso es una convención, no una garantía. Un emisor futuro
+# descuidado podía poner el texto de un recordatorio en la pantalla bloqueada.
+# Ahora el emisor NO acepta texto libre: elige entre un conjunto CERRADO de
+# mensajes aprobados. El contenido sensible se queda dentro de la app, tras la
+# sesión. (El service worker impone lo mismo como última capa.)
+LOCKSCREEN_MESSAGES: dict[str, tuple[str, str]] = {
+    "reminder": ("VantDomus", "Tienes un recordatorio"),
+}
+DEFAULT_CATEGORY = "reminder"
+
+
 def notify_person(
     db, *, household_id: str, person_id: str | None,
-    title: str, body: str = "", url: str = "/", tag: str | None = None,
+    category: str = DEFAULT_CATEGORY, url: str = "/", tag: str | None = None,
 ) -> dict:
     """
     Envía un push a los dispositivos del destinatario. Best-effort: nunca lanza.
     Limpia suscripciones muertas (404/410). Devuelve {sent, dead, skipped}.
 
-    `title`/`body` deben ser GENÉRICOS: la notificación se ve en la pantalla
-    bloqueada, así que el contenido sensible se queda dentro de la app (tras la
-    sesión). `tag` permite que un reenvío reemplace la notificación anterior en
-    vez de apilar duplicados.
+    `category` elige el texto visible dentro de `LOCKSCREEN_MESSAGES`; NO se
+    acepta texto libre, de modo que es imposible filtrar contenido familiar a
+    la pantalla bloqueada desde aquí. Una categoría desconocida cae al mensaje
+    por defecto (fail-safe) en vez de propagar nada del llamador.
+    `tag` permite que un reenvío reemplace la notificación anterior en vez de
+    apilar duplicados.
     """
     if not push_enabled():
         return {"sent": 0, "dead": 0, "skipped": True}
-    data = {"title": title[:120], "body": (body or "")[:400], "url": safe_relative_url(url)}
+    title, body = LOCKSCREEN_MESSAGES.get(category) or LOCKSCREEN_MESSAGES[DEFAULT_CATEGORY]
+    data = {"title": title, "body": body, "url": safe_relative_url(url)}
     if tag:
         data["tag"] = str(tag)[:120]
     payload = json.dumps(data)[:_MAX_PAYLOAD]

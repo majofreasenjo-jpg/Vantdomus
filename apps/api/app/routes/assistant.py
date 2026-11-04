@@ -438,7 +438,7 @@ def reminders_tick(db=Depends(get_db), x_tick_secret: str | None = Header(defaul
             # apilar duplicados.
             res = web_push.notify_person(
                 db, household_id=hid, person_id=r["person_id"],
-                title="VantDomus", body="Tienes un recordatorio",
+                category="reminder",
                 url=f"/recordatorios/{hid}", tag=f"reminder-{r['id']}",
             )
             pushed_total += res.get("sent", 0)
