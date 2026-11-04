@@ -44,6 +44,12 @@ function asSingleHttpsOrigin(value) {
         host.endsWith(".") || host.includes("*")) return null;
     if (!/^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(host)) return null;
     if (host.split(".").some(label => label.startsWith("-") || label.endsWith("-"))) return null;
+    // NAMING POLICY (ratified for R94-A): the private bench hostname must be a
+    // CONTROLLED ASCII name. IDN/punycode labels (`xn--`) are refused: an A-label
+    // survives this regex but renders as a different-looking name, so a homograph
+    // could be certified and trusted by a phone. IDN buys nothing for a private
+    // split-DNS name, so the safe default is to reject it outright.
+    if (host.split(".").some(label => label.startsWith("xn--"))) return null;
     return Object.freeze({ origin: url.origin, host });
   } catch { return null; }
 }
