@@ -11,6 +11,11 @@ Verificación 3 previa a la integración de FastShip. Comprueba dos cosas sobre
   2. `selftest_vapid.py` NUNCA imprime material de clave: solo presencia y
      longitud. Se ejecuta con claves sintéticas generadas aquí mismo y se
      inspecciona su salida completa.
+  3. Con una clave sintética válida, `selftest_vapid.py` FIRMA de verdad
+     (acreditación positiva). Sin esto, el test pasaría igual con una firma
+     rota: solo probaría que nada explota. Requiere `pywebpush`, garantizado en
+     CI por `apps/api/requirements.txt`; si falta en una máquina de desarrollo
+     se omite con motivo explícito en vez de dar un rojo engañoso.
 
 Las claves son sintéticas, se generan en el proceso de test y no se escriben a
 disco ni a ninguna variable persistente. No hay red, no se envía ninguna
@@ -20,6 +25,8 @@ notificación, no se instala ningún certificado.
 from __future__ import annotations
 
 import base64
+import importlib.util
+import os
 import re
 import subprocess
 import sys
@@ -69,16 +76,66 @@ def test_generator_pair_is_fresh_each_run():
 
 
 def _run_selftest(env_extra: dict) -> subprocess.CompletedProcess:
-    import os
     env = {**os.environ, "PYTHONIOENCODING": "utf-8", **env_extra}
     return subprocess.run([sys.executable, str(SELFTEST)], capture_output=True,
                           text=True, cwd=str(API_ROOT), env=env)
+
+
+def _pywebpush_installed() -> bool:
+    """¿Está `pywebpush` disponible para el intérprete que corre los subprocesos?"""
+    return importlib.util.find_spec("pywebpush") is not None
+
+
+def _running_in_ci() -> bool:
+    return os.environ.get("CI", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def test_selftest_proves_a_real_vapid_signature():
+    """
+    Acreditación POSITIVA: una clave sintética válida debe producir una firma
+    real, no solo "no explotó". Es lo que demuestra que el formato que emite
+    `gen_vapid_keys.py` y el pin `pywebpush==1.14.1` son compatibles de verdad.
+
+    `pywebpush` es una dependencia de `apps/api/requirements.txt`, así que en CI
+    SIEMPRE está y la exigencia es dura. En una máquina de desarrollo puede no
+    estar instalada: en ese caso se omite con motivo explícito, porque un rojo
+    que dice "clave inválida" cuando en realidad falta una dependencia es una
+    señal falsa, y aquí las señales falsas son el enemigo. La guarda sobre CI
+    impide que la omisión tape una regresión del entorno de integración.
+    """
+    if not _pywebpush_installed():
+        assert not _running_in_ci(), (
+            "en CI `pywebpush` DEBE estar instalado (apps/api/requirements.txt): "
+            "si falta, la acreditacion positiva de firma no se esta ejecutando"
+        )
+        pytest.skip(
+            "pywebpush no instalado en este entorno: la firma positiva se exige en CI. "
+            "Para ejecutarla localmente: pip install -r apps/api/requirements.txt"
+        )
+    pub, priv = _generate_synthetic_pair()
+    result = _run_selftest({
+        "VAPID_PUBLIC_KEY": pub,
+        "VAPID_PRIVATE_KEY": priv,
+        "VAPID_SUBJECT": "mailto:pruebas@example.invalid",
+        "REMINDER_TICK_SECRET": "secreto-de-tick-sintetico-para-pruebas",
+    })
+    salida = result.stdout + result.stderr
+    assert result.returncode == 0, (
+        "Una clave VAPID valida DEBE producir una firma real "
+        "(stdout/stderr omitidos por privacidad)"
+    )
+    assert "firma generada correctamente: OK" in salida, "Firma VAPID positiva no acreditada"
+    assert "RESULTADO: OK" in salida, "El self-test no acredita exito"
 
 
 def test_selftest_never_prints_key_material():
     """
     Requisito explícito: la consola es sensible. El self-test puede decir si una
     clave está y cuánto mide, nunca cuánto vale.
+
+    No depende de que la firma funcione: la salida no puede filtrar material de
+    clave ni en el camino de éxito ni en el de error, así que esta prueba corre
+    siempre, con o sin `pywebpush`.
     """
     pub, priv = _generate_synthetic_pair()
     tick = "secreto-de-tick-sintetico-para-pruebas"
@@ -89,9 +146,6 @@ def test_selftest_never_prints_key_material():
         "REMINDER_TICK_SECRET": tick,
     })
     salida = result.stdout + result.stderr
-    assert result.returncode == 0, "Una clave VAPID valida DEBE producir una firma real (stdout/stderr omitidos por privacidad)"
-    assert "firma generada correctamente: OK" in salida, "Firma VAPID positiva no acreditada"
-    assert "RESULTADO: OK" in salida, "El self-test no acredita exito"
     assert priv not in salida, "la clave PRIVADA no puede aparecer en la salida"
     assert pub not in salida, "tampoco la publica completa"
     assert tick not in salida, "ni el secreto del tick"
