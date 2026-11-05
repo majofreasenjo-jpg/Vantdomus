@@ -89,11 +89,17 @@ def test_selftest_never_prints_key_material():
         "REMINDER_TICK_SECRET": tick,
     })
     salida = result.stdout + result.stderr
+    assert result.returncode == 0, "Una clave VAPID valida DEBE producir una firma real (stdout/stderr omitidos por privacidad)"
+    assert "firma generada correctamente: OK" in salida, "Firma VAPID positiva no acreditada"
+    assert "RESULTADO: OK" in salida, "El self-test no acredita exito"
     assert priv not in salida, "la clave PRIVADA no puede aparecer en la salida"
     assert pub not in salida, "tampoco la publica completa"
     assert tick not in salida, "ni el secreto del tick"
     # Fragmentos: ni siquiera un prefijo reconocible de la privada.
     assert priv[:12] not in salida
+    assert "pruebas@example.invalid" not in salida, "El subject puede contener una direccion privada"
+    assert "mailto:pruebas@example.invalid" not in salida
+    assert "presente (mailto)" in salida
     # Lo que sí debe decir: presencia y longitud.
     assert "presente" in salida
     assert str(len(priv)) in salida, "debe informar la longitud, no el valor"
