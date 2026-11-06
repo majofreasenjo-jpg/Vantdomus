@@ -290,6 +290,10 @@ jobs:
         working-directory: apps/web
         run: node --test tests/domi-r90-memory-navigation.test.mjs
 
+      - name: R94-B strict public login and invitation Origin against Host
+        working-directory: apps/web
+        run: node --test tests/domi-r94b-public-proxy-origin.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
