@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE } from "../../../../lib/public-api";
 import { PUBLIC_PROXY_MAX_BODY_BYTES, requestBodyTooLarge } from "../../../../lib/proxy-limits";
+import { sameOriginForProxy } from "../../../../lib/domiSameOrigin.mjs";
 
 const ALLOWED_PUBLIC_PATHS = new Set([
   "auth/login",
@@ -39,7 +40,7 @@ function upstreamHeaders(request: NextRequest) {
 function sameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin) return true;
-  return origin === request.nextUrl.origin;
+  return sameOriginForProxy(origin, request.headers.get("host"), request.nextUrl.origin);
 }
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
