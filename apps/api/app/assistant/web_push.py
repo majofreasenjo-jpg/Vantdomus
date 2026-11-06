@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 
@@ -168,17 +169,63 @@ def _send_raw(*, endpoint: str, p256dh: str, auth: str, payload: str) -> int:
         return int(code)
 
 
+def safe_relative_url(url: str | None) -> str:
+    """
+    M7.B hardening — La URL que viaja en el push SOLO puede ser una ruta interna
+    (same-origin). Rechaza absolutas (`https://…`), protocol-relative (`//host`),
+    esquemas raros (`javascript:`) y variantes con backslash. Ante cualquier duda
+    devuelve "/" (fail-safe): así un payload manipulado no puede llevar a nadie
+    fuera de la app desde la notificación.
+    """
+    raw = (url or "").strip()
+    if not raw.startswith("/"):
+        return "/"
+    if raw.startswith("//") or raw.startswith("/\\"):
+        return "/"
+    if any(ch in raw for ch in ("\r", "\n", "\t")) or "\\" in raw:
+        return "/"
+    # `/algo:` podría interpretarse como esquema en algunos navegadores.
+    if re.match(r"^/[a-z][a-z0-9+.\-]*:", raw, re.IGNORECASE):
+        return "/"
+    return raw[:300]
+
+
+# R94-FastShip — PRIVACIDAD EN PANTALLA BLOQUEADA, garantizada en el EMISOR.
+#
+# Antes, `notify_person` aceptaba `title`/`body` libres y un docstring pedía que
+# fueran genéricos: eso es una convención, no una garantía. Un emisor futuro
+# descuidado podía poner el texto de un recordatorio en la pantalla bloqueada.
+# Ahora el emisor NO acepta texto libre: elige entre un conjunto CERRADO de
+# mensajes aprobados. El contenido sensible se queda dentro de la app, tras la
+# sesión. (El service worker impone lo mismo como última capa.)
+LOCKSCREEN_MESSAGES: dict[str, tuple[str, str]] = {
+    "reminder": ("VantDomus", "Tienes un recordatorio"),
+}
+DEFAULT_CATEGORY = "reminder"
+
+
 def notify_person(
     db, *, household_id: str, person_id: str | None,
-    title: str, body: str = "", url: str = "/",
+    category: str = DEFAULT_CATEGORY, url: str = "/", tag: str | None = None,
 ) -> dict:
     """
     Envía un push a los dispositivos del destinatario. Best-effort: nunca lanza.
     Limpia suscripciones muertas (404/410). Devuelve {sent, dead, skipped}.
+
+    `category` elige el texto visible dentro de `LOCKSCREEN_MESSAGES`; NO se
+    acepta texto libre, de modo que es imposible filtrar contenido familiar a
+    la pantalla bloqueada desde aquí. Una categoría desconocida cae al mensaje
+    por defecto (fail-safe) en vez de propagar nada del llamador.
+    `tag` permite que un reenvío reemplace la notificación anterior en vez de
+    apilar duplicados.
     """
     if not push_enabled():
         return {"sent": 0, "dead": 0, "skipped": True}
-    payload = json.dumps({"title": title[:120], "body": (body or "")[:400], "url": url})[:_MAX_PAYLOAD]
+    title, body = LOCKSCREEN_MESSAGES.get(category) or LOCKSCREEN_MESSAGES[DEFAULT_CATEGORY]
+    data = {"title": title, "body": body, "url": safe_relative_url(url)}
+    if tag:
+        data["tag"] = str(tag)[:120]
+    payload = json.dumps(data)[:_MAX_PAYLOAD]
     subs = _subscriptions_for(db, household_id, person_id)
     sent, dead = 0, 0
     for s in subs:

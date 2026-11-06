@@ -77,7 +77,7 @@ def test_notify_skipped_when_disabled(env):
     db, hid = env.con, env.hid
     wp.save_subscription(db, household_id=hid, person_id=env.pA, user_id="userA",
                          endpoint="https://push.example/x", p256dh="K", auth="A")
-    res = wp.notify_person(db, household_id=hid, person_id=env.pA, title="Hola", body="test")
+    res = wp.notify_person(db, household_id=hid, person_id=env.pA, category="reminder")
     assert res["skipped"] is True
     assert res["sent"] == 0
 
@@ -94,7 +94,7 @@ def test_notify_sends_and_cleans_dead(env, monkeypatch):
     def fake_send(*, endpoint, p256dh, auth, payload):
         return 410 if endpoint.endswith("/dead") else 201
     monkeypatch.setattr(wp, "_send_raw", fake_send)
-    res = wp.notify_person(db, household_id=hid, person_id=env.pA, title="Recordatorio", body="Pagar luz")
+    res = wp.notify_person(db, household_id=hid, person_id=env.pA, category="reminder")
     assert res["sent"] == 1
     assert res["dead"] == 1
     # La muerta se borró; la viva quedó con last_ok_at.
@@ -118,8 +118,84 @@ def test_private_reminder_only_targets_subject(env, monkeypatch):
     hits = []
     monkeypatch.setattr(wp, "_send_raw", lambda **kw: (hits.append(kw["endpoint"]), 201)[1])
     # Recordatorio dirigido SOLO a Bruno → solo su dispositivo recibe.
-    wp.notify_person(db, household_id=hid, person_id=pB, title="Privado", body="de Bruno")
+    wp.notify_person(db, household_id=hid, person_id=pB, category="reminder")
     assert hits == ["https://push.example/bruno"]
+
+
+def test_safe_relative_url_rejects_external(env):
+    """M7.B hardening: la URL del push solo puede ser una ruta interna."""
+    from app.assistant import web_push as wp
+    assert wp.safe_relative_url("/recordatorios/abc") == "/recordatorios/abc"
+    assert wp.safe_relative_url("/x?y=1#z") == "/x?y=1#z"
+    # Todo lo demás cae a "/" (fail-safe).
+    for bad in ("https://evil.com/x", "//evil.com/x", "/\\evil.com", "javascript:alert(1)",
+                "/java\tscript:x", "/a\nb", "sin-barra", "", None, "/c:\\win"):
+        assert wp.safe_relative_url(bad) == "/", bad
+
+
+def test_notification_payload_is_generic_and_tagged(env, monkeypatch):
+    """
+    M7.B hardening: el push NO lleva el texto del recordatorio (pantalla
+    bloqueada) y viaja con `tag` para deduplicar reenvíos del cron.
+    """
+    from app.assistant import web_push as wp
+    db, hid = env.con, env.hid
+    wp.save_subscription(db, household_id=hid, person_id=env.pA, user_id="userA",
+                         endpoint="https://push.example/ana", p256dh="K", auth="A")
+    monkeypatch.setattr(wp, "push_enabled", lambda: True)
+    captured = {}
+
+    def fake_send(*, endpoint, p256dh, auth, payload):
+        captured["payload"] = payload
+        return 201
+
+    monkeypatch.setattr(wp, "_send_raw", fake_send)
+    wp.notify_person(db, household_id=hid, person_id=env.pA, category="reminder",
+                     url="/recordatorios/" + hid, tag="reminder-xyz")
+    import json as _json
+    data = _json.loads(captured["payload"])
+    assert data["title"] == "VantDomus"
+    assert data["body"] == "Tienes un recordatorio"
+    assert data["tag"] == "reminder-xyz"
+    assert data["url"] == "/recordatorios/" + hid
+
+
+def test_tick_sends_generic_payload_not_reminder_text(env, monkeypatch):
+    """
+    El barrido del cron nunca debe filtrar el título del recordatorio a la
+    pantalla bloqueada: manda contenido genérico + tag con el id.
+    """
+    import importlib
+    from datetime import datetime, timedelta, timezone
+    import app.routes.assistant as ar
+    importlib.reload(ar)
+    from app.assistant import reminders as rem
+    from app.assistant import web_push as wp
+    db, hid = env.con, env.hid
+    now = datetime(2026, 8, 16, 12, 0, 0, tzinfo=timezone.utc)
+    rid = rem.create_reminder(db, household_id=hid, organization_id=None, person_id=env.pA,
+                              created_by_user_id="userA", title="Cita psicólogo Ana", body=None,
+                              remind_at=_iso(now - timedelta(minutes=1)))
+    db.commit()
+    monkeypatch.setenv("REMINDER_TICK_SECRET", "s3cr3t")
+    monkeypatch.setattr(wp, "push_enabled", lambda: True)
+    sent = {}
+
+    def fake_notify(db_, *, household_id, person_id, category, url, tag=None):
+        # El tick ya no elige texto: solo una categoria del conjunto cerrado.
+        title, body = wp.LOCKSCREEN_MESSAGES[category]
+        sent.update({"category": category, "title": title, "body": body,
+                     "url": url, "tag": tag})
+        return {"sent": 1, "dead": 0, "skipped": False}
+
+    monkeypatch.setattr(wp, "notify_person", fake_notify)
+    out = ar.reminders_tick(db=db, x_tick_secret="s3cr3t")
+    assert out["ok"] is True and out["delivered"] == 1
+    # El texto sensible NO viaja en la notificación.
+    assert "psicólogo" not in (sent["title"] + sent["body"])
+    assert sent["body"] == "Tienes un recordatorio"
+    assert sent["tag"] == f"reminder-{rid}"
+    assert sent["url"].startswith("/recordatorios/")
 
 
 def test_tick_endpoint_auth(env, monkeypatch):
@@ -161,3 +237,53 @@ def test_tick_helpers(env):
     assert delivered[0]["title"] == "Vencido"
     # Idempotente: segunda pasada no re-entrega.
     assert rem.deliver_due_detailed(db, hid, _iso(now)) == []
+
+
+def test_emitter_cannot_leak_free_text_to_the_lockscreen(env, monkeypatch):
+    """
+    R94-FastShip, verificación 2: la privacidad NO depende de que el llamador
+    se porte bien. `notify_person` no acepta texto libre; elige dentro de un
+    conjunto CERRADO de mensajes aprobados.
+    """
+    from app.assistant import web_push as wp
+    import inspect
+    db, hid = env.con, env.hid
+
+    # El contrato ya no admite title/body: no hay por donde colar texto.
+    params = inspect.signature(wp.notify_person).parameters
+    assert "title" not in params and "body" not in params, (
+        "el emisor no debe aceptar texto libre para la pantalla bloqueada"
+    )
+
+    wp.save_subscription(db, household_id=hid, person_id=env.pA, user_id="userA",
+                         endpoint="https://push.example/a", p256dh="K", auth="A")
+    monkeypatch.setattr(wp, "push_enabled", lambda: True)
+    captured = {}
+    monkeypatch.setattr(wp, "_send_raw",
+                        lambda **kw: (captured.update(payload=kw["payload"]), 201)[1])
+
+    wp.notify_person(db, household_id=hid, person_id=env.pA, category="reminder",
+                     url="/recordatorios/" + hid, tag="reminder-1")
+    import json as _json
+    data = _json.loads(captured["payload"])
+    assert (data["title"], data["body"]) == wp.LOCKSCREEN_MESSAGES["reminder"]
+
+
+def test_unknown_category_falls_back_instead_of_leaking(env, monkeypatch):
+    """Una categoría desconocida cae al mensaje por defecto (fail-safe)."""
+    from app.assistant import web_push as wp
+    db, hid = env.con, env.hid
+    wp.save_subscription(db, household_id=hid, person_id=env.pA, user_id="userA",
+                         endpoint="https://push.example/b", p256dh="K", auth="A")
+    monkeypatch.setattr(wp, "push_enabled", lambda: True)
+    captured = {}
+    monkeypatch.setattr(wp, "_send_raw",
+                        lambda **kw: (captured.update(payload=kw["payload"]), 201)[1])
+
+    wp.notify_person(db, household_id=hid, person_id=env.pA,
+                     category="cita-medica-de-Elena")
+    import json as _json
+    data = _json.loads(captured["payload"])
+    assert (data["title"], data["body"]) == wp.LOCKSCREEN_MESSAGES[wp.DEFAULT_CATEGORY]
+    # Ni siquiera el nombre de la categoría puede asomar en lo visible.
+    assert "Elena" not in _json.dumps(data)

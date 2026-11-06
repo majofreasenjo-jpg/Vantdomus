@@ -290,6 +290,17 @@ jobs:
         working-directory: apps/web
         run: node --test tests/domi-r90-memory-navigation.test.mjs
 
+      # R94-FastShip: estas dos suites pasan a ser OBLIGATORIAS en el gate.
+      # Antes solo corrian en local, de modo que una regresion de privacidad o
+      # de navegacion del service worker podia llegar a revision sin que el CI
+      # la viera.
+      - name: Web hardening baseline (noindex, cookies, modos, push, biblioteca)
+        working-directory: apps/web
+        run: node --test tests/web-hardening.test.mjs
+      - name: R94-FastShip adversarial service-worker privacy and same-origin navigation
+        working-directory: apps/web
+        run: node --test tests/domi-r94-fastship-sw-notification-origin.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
