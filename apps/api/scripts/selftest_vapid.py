@@ -21,6 +21,17 @@ def _mask(value: str) -> str:
     return f"presente ({len(value)} chars)" if value else "AUSENTE"
 
 
+def _mask_subject(value: str) -> str:
+    """No revelar correo ni URL en logs de CI o terminal compartida."""
+    if not value:
+        return "AUSENTE"
+    if value.startswith("mailto:"):
+        return "presente (mailto)"
+    if value.startswith("https://"):
+        return "presente (https)"
+    return "presente (formato invalido)"
+
+
 def main() -> int:
     ok = True
 
@@ -32,7 +43,7 @@ def main() -> int:
     print("[1/3] Variables de entorno")
     print(f"      VAPID_PUBLIC_KEY     : {_mask(pub)}")
     print(f"      VAPID_PRIVATE_KEY    : {_mask(priv)}")
-    print(f"      VAPID_SUBJECT        : {subject or 'AUSENTE'}")
+    print(f"      VAPID_SUBJECT        : {_mask_subject(subject)}")
     print(f"      REMINDER_TICK_SECRET : {_mask(tick)}")
     if not (pub and priv and subject):
         print("      -> FALTAN variables VAPID: el push queda deshabilitado.")
@@ -67,7 +78,7 @@ def main() -> int:
             print("      la firma no produjo cabecera Authorization.")
             ok = False
     except Exception as exc:
-        print(f"      ERROR firmando ({type(exc).__name__}: {exc}).")
+        print(f"      ERROR firmando ({type(exc).__name__}).")
         print("      Revisa que VAPID_PRIVATE_KEY sea la clave base64url que emitió")
         print("      scripts/gen_vapid_keys.py (no la pública, no un PEM recortado).")
         ok = False
