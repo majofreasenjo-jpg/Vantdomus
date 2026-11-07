@@ -70,7 +70,7 @@ jobs:
         run: python -m pytest tests/test_domi_r86_local_launcher_contract.py -q -ra
 
       - name: R94-C synthetic first owner closed-profile bootstrap
-        run: python -m pytest tests/test_domi_r94c_first_owner_offline.py -q -ra
+        run: python -m pytest tests/test_domi_r94c_first_owner_offline.py -q -ra --basetemp /home/runner/.cache/vantdomus-r94c-first-owner -p no:cacheprovider
 
       - name: Backend tests — full suite (must pass)
         run: |
