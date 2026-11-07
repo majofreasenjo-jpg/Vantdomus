@@ -34,7 +34,7 @@ def bootstrap_first_owner(email: str, password: str, home_name: str = "Hogar fic
         raise SystemExit("R94C_RUNTIME_SECURITY_REJECTED:" + type(exc).__name__) from None
 
     normalized = (email or "").strip().lower()
-    if (not re.fullmatch(r"[a-z0-9][a-z0-9._+-]{1,50}@(?:[a-z0-9-]+\\.)*example\\.invalid", normalized)
+    if (not re.fullmatch(r"[a-z0-9][a-z0-9._+-]{1,50}@(?:[a-z0-9-]+\.)*example\.invalid", normalized)
             or len(password or "") < 12 or len(password) > 128
             or not (3 <= len(home_name.strip()) <= 70)):
         raise SystemExit("R94C_SYNTHETIC_INPUT_INVALID")
