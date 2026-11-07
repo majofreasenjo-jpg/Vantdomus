@@ -50,6 +50,11 @@ def lab(monkeypatch, tmp_path):
     import app.db as db
     importlib.reload(db)
     db.ensure_schema()
+    # Previous tests in the *full* suite may already have imported the
+    # legacy module, whose `from app.db import connect` captured a function
+    # object from an older isolated fixture. Rebind it to this test's DB.
+    import scripts.bootstrap_admin as legacy
+    importlib.reload(legacy)
     import scripts.bootstrap_first_owner_r94c as first
     importlib.reload(first)
     return first, db, env
