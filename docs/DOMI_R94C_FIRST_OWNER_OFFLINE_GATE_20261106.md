@@ -7,6 +7,7 @@ El comando heredado `bootstrap_admin.py <email> <password>` pasa contraseñas po
 
 ## Implementación R94-C
 - Wrapper separado `apps/api/scripts/bootstrap_first_owner_r94c.py`: acceso offline, solo con `APP_ENV=family-pilot`, registro público cerrado y `validate_runtime_security()` íntegro.
+- Serializa intentos de creación en el mismo disco con bloqueo local exclusivo, y rechaza una segunda ejecución en vez de sobrescribir o reiniciar contraseñas.
 - Requiere correo **exclusivamente ficticio** en `example.invalid`, contraseña fuerte introducida mediante `getpass` en terminal interactivo y confirmación expresa de ensayo sintético.
 - Solo admite bases ya migradas en disco persistente fuera del repo y **vacías** respecto a usuarios, hogares, membresías y personas. Si existe información, falla sin intentar resetear a nadie.
 - Invoca el constructor de owner ya existente, sin duplicar el modelo de organización, hogar y persona. No abre sockets, ni registra endpoints, ni modifica permisos.
@@ -15,7 +16,7 @@ El comando heredado `bootstrap_admin.py <email> <password>` pasa contraseñas po
 - Security Gate exige el test dedicado y lo incluye también en la suite general.
 
 ## Límites, amenazas y bloqueo restante
-1. El wrapper reduce el riesgo de uso accidental, **no reemplaza una herramienta de aprovisionamiento multioperador ni una transacción atómica para carreras concurrentes**. Debe ejecutarse de forma exclusiva, con el servicio detenido y una única persona autorizada, en un disco recién inicializado para datos ficticios.
+1. El wrapper incorpora un bloqueo exclusivo local basado en creación atómica del archivo `.r94c-first-owner.lock`, mantenido durante la comprobación de vacío y el bootstrap. Las pruebas incluyen un segundo intento concurrente y comprobación de no reseteo. **No sustituye un aprovisionamiento multioperador ni un sistema de bloqueo distribuido**; el banco debe ejecutarse con el servicio detenido y una única persona autorizada. Si existe un archivo de bloqueo tras una interrupción, se falla cerrado y su eliminación exige revisión humana del estado de la base.
 2. El `bootstrap_admin.py` heredado aún soporta reseteo de cuentas por argv. Se recomienda ticket independiente de hardening, previa comprobación de los flujos operativos, no una modificación silenciosa.
 3. El CLI R94-C **no fue ejecutado en un PC Windows real**; los tests CI son sintéticos y de proceso.
 4. No se han instalado certificados, DNS ni reglas de firewall; no se accede a dispositivos físicos.
