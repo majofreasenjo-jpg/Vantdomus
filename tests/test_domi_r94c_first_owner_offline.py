@@ -4,6 +4,8 @@ from __future__ import annotations
 import importlib
 import sqlite3
 import sys
+import threading
+from unittest.mock import patch
 from pathlib import Path
 
 import pytest
@@ -157,3 +159,73 @@ def test_cli_requires_confirmation_and_refuses_noninteractive_and_password_argv(
     monkeypatch.setattr(sys,"stdin",FakeStdin())
     with pytest.raises(SystemExit,match="R94C_INTERACTIVE_TERMINAL_REQUIRED"):
         first.main(["--email",EMAIL,"--confirm-synthetic"])
+
+
+def test_existing_lock_prevents_bootstrap_before_any_write(lab):
+    first, db, env = lab
+    disk = Path(env["DB_PATH"])
+    lock = Path(str(disk) + ".r94c-first-owner.lock")
+    lock.write_text("held by another local process")
+    try:
+        with pytest.raises(SystemExit, match="R94C_BOOTSTRAP_ALREADY_LOCKED"):
+            first.bootstrap_first_owner(EMAIL, PASSWORD)
+        c = db.connect()
+        try:
+            assert c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0
+        finally:
+            c.close()
+    finally:
+        lock.unlink()
+
+
+def test_concurrent_first_owner_rejected_and_lock_cleaned(lab, monkeypatch):
+    first, db, env = lab
+    from scripts import bootstrap_admin as legacy
+    entered = threading.Event()
+    release = threading.Event()
+    actual = legacy.bootstrap_admin
+    result = []
+    errors = []
+
+    def slow_creator(*args, **kwargs):
+        entered.set()
+        assert release.wait(10), "test synchronization timed out"
+        return actual(*args, **kwargs)
+
+    def worker():
+        try:
+            result.append(first.bootstrap_first_owner(EMAIL, PASSWORD))
+        except BaseException as exc:
+            errors.append(exc)
+
+    with patch.object(legacy, "bootstrap_admin", slow_creator):
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        try:
+            assert entered.wait(10), "first bootstrap failed to acquire the lock"
+            with pytest.raises(SystemExit, match="R94C_BOOTSTRAP_ALREADY_LOCKED"):
+                first.bootstrap_first_owner(EMAIL, "Different-Fictional!2026")
+        finally:
+            release.set()
+            t.join(timeout=12)
+    assert not t.is_alive(), "first bootstrap worker did not finish"
+    assert not errors, repr(errors)
+    assert len(result) == 1 and result[0]["user_action"] == "creado"
+    assert not Path(env["DB_PATH"] + ".r94c-first-owner.lock").exists()
+    c = db.connect()
+    try:
+        assert c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1
+        from app.security import verify_password
+        row = c.execute("SELECT password_hash FROM users WHERE email=?", (EMAIL,)).fetchone()
+        assert verify_password(PASSWORD, row["password_hash"])
+        assert not verify_password("Different-Fictional!2026", row["password_hash"])
+    finally:
+        c.close()
+
+
+def test_refused_nonempty_db_does_not_leave_lock(lab):
+    first, db, env = lab
+    first.bootstrap_first_owner(EMAIL, PASSWORD)
+    with pytest.raises(SystemExit, match="R94C_DATABASE_NOT_EMPTY"):
+        first.bootstrap_first_owner(EMAIL, PASSWORD)
+    assert not Path(env["DB_PATH"] + ".r94c-first-owner.lock").exists()
