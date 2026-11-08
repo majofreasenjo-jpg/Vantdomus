@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import os
+from pathlib import Path
 import re
 import sys
 
@@ -39,25 +41,47 @@ def bootstrap_first_owner(email: str, password: str, home_name: str = "Hogar fic
             or not (3 <= len(home_name.strip()) <= 70)):
         raise SystemExit("R94C_SYNTHETIC_INPUT_INVALID")
 
-    db = connect()
+    # The legacy constructor is idempotent *and resets existing passwords*.
+    # Therefore our empty-DB check MUST be serialized across local processes.
+    # O_EXCL provides an atomic, exclusive local lock, without holding a SQLite
+    # transaction open while the legacy constructor uses its own connection.
+    raw_path = os.getenv("DB_PATH", "").strip()
+    if not raw_path or os.getenv("DATABASE_URL", "").strip():
+        raise SystemExit("R94C_LOCAL_SQLITE_PATH_REQUIRED")
+    db_path = Path(raw_path)
+    if not db_path.is_absolute() or db_path.is_symlink() or not db_path.is_file():
+        raise SystemExit("R94C_PREEXISTING_LOCAL_DB_REQUIRED")
+    lock_path = Path(str(db_path) + ".r94c-first-owner.lock")
     try:
-        # No schema setup or destructive migration is performed here. A local,
-        # already-migrated, empty synthetic DB is a hard precondition.
-        for table in ("users", "households", "household_memberships", "persons"):
-            row = db.execute("SELECT COUNT(*) AS n FROM " + table).fetchone()
-            if int(row["n"]) != 0:
-                raise SystemExit("R94C_DATABASE_NOT_EMPTY")
-    except SystemExit:
-        raise
-    except Exception:
-        raise SystemExit("R94C_SCHEMA_UNAVAILABLE") from None
-    finally:
-        db.close()
+        lock_fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        # A crashed owner bootstrap also leaves the lock behind: fail closed.
+        # Inspect the test DB before a HUMAN removes any stale lock.
+        raise SystemExit("R94C_BOOTSTRAP_ALREADY_LOCKED") from None
+    except OSError:
+        raise SystemExit("R94C_BOOTSTRAP_LOCK_UNAVAILABLE") from None
 
-    # This existing primitive creates a verified owner, a household, an
-    # organization and a person linked to the same user. No network calls.
-    from scripts.bootstrap_admin import bootstrap_admin
-    return bootstrap_admin(normalized, password, home_name.strip())
+    try:
+        db = connect()
+        try:
+            # The schema must already exist; no database reset or migration.
+            for table in ("users", "households", "household_memberships", "persons"):
+                row = db.execute("SELECT COUNT(*) AS n FROM " + table).fetchone()
+                if int(row["n"]) != 0:
+                    raise SystemExit("R94C_DATABASE_NOT_EMPTY")
+        except SystemExit:
+            raise
+        except Exception:
+            raise SystemExit("R94C_SCHEMA_UNAVAILABLE") from None
+        finally:
+            db.close()
+
+        # Single owner creation while the exclusive lock remains held.
+        from scripts.bootstrap_admin import bootstrap_admin
+        return bootstrap_admin(normalized, password, home_name.strip())
+    finally:
+        os.close(lock_fd)
+        lock_path.unlink()
 
 
 def main(argv: list[str] | None = None) -> None:
