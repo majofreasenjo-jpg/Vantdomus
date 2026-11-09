@@ -10,7 +10,8 @@ test("R94-B public login/invitation proxy uses exact Host-Origin validation behi
   assert.doesNotMatch(source,/origin === request\.nextUrl\.origin/);
   assert.match(source,/auth\/register-with-invitation/);
   assert.match(source,/if \(request\.method\.toUpperCase\(\) !== "GET" && !sameOrigin\(request\)\)/);
-  assert.match(source,/lowered !== "cookie" && lowered !== "authorization"/);
+  assert.match(source,/safeBrowserHeaderForApiHop\(lowered\)/);
+  assert.match(source,/import \{ safeBrowserHeaderForApiHop \} from/);
 });
 test("R94-B accepts controlled public host even if internal Next URL uses localhost",()=>{
   assert.equal(sameOriginForProxy("https://domi.lab.example.invalid","domi.lab.example.invalid","http://localhost:3000"),true);

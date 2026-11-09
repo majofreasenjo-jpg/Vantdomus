@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE } from "../../../../lib/public-api";
+import { safeBrowserHeaderForApiHop } from "../../../../lib/domiProxyHeaderPolicy.mjs";
 import { PUBLIC_PROXY_MAX_BODY_BYTES, requestBodyTooLarge } from "../../../../lib/proxy-limits";
 import { sameOriginForProxy } from "../../../../lib/domiSameOrigin.mjs";
 
@@ -30,7 +31,7 @@ function upstreamHeaders(request: NextRequest) {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lowered = key.toLowerCase();
-    if (!HOP_BY_HOP_HEADERS.has(lowered) && lowered !== "cookie" && lowered !== "authorization") {
+    if (safeBrowserHeaderForApiHop(lowered)) {
       headers.set(key, value);
     }
   });

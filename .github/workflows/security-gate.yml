@@ -311,6 +311,10 @@ jobs:
         working-directory: apps/web
         run: node --test tests/domi-r94b-public-proxy-origin.test.mjs
 
+      - name: R94-G browser-supplied forwarded-header firewall across Next proxies
+        working-directory: apps/web
+        run: node --test tests/domi-r94g-forwarded-header-firewall.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
