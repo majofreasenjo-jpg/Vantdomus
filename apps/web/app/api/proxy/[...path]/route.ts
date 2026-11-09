@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { API_BASE } from "../../../../lib/public-api";
+import { safeBrowserHeaderForApiHop } from "../../../../lib/domiProxyHeaderPolicy.mjs";
 import { CSRF_COOKIE, CSRF_HEADER, isUnsafeMethod } from "../../../../lib/csrf";
 import { sameOriginForProxy } from "../../../../lib/domiSameOrigin.mjs";
 import { AUTHENTICATED_PROXY_MAX_BODY_BYTES, requestBodyTooLarge } from "../../../../lib/proxy-limits";
@@ -41,10 +42,7 @@ function upstreamHeaders(request: NextRequest, token: string) {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lowered = key.toLowerCase();
-    if (!HOP_BY_HOP_HEADERS.has(lowered) && lowered !== "cookie" && lowered !== "authorization" &&
-        lowered !== "forwarded" && !lowered.startsWith("x-forwarded-") &&
-        lowered !== "x-real-ip" && lowered !== "x-original-host" &&
-        lowered !== "x-original-url" && lowered !== "x-rewrite-url") {
+    if (safeBrowserHeaderForApiHop(lowered)) {
       headers.set(key, value);
     }
   });
