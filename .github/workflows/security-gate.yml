@@ -315,6 +315,9 @@ jobs:
         working-directory: apps/web
         run: node --test tests/domi-r94g-forwarded-header-firewall.test.mjs
 
+      - name: R94-H Windows listener readiness synthetic PowerShell contract
+        run: node --test tools/r94a/domiR94hReadOnlyReadiness.test.mjs
+
       - name: Build web panel
         working-directory: apps/web
         run: npm run build
