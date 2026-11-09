@@ -1,3 +1,4 @@
+import hmac
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header
@@ -416,7 +417,9 @@ def reminders_tick(db=Depends(get_db), x_tick_secret: str | None = Header(defaul
     expected = os.getenv("REMINDER_TICK_SECRET", "").strip()
     if not expected:
         raise HTTPException(status_code=503, detail="Tick no configurado (falta REMINDER_TICK_SECRET)")
-    if (x_tick_secret or "").strip() != expected:
+    # M7.B hardening: comparación en tiempo constante (evita distinguir un
+    # secreto "casi correcto" midiendo el tiempo de respuesta).
+    if not hmac.compare_digest((x_tick_secret or "").strip(), expected):
         raise HTTPException(status_code=401, detail="Secreto de tick inválido")
     from app.assistant import reminders as rem
     from app.assistant import web_push
@@ -427,9 +430,16 @@ def reminders_tick(db=Depends(get_db), x_tick_secret: str | None = Header(defaul
         if not web_push.push_enabled():
             continue
         for r in newly:
+            # M7.B hardening — PRIVACIDAD EN PANTALLA BLOQUEADA: la notificación
+            # NO lleva el texto del recordatorio (podría verlo cualquiera que
+            # mire el teléfono). Solo avisa que hay algo y lleva a la app, donde
+            # el contenido queda tras la sesión. `tag` = id del recordatorio para
+            # que un reintento del cron reemplace la notificación en vez de
+            # apilar duplicados.
             res = web_push.notify_person(
                 db, household_id=hid, person_id=r["person_id"],
-                title="Recordatorio", body=r["title"], url=f"/recordatorios/{hid}",
+                category="reminder",
+                url=f"/recordatorios/{hid}", tag=f"reminder-{r['id']}",
             )
             pushed_total += res.get("sent", 0)
     return {"ok": True, "delivered": delivered_total, "pushed": pushed_total,

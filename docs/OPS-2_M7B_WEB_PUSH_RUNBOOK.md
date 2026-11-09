@@ -67,18 +67,35 @@ si el backend reporta `enabled`).
 El push llega "aunque la app esté cerrada" porque un Cron llama al backend cada
 pocos minutos. En Render → **New → Cron Job** (o cualquier cron externo):
 
-- **Command / Request:** `POST https://vantdomus-family-pilot.onrender.com/assistant/reminders/tick`
-- **Header:** `X-Tick-Secret: <el mismo REMINDER_TICK_SECRET>`
-- **Schedule:** cada 1–5 minutos (`*/5 * * * *`).
-
-Ejemplo con curl:
+- **Schedule:** cada 2–5 minutos (`*/5 * * * *`).
+- **Command:** usa exactamente esta línea — los flags importan:
 
 ```bash
-curl -X POST https://vantdomus-family-pilot.onrender.com/assistant/reminders/tick \
-  -H "X-Tick-Secret: $REMINDER_TICK_SECRET"
+curl --fail-with-body --silent --show-error --max-time 30 -X POST https://vantdomus-family-pilot.onrender.com/assistant/reminders/tick -H "X-Tick-Secret: $REMINDER_TICK_SECRET"
 ```
 
-Respuesta: `{"ok":true,"delivered":N,"pushed":M,"push_enabled":true}`.
+- En el **Environment del Cron Job** define `REMINDER_TICK_SECRET` con el mismo
+  valor que en el Web Service.
+
+> **Por qué esos flags:** sin `--fail-with-body`, `curl` termina con éxito (exit 0)
+> aunque el servidor responda **401/503** — el Cron aparecería "verde" mientras
+> nadie recibe avisos. Con estos flags el job **falla de verdad** y muestra el
+> cuerpo del error; `--max-time 30` evita que un cuelgue deje el job corriendo.
+
+Respuesta esperada: `{"ok":true,"delivered":N,"pushed":M,"push_enabled":true}`.
+
+### Self-test de firma VAPID (antes de confiar en el Cron)
+
+Una vez puestas las 4 variables, verifica en el **Shell** de Render que la firma
+funciona de extremo a extremo, sin esperar a que venza un recordatorio:
+
+```bash
+python scripts/selftest_vapid.py
+```
+
+Comprueba que `pywebpush` está instalado, que las 3 variables VAPID existen y que
+la firma se genera correctamente. **No envía nada a ningún dispositivo** y **no
+imprime las claves**.
 
 ---
 

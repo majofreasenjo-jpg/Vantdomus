@@ -69,6 +69,9 @@ jobs:
       - name: R86 Windows local pilot fail-closed launcher contract
         run: python -m pytest tests/test_domi_r86_local_launcher_contract.py -q -ra
 
+      - name: R94-C synthetic first owner closed-profile bootstrap
+        run: python -m pytest tests/test_domi_r94c_first_owner_offline.py -q -ra --basetemp /home/runner/.cache/vantdomus-r94c-first-owner -p no:cacheprovider
+
       - name: Backend tests — full suite (must pass)
         run: |
           python -m pytest tests/ -q \
@@ -289,6 +292,21 @@ jobs:
       - name: R90 authenticated household memory navigation
         working-directory: apps/web
         run: node --test tests/domi-r90-memory-navigation.test.mjs
+
+      # R94-FastShip: estas dos suites pasan a ser OBLIGATORIAS en el gate.
+      # Antes solo corrian en local, de modo que una regresion de privacidad o
+      # de navegacion del service worker podia llegar a revision sin que el CI
+      # la viera.
+      - name: Web hardening baseline (noindex, cookies, modos, push, biblioteca)
+        working-directory: apps/web
+        run: node --test tests/web-hardening.test.mjs
+      - name: R94-FastShip adversarial service-worker privacy and same-origin navigation
+        working-directory: apps/web
+        run: node --test tests/domi-r94-fastship-sw-notification-origin.test.mjs
+
+      - name: R94-B strict public login and invitation Origin against Host
+        working-directory: apps/web
+        run: node --test tests/domi-r94b-public-proxy-origin.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
