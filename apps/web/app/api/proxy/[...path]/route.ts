@@ -41,7 +41,10 @@ function upstreamHeaders(request: NextRequest, token: string) {
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     const lowered = key.toLowerCase();
-    if (!HOP_BY_HOP_HEADERS.has(lowered) && lowered !== "cookie" && lowered !== "authorization") {
+    if (!HOP_BY_HOP_HEADERS.has(lowered) && lowered !== "cookie" && lowered !== "authorization" &&
+        lowered !== "forwarded" && !lowered.startsWith("x-forwarded-") &&
+        lowered !== "x-real-ip" && lowered !== "x-original-host" &&
+        lowered !== "x-original-url" && lowered !== "x-rewrite-url") {
       headers.set(key, value);
     }
   });
