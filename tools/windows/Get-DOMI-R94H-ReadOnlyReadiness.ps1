@@ -73,18 +73,19 @@ try {
         $fixture.listeners -isnot [array]) {
       throw "INVALID_SYNTHETIC_FIXTURE"
     }
-    if ($fixture.PSObject.Properties.Name.Count -ne 1 -or $fixture.listeners.Count -gt 32) {
+    if (@($fixture.PSObject.Properties.Name).Count -ne 1 -or $fixture.listeners.Count -gt 32) {
       throw "INVALID_SYNTHETIC_FIXTURE"
     }
     $listeners = @()
     foreach ($entry in $fixture.listeners) {
       if ($null -eq $entry -or $entry -isnot [pscustomobject] -or
-          $entry.PSObject.Properties.Name.Count -ne 2 -or
+          @($entry.PSObject.Properties.Name).Count -ne 2 -or
           $entry.PSObject.Properties.Name -notcontains "LocalPort" -or
           $entry.PSObject.Properties.Name -notcontains "LocalAddress" -or
-          $entry.LocalPort -isnot [int] -or
+          ($entry.LocalPort -isnot [int] -and $entry.LocalPort -isnot [long]) -or
           $entry.LocalAddress -isnot [string] -or
-          $entry.LocalAddress.Length -gt 50) {
+          $entry.LocalAddress.Length -gt 50 -or
+          $entry.LocalPort -lt 1 -or $entry.LocalPort -gt 65535) {
         throw "INVALID_SYNTHETIC_FIXTURE"
       }
       $listeners += [pscustomobject]@{
