@@ -69,6 +69,9 @@ jobs:
       - name: R86 Windows local pilot fail-closed launcher contract
         run: python -m pytest tests/test_domi_r86_local_launcher_contract.py -q -ra
 
+      - name: R94-C synthetic first owner closed-profile bootstrap
+        run: python -m pytest tests/test_domi_r94c_first_owner_offline.py -q -ra --basetemp /home/runner/.cache/vantdomus-r94c-first-owner -p no:cacheprovider
+
       - name: Backend tests — full suite (must pass)
         run: |
           python -m pytest tests/ -q \
@@ -300,6 +303,10 @@ jobs:
       - name: R94-FastShip adversarial service-worker privacy and same-origin navigation
         working-directory: apps/web
         run: node --test tests/domi-r94-fastship-sw-notification-origin.test.mjs
+
+      - name: R94-B strict public login and invitation Origin against Host
+        working-directory: apps/web
+        run: node --test tests/domi-r94b-public-proxy-origin.test.mjs
 
       - name: Build web panel
         working-directory: apps/web
