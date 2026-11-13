@@ -823,7 +823,8 @@ def request_password_reset(
             user_id=row["id"],
             metadata={"email_fingerprint": _email_fingerprint(normalized)},
         )
-        response["email_delivery"] = {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")}
+        # Never disclose delivery outcome or account existence in the public response.
+        # Internal audit events retain delivery diagnostics for authorized operators.
         response.update(_local_token_payload(raw_token))
     else:
         write_security_event(

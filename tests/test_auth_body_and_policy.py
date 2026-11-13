@@ -178,3 +178,33 @@ def test_register_accepts_short_with_three_classes(client: TestClient):
         json={"email": "threecls@example.com", "password": "Abcd123XYZ"},
     )
     assert res.status_code == 200, res.text
+
+
+# ----------------------------------------------------------------------
+# R95 — password reset request must not enumerate existing accounts
+# ----------------------------------------------------------------------
+def test_r95_reset_request_response_is_identical_for_known_and_unknown_accounts(client: TestClient, monkeypatch):
+    """Online profile: no tokens, provider outcomes or existence hints in JSON."""
+    existing_email = "r95-existing@example.invalid"
+    unknown_email = "r95-unknown@example.invalid"
+    registered = client.post(
+        "/auth/register", json={"email": existing_email, "password": GOOD_PASSWORD}
+    )
+    assert registered.status_code == 200, registered.text
+
+    # Local fixture only: replace mail transport before asking for a reset.
+    import app.routes.auth as auth
+    delivery_targets = []
+
+    def fake_send_email(address, subject, body):
+        delivery_targets.append(address)
+        return {"ok": True, "provider": "synthetic"}
+
+    monkeypatch.setattr(auth.notifier, "send_email", fake_send_email)
+    monkeypatch.setenv("APP_ENV", "family-pilot")
+    known = client.post("/auth/password/reset/request", json={"email": existing_email})
+    unknown = client.post("/auth/password/reset/request", json={"email": unknown_email})
+    assert known.status_code == 200, known.text
+    assert unknown.status_code == 200, unknown.text
+    assert known.json() == unknown.json() == {"status": "accepted"}
+    assert delivery_targets == [existing_email]
