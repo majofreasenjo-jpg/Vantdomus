@@ -116,7 +116,7 @@ export default async function LoginPage({
           <input className="vdl-input" name="mfa_code" inputMode="numeric" autoComplete="one-time-code" placeholder="Código MFA, si aplica" />
           <div className="vdl-row">
             <button className="vdl-btn vdl-primary" type="submit">Entrar</button>
-            <a className="vdl-btn vdl-ghost" href="/reset-password">Recuperar acceso</a>
+            <a className="vdl-btn vdl-ghost" href="/recuperar-acceso">Recuperar acceso</a>
           </div>
         </form>
 
