@@ -1,0 +1,40 @@
+name: DOMI R97 isolated H4 memory tests
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - "tests/test_domi_memory_privacy.py"
+      - "tests/test_domi_memory_identity_http.py"
+      - "apps/api/app/assistant/memory.py"
+      - "apps/api/app/routes/assistant.py"
+      - ".github/workflows/domi-r97-h4-memory-isolated-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  h4-memory-privacy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      APP_ENV: test
+      VANTDOMUS_SKIP_LOCAL_ENV: "1"
+      DATABASE_URL: ""
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned API and test dependencies
+        run: python -m pip install -r apps/api/requirements-dev.txt
+      - name: H4 privacy and HTTP authenticated anti-spoofing
+        run: python -m pytest tests/test_domi_memory_privacy.py tests/test_domi_memory_identity_http.py -q
+      - name: Memory and gateway regression
+        run: python -m pytest tests/test_domi_memory.py tests/test_memory_library.py tests/test_assistant_gateway.py -q
