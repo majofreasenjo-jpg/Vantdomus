@@ -224,3 +224,24 @@ def test_revoked_guardian_loses_private_access_and_management(env):
     assert mem.delete_memory(db, hid, mid, **guardian) is False
     assert db.execute("SELECT content, deleted_at FROM memory_items WHERE id=?", (mid,)).fetchone()["content"] == "preferencia privada de Mia"
     assert db.execute("SELECT deleted_at FROM memory_items WHERE id=?", (mid,)).fetchone()["deleted_at"] is None
+
+
+def test_family_memory_read_shared_but_management_requires_subject_or_admin(env):
+    """H4-06: creator/member can read family memory but not manage another subject's record."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    mid = _add(mem, db, hid, P["B"], "household_shared",
+               "plan familiar de Bruno", created_by="userA")
+    db.commit()
+    creator = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="member")
+    subject = dict(requester_user_id="userB", requester_person_id=P["B"], requester_role="member")
+    admin = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="admin")
+    assert "plan familiar de Bruno" in _notes(mem.recall_for_context(db, hid, **creator))
+    assert mem.correct_memory(db, hid, mid, "intento de cambio", **creator) is False
+    assert mem.delete_memory(db, hid, mid, **creator) is False
+    assert "plan familiar de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
+    assert mem.correct_memory(db, hid, mid, "plan familiar corregido", **subject) is True
+    db.commit()
+    assert mem.delete_memory(db, hid, mid, **admin) is True
+    db.commit()
+    assert "plan familiar corregido" not in _notes(mem.recall_for_context(db, hid, **subject))
