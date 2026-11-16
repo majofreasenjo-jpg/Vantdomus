@@ -837,7 +837,7 @@ def request_password_reset(
             user_id=row["id"],
             metadata={"email_fingerprint": _email_fingerprint(normalized)},
         )
-        response["email_delivery"] = {"ok": bool(delivery.get("ok")), "provider": delivery.get("provider")}
+        # R96: do not expose provider delivery or account existence to clients.
         response.update(_local_token_payload(raw_token))
     else:
         write_security_event(
