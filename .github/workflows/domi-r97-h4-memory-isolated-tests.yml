@@ -9,6 +9,7 @@ on:
       - "tests/test_domi_memory_identity_http.py"
       - "tests/test_domi_r97_h2_context_budget.py"
       - "tests/test_domi_r97_h3_self_memory.py"
+      - "tests/test_domi_r85_cold_restart_family_http.py"
       - "apps/api/app/assistant/orchestrator.py"
       - "apps/api/app/assistant/memory.py"
       - "apps/api/app/routes/assistant.py"
@@ -43,5 +44,7 @@ jobs:
         run: python -m pytest tests/test_domi_r97_h2_context_budget.py -q
       - name: H3 authenticated personal recall and anti-leakage
         run: python -m pytest tests/test_domi_r97_h3_self_memory.py -q
+      - name: R85 and R97 independent sessions and cold restart
+        run: python -m pytest tests/test_domi_r85_cold_restart_family_http.py -q
       - name: Memory and gateway regression
         run: python -m pytest tests/test_domi_memory.py tests/test_memory_library.py tests/test_assistant_gateway.py -q
