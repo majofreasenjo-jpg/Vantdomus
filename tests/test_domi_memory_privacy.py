@@ -148,3 +148,21 @@ def test_private_memory_creator_without_subject_rights_cannot_read_or_manage(env
     assert "dato privado exclusivo de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
     assert any(row["id"] == mid and row["content"] == "dato privado exclusivo de Bruno"
                for row in mem.list_memories(db, hid, **subject))
+
+
+def test_household_admin_cannot_access_another_person_private_memory(env):
+    """H4-02: household admin status alone confers no access to private_self."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    mid = _add(mem, db, hid, P["B"], "private_self",
+               "nota privada de Bruno", created_by="userB")
+    db.commit()
+    admin = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="admin")
+    subject = dict(requester_user_id="userB", requester_person_id=P["B"], requester_role="member")
+    assert "nota privada de Bruno" not in _notes(mem.recall_for_context(db, hid, **admin))
+    assert all(row["id"] != mid for row in mem.list_memories(db, hid, **admin))
+    assert mem.correct_memory(db, hid, mid, "modificacion admin", **admin) is False
+    assert mem.delete_memory(db, hid, mid, **admin) is False
+    assert "nota privada de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
+    assert any(row["id"] == mid and row["content"] == "nota privada de Bruno"
+               for row in mem.list_memories(db, hid, **subject))
