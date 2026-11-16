@@ -184,6 +184,46 @@ def recall_for_context(
     return out
 
 
+def recall_self_for_chat(
+    db, household_id: str, *, requester_user_id: str, requester_person_id: str,
+    limit: int = 6,
+) -> list[str]:
+    """Only confirmed, currently valid, nonsensitive memories about the signed-in person.
+
+    The caller derives person_id from the authenticated session. This function
+    checks the binding again and never uses household/guardian permissions as
+    a substitute for subject identity.
+    """
+    if not requester_user_id or not requester_person_id:
+        return []
+    bound = db.execute(
+        "SELECT 1 FROM persons WHERE id=? AND household_id=? AND user_id=?",
+        (requester_person_id, household_id, requester_user_id),
+    ).fetchone()
+    if not bound:
+        return []
+    rows = db.execute(
+        """SELECT memory_type, content, sensitivity FROM memory_items
+        WHERE household_id=? AND person_id=? AND deleted_at IS NULL
+          AND (expires_at IS NULL OR expires_at > ?)
+          AND (inference_status IS NULL OR inference_status='confirmed')
+        ORDER BY importance DESC, updated_at DESC LIMIT 100""",
+        (household_id, requester_person_id, _now()),
+    ).fetchall()
+    result = []
+    for row in rows:
+        if row["memory_type"] not in SAFE_MEMORY_TYPES or row["memory_type"] in _BLOCKED_FROM_CONTEXT:
+            continue
+        if row["sensitivity"] not in (None, "normal", "low"):
+            continue
+        content = (row["content"] or "").strip()
+        if content:
+            result.append(content[:_MAX_CONTENT_CHARS])
+        if len(result) >= max(0, min(limit, 6)):
+            break
+    return result
+
+
 def _consent_for_scope(scope: str) -> str:
     visible = ["self", "household"] if scope in (_HOUSEHOLD_WIDE_SCOPES | {"owner_operational"}) else ["self"]
     return json.dumps({"visible_to": visible, "shareable_with_doctor": False})
