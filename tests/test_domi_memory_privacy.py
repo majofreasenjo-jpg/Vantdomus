@@ -130,3 +130,21 @@ def test_no_requester_only_household_scopes(env):
     fallback = mem.recall_for_context(db, hid)
     assert "compartido" in _notes(fallback)
     assert "privadísimo" not in _notes(fallback)
+
+
+def test_private_memory_creator_without_subject_rights_cannot_read_or_manage(env):
+    """H4-01: creator is not automatically entitled to another person's private memory."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    mid = _add(mem, db, hid, P["B"], "private_self",
+               "dato privado exclusivo de Bruno", created_by="userA")
+    db.commit()
+    creator = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="member")
+    subject = dict(requester_user_id="userB", requester_person_id=P["B"], requester_role="member")
+    assert "dato privado exclusivo de Bruno" not in _notes(mem.recall_for_context(db, hid, **creator))
+    assert all(row["id"] != mid for row in mem.list_memories(db, hid, **creator))
+    assert mem.correct_memory(db, hid, mid, "cambio no autorizado", **creator) is False
+    assert mem.delete_memory(db, hid, mid, **creator) is False
+    assert "dato privado exclusivo de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
+    assert any(row["id"] == mid and row["content"] == "dato privado exclusivo de Bruno"
+               for row in mem.list_memories(db, hid, **subject))
