@@ -137,7 +137,7 @@ class MockProvider(Provider):
 
         # 3b) Lectura explicita de recuerdos previamente autorizados por recall.
         # Nunca revela recuerdos por iniciativa propia ni para preguntas genericas.
-        if re.search(r"\\b(qu[eé] recuerdas|qu[eé] sabes de m[ií]|recuerdas algo de m[ií])\\b", ml):
+        if re.search(r"\b(qu[eé] recuerdas|qu[eé] sabes de m[ií]|recuerdas algo de m[ií])\b", ml):
             memories = context.get("memories") or []
             if memories:
                 first = memories[0]
