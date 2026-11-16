@@ -1,0 +1,80 @@
+name: DOMI R97 PC-phone physical readiness (offline only)
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - ".github/workflows/domi-r97-physical-readiness-isolated.yml"
+      - "tests/test_domi_r94a_internal_host_routing.py"
+      - "tests/test_domi_r94a_session_revocation_expiry_http.py"
+      - "tests/test_domi_r94c_first_owner_offline.py"
+      - "tests/test_domi_r94f_integrated_family_process.py"
+      - "tools/r94a/**"
+      - "apps/web/lib/domiP5CrossDeviceTransport.mjs"
+      - "apps/web/lib/domiMultiSurfaceContinuity.mjs"
+      - "apps/web/tests/domi-p5-*.test.mjs"
+      - "apps/web/tests/domi-r94b-public-proxy-origin.test.mjs"
+      - "apps/web/tests/domi-r94g-forwarded-header-firewall.test.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  family-http-isolation:
+    name: R94 internal routing, bootstrap and session gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      APP_ENV: test
+      VANTDOMUS_SKIP_LOCAL_ENV: "1"
+      DATABASE_URL: ""
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned API and test dependencies
+        run: python -m pip install -r apps/api/requirements-dev.txt
+      - name: Existing R94A/C/F contracts (offline fixtures, no network sockets)
+        run: >-
+          python -m pytest
+          tests/test_domi_r94a_internal_host_routing.py
+          tests/test_domi_r94a_session_revocation_expiry_http.py
+          tests/test_domi_r94c_first_owner_offline.py
+          tests/test_domi_r94f_integrated_family_process.py -q
+
+  continuity-and-proxy:
+    name: R94A, R94B/G and P5 semantics (no physical transport)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: R94A design-only preflight
+        run: node --test tools/r94a/domiR94aLanPreflight.test.mjs
+      - name: Private HTTPS topology remains design-only and non-installable
+        run: |
+          node tools/r94a/domiR94aLanPreflight.mjs tools/r94a/example.plan.json > /tmp/r94a-readiness.json
+          node --input-type=module -e 'import fs from "node:fs"; const r=JSON.parse(fs.readFileSync("/tmp/r94a-readiness.json","utf8")); if(r.status!=="DESIGN_ONLY_VALID"||r.canInstall!==false||r.canDeploy!==false||r.physicalDeviceCertified!==false||r.unresolved.length===0)process.exit(1)'
+      - name: R94 public origin and proxy header trust gates
+        run: >-
+          node --test
+          apps/web/tests/domi-r94b-public-proxy-origin.test.mjs
+          apps/web/tests/domi-r94g-forwarded-header-firewall.test.mjs
+          apps/web/tests/domi-r90-memory-navigation.test.mjs
+      - name: P5 multi-surface continuity and privacy contracts
+        run: >-
+          node --test
+          apps/web/tests/domi-p5-cross-device-transport.test.mjs
+          apps/web/tests/domi-p5-cross-device-field-access.test.mjs
+          apps/web/tests/domi-p5-field-beta-round-trip.test.mjs
+          apps/web/tests/domi-p5-mobile-to-desktop-return.test.mjs
+          apps/web/tests/domi-p5-continuity-resume-artifact.test.mjs
+          apps/web/tests/domi-p5-network-transition.test.mjs
+          apps/web/tests/domi-p5-device-matrix.test.mjs
