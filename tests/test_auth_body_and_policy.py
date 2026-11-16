@@ -178,3 +178,23 @@ def test_register_accepts_short_with_three_classes(client: TestClient):
         json={"email": "threecls@example.com", "password": "Abcd123XYZ"},
     )
     assert res.status_code == 200, res.text
+
+
+# R96 — identical public password reset response for registered and unknown email.
+def test_r96_password_reset_response_does_not_enumerate_accounts(client: TestClient, monkeypatch):
+    import app.routes.auth as auth
+    existing = "r96-existing@example.invalid"
+    unknown = "r96-unknown@example.invalid"
+    registered = client.post("/auth/register", json={"email": existing, "password": GOOD_PASSWORD})
+    assert registered.status_code == 200, registered.text
+    deliveries = []
+    def fake_send_email(address, subject, body):
+        deliveries.append(address)
+        return {"ok": True, "provider": "synthetic"}
+    monkeypatch.setattr(auth.notifier, "send_email", fake_send_email)
+    monkeypatch.setenv("APP_ENV", "family-pilot")
+    known = client.post("/auth/password/reset/request", json={"email": existing})
+    missing = client.post("/auth/password/reset/request", json={"email": unknown})
+    assert known.status_code == missing.status_code == 200
+    assert known.json() == missing.json() == {"status": "accepted"}
+    assert deliveries == [existing]

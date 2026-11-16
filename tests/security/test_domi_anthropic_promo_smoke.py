@@ -37,6 +37,10 @@ def test_payload_is_synthetic_and_bounded(monkeypatch):
 
 
 def test_mock_transport_sanitizes_usage(monkeypatch):
+    # R96: freeze the time-dependent promotional gate at a valid historical
+    # fixture date; do not extend or bypass the actual expiry in production.
+    real_is_enabled = promo._is_enabled
+    monkeypatch.setattr(promo, "_is_enabled", lambda: real_is_enabled(utc_today=date(2026, 11, 12)))
     monkeypatch.setenv("APP_ENV","local")
     monkeypatch.setenv("ANTHROPIC_API_KEY","fake-ci-only-value")
     monkeypatch.setenv("DOMI_ANTHROPIC_PROMO_ONE_SHOT","1")
