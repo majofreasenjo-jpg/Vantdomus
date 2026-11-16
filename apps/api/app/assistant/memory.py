@@ -112,8 +112,10 @@ def _can_see(
     if scope == "owner_operational":
         return req_role in ("owner", "admin")
     if scope == "private_self":
-        return (req_pid is not None and req_pid == subject_pid) or (
-            req_uid is not None and req_uid == created_by)
+        # A creator or household admin is not automatically the subject.
+        # A currently active guardian relationship is the only exception.
+        return (subject_pid is not None and req_pid == subject_pid) or (
+            subject_pid is not None and subject_pid in guarded)
     if scope == "guardian_supervised":
         return (req_pid is not None and req_pid == subject_pid) or (
             subject_pid is not None and subject_pid in guarded)
@@ -382,12 +384,21 @@ def _can_manage(db, household_id: str, memory_id: str, *,
                     subject_pid=row["person_id"], created_by=row["created_by_user_id"],
                     req_uid=req_uid, req_pid=req_pid, req_role=req_role, guarded=guarded):
         return False
-    # Puede gestionar quien la creó, el sujeto, un owner/admin, o un guardián del sujeto.
+    scope = row["visibility_scope"] or "household_shared"
+    subject = row["person_id"]
+    is_subject = subject is not None and req_pid == subject
+    is_guardian = subject is not None and subject in guarded
+    if scope == "private_self":
+        return is_subject or is_guardian
+    if scope in _HOUSEHOLD_WIDE_SCOPES:
+        # The creator alone cannot modify another person's family memory.
+        # Guardian management needs a separate explicit grant.
+        return is_subject or req_role in ("owner", "admin")
     return (
-        req_uid == row["created_by_user_id"]
-        or (req_pid is not None and req_pid == row["person_id"])
+        is_subject
         or req_role in ("owner", "admin")
-        or (row["person_id"] is not None and row["person_id"] in guarded)
+        or (req_uid is not None and req_uid == row["created_by_user_id"])
+        or is_guardian
     )
 
 
