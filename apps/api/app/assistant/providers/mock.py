@@ -135,16 +135,15 @@ class MockProvider(Provider):
                 proposals=[],
             )
 
-        # 3b) Lectura explicita de recuerdos previamente autorizados por recall.
-        # Nunca revela recuerdos por iniciativa propia ni para preguntas genericas.
+        # 3b) No atribuir al solicitante el primer recuerdo de otra persona.
+        # El contexto carece de un identificador de sujeto verificable para
+        # responder preguntas personales. Cerrar sin divulgar hasta disponer
+        # de un filtro por identidad probado de extremo a extremo.
         if re.search(r"\b(qu[eé] recuerdas|qu[eé] sabes de m[ií]|recuerdas algo de m[ií])\b", ml):
-            memories = context.get("memories") or []
-            if memories:
-                first = memories[0]
-                note = str(first.get("note") or "").strip() if isinstance(first, dict) else ""
-                if note:
-                    return ProviderResult(reply="Recuerdo esto que compartiste: " + note[:240], proposals=[])
-            return ProviderResult(reply="No tengo recuerdos confirmados y autorizados para mostrarte ahora.", proposals=[])
+            return ProviderResult(
+                reply="Para consultar recuerdos personales debo verificar a quién pertenecen. No mostraré recuerdos de otra persona.",
+                proposals=[],
+            )
 
         # 4) Lectura general → resumen honesto ya calculado por el orquestador
         return ProviderResult(reply=context.get("summary_text") or
