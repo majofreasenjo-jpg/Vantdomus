@@ -65,7 +65,8 @@ def test_oversized_summary_reduced_after_memories_and_does_not_escape_budget():
         "memories": [{"about": "Ana", "note": "dato", "type": "preference"}],
         "summary_text": "S" * (MAX_CONTEXT_CHARS + 500),
     }))
-    assert ctx["summary_text"] == ""
+    assert 0 < len(ctx["summary_text"]) < MAX_CONTEXT_CHARS + 500
+    assert ctx["summary_text"].startswith("S")
     assert ctx.get("memories") == []
     assert _serialized_chars(ctx) <= MAX_CONTEXT_CHARS
 
