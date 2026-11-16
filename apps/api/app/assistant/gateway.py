@@ -290,8 +290,17 @@ def build_provider_payload(request: GatewayRequest) -> dict:
     # OPS-2.A: "memories" = memoria por persona (ya filtrada a tipos no sensibles
     # y visibilidad de hogar en memory.recall_for_context).
     ctx = {k: ctx[k] for k in ("persons", "summary_text", "memories") if k in ctx}
+    # Límite efectivo sobre el contexto completo, no solo sobre summary_text.
+    # Se descartan primero los recuerdos menos prioritarios (ya ordenados
+    # por recall_for_context) y después se acorta el resumen.
+    while len(str(ctx)) > MAX_CONTEXT_CHARS and ctx.get("memories"):
+        ctx["memories"] = list(ctx["memories"][:-1])
+    if len(str(ctx)) > MAX_CONTEXT_CHARS and "summary_text" in ctx:
+        ctx["summary_text"] = ""
+    while len(str(ctx)) > MAX_CONTEXT_CHARS and ctx.get("persons"):
+        ctx["persons"] = list(ctx["persons"][:-1])
     if len(str(ctx)) > MAX_CONTEXT_CHARS:
-        ctx["summary_text"] = str(ctx.get("summary_text", ""))[:500]
+        ctx = {}
     return {
         "system_instructions": SYSTEM_INSTRUCTIONS,           # segmento 1: reglas
         "household_data": ctx,                                # segmento 2: datos mínimos
