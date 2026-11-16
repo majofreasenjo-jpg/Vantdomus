@@ -8,6 +8,8 @@ on:
       - "tests/test_domi_memory_privacy.py"
       - "tests/test_domi_memory_identity_http.py"
       - "tests/test_domi_r97_h2_context_budget.py"
+      - "tests/test_domi_r97_h3_self_memory.py"
+      - "apps/api/app/assistant/orchestrator.py"
       - "apps/api/app/assistant/memory.py"
       - "apps/api/app/routes/assistant.py"
       - ".github/workflows/domi-r97-h4-memory-isolated-tests.yml"
@@ -39,5 +41,7 @@ jobs:
         run: python -m pytest tests/test_domi_memory_privacy.py tests/test_domi_memory_identity_http.py -q
       - name: H2 provider context budget and JSON boundaries
         run: python -m pytest tests/test_domi_r97_h2_context_budget.py -q
+      - name: H3 authenticated personal recall and anti-leakage
+        run: python -m pytest tests/test_domi_r97_h3_self_memory.py -q
       - name: Memory and gateway regression
         run: python -m pytest tests/test_domi_memory.py tests/test_memory_library.py tests/test_assistant_gateway.py -q
