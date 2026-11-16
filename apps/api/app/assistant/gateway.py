@@ -290,16 +290,31 @@ def build_provider_payload(request: GatewayRequest) -> dict:
     # OPS-2.A: "memories" = memoria por persona (ya filtrada a tipos no sensibles
     # y visibilidad de hogar en memory.recall_for_context).
     ctx = {k: ctx[k] for k in ("persons", "summary_text", "memories") if k in ctx}
-    # Límite efectivo sobre el contexto completo, no solo sobre summary_text.
-    # Se descartan primero los recuerdos menos prioritarios (ya ordenados
-    # por recall_for_context) y después se acorta el resumen.
-    while len(str(ctx)) > MAX_CONTEXT_CHARS and ctx.get("memories"):
+    # H2 R97: measure the actual ASCII-escaped JSON representation used by
+    # provider transports, not Python repr (which undercounts accented text).
+    import json
+
+    def _wire_size(value: dict) -> int:
+        return len(json.dumps(value, ensure_ascii=True, separators=(",", ":")))
+
+    # Keep highest-priority memories first. Then shorten summary to the largest
+    # safe prefix instead of discarding an exactly fitting useful summary.
+    while _wire_size(ctx) > MAX_CONTEXT_CHARS and ctx.get("memories"):
         ctx["memories"] = list(ctx["memories"][:-1])
-    if len(str(ctx)) > MAX_CONTEXT_CHARS and "summary_text" in ctx:
-        ctx["summary_text"] = ""
-    while len(str(ctx)) > MAX_CONTEXT_CHARS and ctx.get("persons"):
+    if _wire_size(ctx) > MAX_CONTEXT_CHARS and "summary_text" in ctx:
+        original = str(ctx["summary_text"] or "")
+        lo, hi = 0, len(original)
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            ctx["summary_text"] = original[:mid]
+            if _wire_size(ctx) <= MAX_CONTEXT_CHARS:
+                lo = mid
+            else:
+                hi = mid - 1
+        ctx["summary_text"] = original[:lo]
+    while _wire_size(ctx) > MAX_CONTEXT_CHARS and ctx.get("persons"):
         ctx["persons"] = list(ctx["persons"][:-1])
-    if len(str(ctx)) > MAX_CONTEXT_CHARS:
+    if _wire_size(ctx) > MAX_CONTEXT_CHARS:
         ctx = {}
     return {
         "system_instructions": SYSTEM_INSTRUCTIONS,           # segmento 1: reglas
