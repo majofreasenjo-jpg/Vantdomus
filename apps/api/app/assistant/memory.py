@@ -153,24 +153,8 @@ def recall_for_context(
             (household_id, now),
         ).fetchall()
     except Exception:
-        # Compat: si aún no existe deleted_at (migración vieja), reintenta sin él.
-        try:
-            rows = db.execute(
-                """
-                SELECT m.person_id, m.memory_type, m.content, m.visibility_scope,
-                       m.created_by_user_id, p.display_name
-                FROM memory_items m
-                LEFT JOIN persons p ON p.id = m.person_id
-                WHERE m.household_id = ?
-                  AND (m.expires_at IS NULL OR m.expires_at > ?)
-                ORDER BY m.importance DESC, m.updated_at DESC
-                LIMIT 300
-                """,
-                (household_id, now),
-            ).fetchall()
-        except Exception:
-            logger.warning("memory: no se pudieron leer memorias del hogar")
-            return []
+        logger.exception("memory: consulta de contexto fallida; se bloquea la recuperacion")
+        return []
 
     guarded = _active_guarded_person_ids(db, requester_person_id)
     out: list[dict] = []
