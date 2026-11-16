@@ -182,7 +182,7 @@ export default function DomiCompanionHome({
   // Estado inicial desde props del servidor (page.tsx lee ?domiState=). Sin
   // window en el initializer → server y cliente coinciden.
   const [domiState, setDomiState] = useState<DomiState>(initialDomiState ?? "listo");
-  const [activeTab, setActiveTab] = useState<"inicio" | "hoy" | "documentos" | "mas">("inicio");
+  const [activeTab, setActiveTab] = useState<"inicio" | "panel" | "hoy" | "documentos" | "mas">("inicio");
   const [medicineConfirmed, setMedicineConfirmed] = useState(false);
   const [studyPrepared, setStudyPrepared] = useState(false);
   
@@ -1514,6 +1514,7 @@ export default function DomiCompanionHome({
                 </button>
               ))}
 
+              <button type="button" onClick={() => { setActiveTab("panel"); setShowAmbientMenu(false); }} className="w-full text-left px-3 py-2 rounded-xl text-sm text-slate-300 hover:text-amber-300 hover:bg-slate-900/80 transition-colors">Panel completo</button>
               {/* R90: salida visible hacia la memoria longitudinal auténtica del hogar.
                   Reutiliza las pantallas ya existentes: no se replica memoria
                   en este componente ni se exponen datos fuera de sesión. */}
@@ -1555,6 +1556,45 @@ export default function DomiCompanionHome({
             className="w-full flex-1 flex flex-col justify-between"
           >
             {activeTab === "inicio" && (
+              <section id="tab-inicio-conversacion" aria-label="Conversar con Domi" className="relative w-full flex-1 flex flex-col items-center justify-center gap-1 sm:gap-3 z-10 py-2">
+                <div className="text-center space-y-1 max-w-xl px-4">
+                  <h2 className={`font-display text-xl sm:text-2xl font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-100"}`}>{greeting} {word}</h2>
+                  <p className={`text-sm sm:text-base ${isLight ? "text-slate-600" : "text-slate-300"}`}>Estoy aquí para escucharte. ¿En qué te acompaño hoy?</p>
+                </div>
+                <div className="w-full max-w-[580px] flex justify-center items-center overflow-visible shrink-0">
+                  <DomiOrb
+                    isReal={isReal}
+                    showOrbitNodes={false}
+                    medicineConfirmed={medicineConfirmed}
+                    studyPrepared={studyPrepared}
+                    shoppingCount={shoppingItems.filter(i => !i.checked).length}
+                    breathingActive={breathingActive}
+                    breathingCycle={breathingCycle}
+                    onNodeClick={handleNodeClick}
+                    domiMood={domiMood}
+                    activeTheme={activeTheme}
+                    domiState={domiState}
+                    domiAppearance={domiAppearance}
+                  />
+                </div>
+                <div className="w-full max-w-2xl z-20 px-1 sm:px-4">
+                  <DomiChat
+                    messages={chatMessages}
+                    isListening={isListening}
+                    isSending={isSending}
+                    onSendMessage={sendMessageToDomi}
+                    onToggleListening={triggerListeningSimulation}
+                    onAddSystemNotification={addNotification}
+                    onSimulateAction={executeAIAction}
+                    onOpenDocPanel={() => setShowDocPanel(true)}
+                    onDecideProposal={decideProposal}
+                    activeTheme={activeTheme}
+                  />
+                </div>
+              </section>
+            )}
+
+            {activeTab === "panel" && (
               <div id="tab-inicio-main" className="w-full flex-1 flex flex-col justify-between gap-4 overflow-visible z-10 my-1">
                 
                 {/* A. HERO PRINCIPAL CON COLUMNAS COMPLEMENTARIAS: 24% - 52% - 24% */}
