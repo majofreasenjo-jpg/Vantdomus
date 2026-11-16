@@ -1,0 +1,42 @@
+name: DOMI R98 conversation-first UI isolated
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - "apps/web/app/components/domi/DomiCompanionHome.tsx"
+      - "apps/web/app/components/domi/DomiOrb.tsx"
+      - "apps/web/tests/domi-r98-conversation-first.test.mjs"
+      - ".github/workflows/domi-r98-conversation-first-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-conversation-first:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_ENV: test
+      DATABASE_URL: ""
+      OPENAI_API_KEY: ""
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies without running scripts
+        working-directory: apps/web
+        run: npm ci --ignore-scripts
+      - name: R98 and inherited R90/R75/R71 contract tests
+        working-directory: apps/web
+        run: node --test tests/domi-r98-conversation-first.test.mjs tests/domi-r90-memory-navigation.test.mjs tests/domi-r75-family-landing.test.mjs tests/domi-r71-hydration-truth.test.mjs
+      - name: TypeScript compile
+        working-directory: apps/web
+        run: npm run typecheck
