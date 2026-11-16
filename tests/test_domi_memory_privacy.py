@@ -166,3 +166,23 @@ def test_household_admin_cannot_access_another_person_private_memory(env):
     assert "nota privada de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
     assert any(row["id"] == mid and row["content"] == "nota privada de Bruno"
                for row in mem.list_memories(db, hid, **subject))
+
+
+def test_private_memory_subject_can_read_correct_and_delete(env):
+    """H4-03: subject can exercise own private memory rights end-to-end."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    mid = _add(mem, db, hid, P["B"], "private_self",
+               "preferencia original de Bruno", created_by="userA")
+    db.commit()
+    subject = dict(requester_user_id="userB", requester_person_id=P["B"], requester_role="member")
+    assert "preferencia original de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
+    assert any(row["id"] == mid for row in mem.list_memories(db, hid, **subject))
+    assert mem.correct_memory(db, hid, mid, "preferencia corregida de Bruno", **subject) is True
+    db.commit()
+    assert "preferencia corregida de Bruno" in _notes(mem.recall_for_context(db, hid, **subject))
+    assert "preferencia original de Bruno" not in _notes(mem.recall_for_context(db, hid, **subject))
+    assert mem.delete_memory(db, hid, mid, **subject) is True
+    db.commit()
+    assert all(row["id"] != mid for row in mem.list_memories(db, hid, **subject))
+    assert "preferencia corregida de Bruno" not in _notes(mem.recall_for_context(db, hid, **subject))
