@@ -45,7 +45,7 @@ jobs:
           tests/test_domi_r94a_internal_host_routing.py
           tests/test_domi_r94a_session_revocation_expiry_http.py
           tests/test_domi_r94c_first_owner_offline.py
-          tests/test_domi_r94f_integrated_family_process.py -q
+          tests/test_domi_r94f_integrated_family_process.py -q --basetemp=$RUNNER_TEMP/domi-r94-isolated-pytest
 
   continuity-and-proxy:
     name: R94A, R94B/G and P5 semantics (no physical transport)
