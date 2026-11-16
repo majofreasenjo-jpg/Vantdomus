@@ -25,6 +25,8 @@ interface DomiOrbProps {
   activeTheme?: "dawn" | "day" | "sunset" | "night";
   domiState?: DomiState;
   domiAppearance?: string;
+  /** R98: inicio conversacional sin accesos orbitales permanentes. El panel conserva los nodos. */
+  showOrbitNodes?: boolean;
   /** OPS-1 "partir limpio": en hogar real, los nodos no muestran badges de
    * ejemplo (Salud 1, Mensajes 3, Examen). */
   isReal?: boolean;
@@ -41,6 +43,7 @@ export default function DomiOrb({
   activeTheme = "night",
   domiState = "listo",
   domiAppearance = "original",
+  showOrbitNodes = true,
   isReal = false
 }: DomiOrbProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -844,7 +847,7 @@ export default function DomiOrb({
       <div className="absolute w-[280px] h-[280px] rounded-full bg-radial from-amber-500/25 via-orange-500/5 to-transparent blur-3xl pointer-events-none z-0" />
 
       {/* 3. INTERACTIVE GLASSY ORBIT NODES */}
-      {nodes.map((node) => {
+      {showOrbitNodes && nodes.map((node) => {
         const Icon = node.icon;
         return (
           <button
