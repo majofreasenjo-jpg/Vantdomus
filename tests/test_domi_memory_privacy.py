@@ -245,3 +245,33 @@ def test_family_memory_read_shared_but_management_requires_subject_or_admin(env)
     assert mem.delete_memory(db, hid, mid, **admin) is True
     db.commit()
     assert "plan familiar corregido" not in _notes(mem.recall_for_context(db, hid, **subject))
+
+
+def test_households_isolate_memory_recall_and_mutations(env):
+    """H4-07: cross-household IDs never permit reading or changing another household."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    foreign_hid, foreign_pid = str(uuid.uuid4()), str(uuid.uuid4())
+    db.execute("INSERT INTO households (id,name,meta,created_at) VALUES (?,?,?,?)",
+               (foreign_hid, "Hogar ajeno", "{}", "2026-07-21T00:00:00Z"))
+    db.execute("INSERT INTO persons (id,household_id,display_name,user_id,created_at) VALUES (?,?,?,?,?)",
+               (foreign_pid, foreign_hid, "Carla", "userC", "2026-07-21T00:00:00Z"))
+    foreign_mid = _add(mem, db, foreign_hid, foreign_pid, "household_shared",
+                       "dato exclusivo de otro hogar", created_by="userC")
+    local_mid = _add(mem, db, hid, P["A"], "household_shared",
+                     "dato exclusivo de hogar local", created_by="userA")
+    db.commit()
+    local_requester = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="owner")
+    foreign_requester = dict(requester_user_id="userC", requester_person_id=foreign_pid, requester_role="owner")
+    assert "dato exclusivo de otro hogar" not in _notes(
+        mem.recall_for_context(db, hid, **local_requester))
+    assert "dato exclusivo de hogar local" not in _notes(
+        mem.recall_for_context(db, foreign_hid, **foreign_requester))
+    assert all(row["id"] != foreign_mid for row in mem.list_memories(db, hid, **local_requester))
+    assert all(row["id"] != local_mid for row in mem.list_memories(db, foreign_hid, **foreign_requester))
+    assert mem.correct_memory(db, hid, foreign_mid, "cambio ajeno", **local_requester) is False
+    assert mem.delete_memory(db, hid, foreign_mid, **local_requester) is False
+    assert mem.correct_memory(db, foreign_hid, local_mid, "cambio ajeno", **foreign_requester) is False
+    assert mem.delete_memory(db, foreign_hid, local_mid, **foreign_requester) is False
+    assert db.execute("SELECT content FROM memory_items WHERE id=?", (foreign_mid,)).fetchone()["content"] == "dato exclusivo de otro hogar"
+    assert db.execute("SELECT content FROM memory_items WHERE id=?", (local_mid,)).fetchone()["content"] == "dato exclusivo de hogar local"
