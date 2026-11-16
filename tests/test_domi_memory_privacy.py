@@ -186,3 +186,41 @@ def test_private_memory_subject_can_read_correct_and_delete(env):
     db.commit()
     assert all(row["id"] != mid for row in mem.list_memories(db, hid, **subject))
     assert "preferencia corregida de Bruno" not in _notes(mem.recall_for_context(db, hid, **subject))
+
+
+def test_active_guardian_can_read_correct_and_delete_minors_private_memory(env):
+    """H4-04: verified active guardianship grants access to minor's private record."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    mid = _add(mem, db, hid, P["Mn"], "private_self", "rutina de estudio de Mia")
+    db.commit()
+    guardian = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="member")
+    assert "rutina de estudio de Mia" in _notes(mem.recall_for_context(db, hid, **guardian))
+    assert any(row["id"] == mid for row in mem.list_memories(db, hid, **guardian))
+    assert mem.correct_memory(db, hid, mid, "rutina corregida de Mia", **guardian) is True
+    db.commit()
+    assert "rutina corregida de Mia" in _notes(mem.recall_for_context(db, hid, **guardian))
+    assert mem.delete_memory(db, hid, mid, **guardian) is True
+    db.commit()
+    assert all(row["id"] != mid for row in mem.list_memories(db, hid, **guardian))
+
+
+def test_revoked_guardian_loses_private_access_and_management(env):
+    """H4-05: revoked guardianship immediately withdraws read/write access."""
+    from app.assistant import memory as mem
+    db, hid, P = env.con, env.hid, env.pid
+    mid = _add(mem, db, hid, P["Mn"], "private_self", "preferencia privada de Mia")
+    db.commit()
+    guardian = dict(requester_user_id="userA", requester_person_id=P["A"], requester_role="member")
+    assert "preferencia privada de Mia" in _notes(mem.recall_for_context(db, hid, **guardian))
+    db.execute(
+        "UPDATE guardian_relationships SET revoked_at=? WHERE household_id=? AND minor_person_id=? AND guardian_person_id=?",
+        ("2026-11-16T00:00:00Z", hid, P["Mn"], P["A"]),
+    )
+    db.commit()
+    assert "preferencia privada de Mia" not in _notes(mem.recall_for_context(db, hid, **guardian))
+    assert all(row["id"] != mid for row in mem.list_memories(db, hid, **guardian))
+    assert mem.correct_memory(db, hid, mid, "cambio no autorizado", **guardian) is False
+    assert mem.delete_memory(db, hid, mid, **guardian) is False
+    assert db.execute("SELECT content, deleted_at FROM memory_items WHERE id=?", (mid,)).fetchone()["content"] == "preferencia privada de Mia"
+    assert db.execute("SELECT deleted_at FROM memory_items WHERE id=?", (mid,)).fetchone()["deleted_at"] is None
