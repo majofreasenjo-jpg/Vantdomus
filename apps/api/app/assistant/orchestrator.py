@@ -15,6 +15,8 @@ Responsabilidades:
 
 import json
 import logging
+import re
+import unicodedata
 
 from app.rbac import ROLE_RANK
 from .domi_rules import answer_domi
@@ -73,6 +75,39 @@ def build_minimal_context(
     return {"persons": persons, "summary_text": summary_text, "memories": memories}
 
 
+def _is_self_memory_question(message: str) -> bool:
+    """Only unambiguous first-person requests, never 'and Bruno' or another subject."""
+    normalized = "".join(
+        c for c in unicodedata.normalize("NFD", message.casefold())
+        if unicodedata.category(c) != "Mn"
+    )
+    normalized = normalized.strip().strip("¿?¡! .")
+    return bool(re.fullmatch(
+        r"(?:que (?:recuerdas|sabes) de mi|recuerdas algo de mi)",
+        normalized,
+    ))
+
+
+def _self_memory_response(db, household_id: str, user_id: str, person_id: str | None) -> str:
+    """Compose a short, local, subject-scoped answer without calling a provider."""
+    if not person_id:
+        return "Para consultar tus recuerdos personales, primero vincula tu cuenta a tu ficha del hogar."
+    from .memory import recall_self_for_chat
+    notes = recall_self_for_chat(
+        db, household_id, requester_user_id=user_id, requester_person_id=person_id,
+    )
+    if not notes:
+        return "Todavía no tengo recuerdos personales confirmados sobre ti."
+    prefix = "Esto es lo que recuerdo sobre ti:\n"
+    result = prefix
+    for note in notes:
+        fragment = f"- {note}\n"
+        if len(result) + len(fragment) > 1200:
+            break
+        result += fragment
+    return result.rstrip()
+
+
 def _module_visible(db, household_id: str, module: str, role: str) -> bool:
     """Respeta meta.module_visibility (default visible para todos)."""
     if not module:
@@ -124,6 +159,35 @@ def handle_chat(db, *, household_id: str, user_id: str, role: str, messages: lis
         requester_person_id = prow["id"] if prow else None
     except Exception:
         requester_person_id = None
+    # H3: strict personal recall is answered locally, from the authenticated
+    # person's own filtered memory records. It is not sent to any provider.
+    if _is_self_memory_question(last_user):
+        from app.audit import write_audit_log
+        from .response_contract import classify_chat_response, is_actionable
+        try:
+            reply = _self_memory_response(db, household_id, user_id, requester_person_id)
+        except Exception:
+            logger.exception("domi H3 self recall failed (no memory text logged)")
+            reply = "No puedo consultar tus recuerdos ahora. No mostraré datos sin verificar."
+        try:
+            write_audit_log(
+                db, action="assistant_provider_call", resource_type="assistant_gateway",
+                household_id=household_id, user_id=user_id,
+                metadata={"provider": "local-memory", "latency_ms": 0,
+                          "valid": True, "fallback_used": False,
+                          "proposals": 0, "blocked": None, "flags": {}},
+                commit=True,
+            )
+        except Exception:
+            logger.warning("domi H3 audit unavailable")
+        response_type = classify_chat_response(blocked=None, proposals_count=0)
+        return {
+            "reply": reply, "provider": "local-memory", "proposals": [],
+            "blocked": None, "response_type": response_type,
+            "is_actionable": is_actionable(response_type),
+            "gateway": {"latency_ms": 0, "fallback_used": False, "valid": True},
+        }
+
     context = build_minimal_context(                               # pasos 1-4
         db, household_id, last_user,
         requester_user_id=user_id,
