@@ -217,3 +217,176 @@ def test_reboot_relogin_readback_memory_calendar_actions_and_tenant_isolation(st
             forbidden = get(second, bob_new, path)
             assert forbidden.status_code == 403, (path, forbidden.status_code, forbidden.text)
         assert get(second, bob_new, f"/household_shopping/{home_b}/items").json()["items"] == []
+
+
+def test_r97_self_memory_across_two_clients_cold_restart_and_revocation(state_path):
+    """R97 delta over R85: H3 personal recall follows authenticated identity.
+
+    Desktop and phone below are two independent HTTP TestClient instances, not
+    physical devices, a real network transport, or a production validation.
+    """
+    from fastapi.testclient import TestClient as HTTPClient
+
+    app = _app()
+    with HTTPClient(app) as desktop:
+        # Independent client instance; same app/backend/database but separate
+        # cookie/session handling, like two different browser clients.
+        phone = HTTPClient(app)
+        try:
+            desktop_owner = register(desktop, "r97owner")
+            other_member = register(desktop, "r97guest")
+            hid = household(desktop, desktop_owner, "Synthetic R97 continuity")
+
+            owner_person = desktop.post(
+                "/persons",
+                params={"household_id": hid, "display_name": "Fictional Owner",
+                        "relation": "adult"},
+                headers=headers(desktop_owner),
+            )
+            guest_person = desktop.post(
+                "/persons",
+                params={"household_id": hid, "display_name": "Fictional Guest",
+                        "relation": "adult"},
+                headers=headers(desktop_owner),
+            )
+            assert owner_person.status_code == 200, owner_person.text
+            assert guest_person.status_code == 200, guest_person.text
+            owner_pid, guest_pid = owner_person.json()["id"], guest_person.json()["id"]
+
+            # Simulate the already accepted identity link + household membership;
+            # client-supplied person ids never become authentication credentials.
+            from app.db import connect
+            db = connect()
+            try:
+                owner_uid = db.execute(
+                    "SELECT id FROM users WHERE email=?",
+                    ("r85-r97owner@example.invalid",),
+                ).fetchone()["id"]
+                guest_uid = db.execute(
+                    "SELECT id FROM users WHERE email=?",
+                    ("r85-r97guest@example.invalid",),
+                ).fetchone()["id"]
+                db.execute("UPDATE persons SET user_id=? WHERE id=? AND household_id=?",
+                           (owner_uid, owner_pid, hid))
+                db.execute("UPDATE persons SET user_id=? WHERE id=? AND household_id=?",
+                           (guest_uid, guest_pid, hid))
+                db.execute(
+                    "INSERT INTO household_memberships (household_id,user_id,role,created_at) "
+                    "VALUES (?,?,?,?)",
+                    (hid, guest_uid, "member", "2026-11-16T00:00:00Z"),
+                )
+                db.commit()
+            finally:
+                db.close()
+
+            secret = desktop.post(
+                "/assistant/memory",
+                json={"household_id": hid, "memory_type": "preference",
+                      "content": "R97 owner enjoys early walks",
+                      "person_id": owner_pid, "visibility_scope": "private_self"},
+                headers=headers(desktop_owner),
+            )
+            assert secret.status_code == 200, secret.text
+            mid = secret.json()["id"]
+            guest_private = desktop.post(
+                "/assistant/memory",
+                json={"household_id": hid, "memory_type": "preference",
+                      "content": "R97 guest prefers puzzles",
+                      "person_id": guest_pid, "visibility_scope": "private_self"},
+                headers=headers(other_member),
+            )
+            assert guest_private.status_code == 200, guest_private.text
+
+            def ask(client, token):
+                return client.post(
+                    "/assistant/chat",
+                    json={"household_id": hid,
+                          "messages": [{"role": "user", "content": "¿Qué recuerdas de mí?"}]},
+                    headers=headers(token),
+                )
+
+            owner_phone = login(phone, "r97owner")
+            assert owner_phone != desktop_owner
+            for client, token in ((desktop, desktop_owner), (phone, owner_phone)):
+                response = ask(client, token)
+                assert response.status_code == 200, response.text
+                assert response.json()["provider"] == "local-memory"
+                assert "owner enjoys early walks" in response.json()["reply"]
+                assert "guest prefers puzzles" not in response.json()["reply"]
+
+            unrelated = ask(desktop, other_member)
+            assert unrelated.status_code == 200, unrelated.text
+            assert "guest prefers puzzles" in unrelated.json()["reply"]
+            assert "owner enjoys early walks" not in unrelated.json()["reply"]
+
+            # A correction on client 2 must be immediately reflected on client 1.
+            corrected = phone.post(
+                f"/assistant/memory/{mid}/correct",
+                json={"household_id": hid,
+                      "content": "R97 owner now enjoys evening walks"},
+                headers=headers(owner_phone),
+            )
+            assert corrected.status_code == 200, corrected.text
+            visible = ask(desktop, desktop_owner)
+            assert visible.status_code == 200, visible.text
+            assert "owner now enjoys evening walks" in visible.json()["reply"]
+            assert "owner enjoys early walks" not in visible.json()["reply"]
+
+            # Revocation is per session: desktop token loses access but phone
+            # remains authenticated, and neither leaks the other user's memory.
+            out = desktop.post("/auth/logout", headers=headers(desktop_owner))
+            assert out.status_code == 200, out.text
+            revoked = ask(desktop, desktop_owner)
+            assert revoked.status_code == 401, revoked.text
+            still_connected = ask(phone, owner_phone)
+            assert still_connected.status_code == 200, still_connected.text
+            assert "owner now enjoys evening walks" in still_connected.json()["reply"]
+        finally:
+            phone.close()
+
+    assert state_path.exists() and state_path.stat().st_size > 0
+
+    # True cold app re-import/lifespan with the same disposable SQLite file.
+    with HTTPClient(_app()) as restarted:
+        reauthenticated_owner = login(restarted, "r97owner")
+        response = restarted.post(
+            "/assistant/chat",
+            json={"household_id": hid,
+                  "messages": [{"role": "user", "content": "¿Qué recuerdas de mí?"}]},
+            headers=headers(reauthenticated_owner),
+        )
+        assert response.status_code == 200, response.text
+        assert "owner now enjoys evening walks" in response.json()["reply"]
+        assert "guest prefers puzzles" not in response.json()["reply"]
+        assert restarted.post(
+            "/assistant/chat",
+            json={"household_id": hid,
+                  "messages": [{"role": "user", "content": "¿Qué recuerdas de mí?"}]},
+            headers=headers(desktop_owner),
+        ).status_code == 401
+
+        # Deletion on the restarted session must invalidate future recall,
+        # while a different household participant retains their own memory.
+        removed = restarted.delete(
+            f"/assistant/memory/{mid}",
+            params={"household_id": hid}, headers=headers(reauthenticated_owner),
+        )
+        assert removed.status_code == 200, removed.text
+        after_delete = restarted.post(
+            "/assistant/chat",
+            json={"household_id": hid,
+                  "messages": [{"role": "user", "content": "¿Qué recuerdas de mí?"}]},
+            headers=headers(reauthenticated_owner),
+        )
+        assert after_delete.status_code == 200, after_delete.text
+        assert "owner now enjoys evening walks" not in after_delete.json()["reply"]
+        assert "todavía" in after_delete.json()["reply"].lower()
+        guest_again = login(restarted, "r97guest")
+        guest_reply = restarted.post(
+            "/assistant/chat",
+            json={"household_id": hid,
+                  "messages": [{"role": "user", "content": "¿Qué recuerdas de mí?"}]},
+            headers=headers(guest_again),
+        )
+        assert guest_reply.status_code == 200, guest_reply.text
+        assert "guest prefers puzzles" in guest_reply.json()["reply"]
