@@ -1,0 +1,65 @@
+name: DOMI R103 Anthropic and voice isolated gates
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - "apps/api/app/assistant/providers/anthropic_provider.py"
+      - "apps/api/app/assistant/gateway.py"
+      - "tests/security/test_domi_r102_anthropic_family.py"
+      - "apps/web/lib/voice.ts"
+      - "apps/web/app/components/domi/DomiChat.tsx"
+      - ".github/workflows/domi-r103-anthropic-voice-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  anthropic-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      APP_ENV: test
+      VANTDOMUS_SKIP_LOCAL_ENV: "1"
+      DATABASE_URL: ""
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+      ANTHROPIC_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned dev dependencies
+        run: python -m pip install -r apps/api/requirements-dev.txt
+      - name: Verify no actual external calls from tests
+        run: >-
+          python -m pytest
+          tests/security/test_domi_r102_anthropic_family.py
+          tests/test_assistant_gateway.py
+          tests/test_domi_voice.py
+          -q
+
+  voice-and-interface-typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install locked dependencies
+        working-directory: apps/web
+        run: npm ci --ignore-scripts
+      - name: Typecheck voice picker and existing UI
+        working-directory: apps/web
+        run: npm run typecheck
+      - name: Existing continuity and privacy controls
+        run: >-
+          node --test
+          apps/web/tests/domi-longitudinal-conversation-spine.test.mjs
+          apps/web/tests/domi-multi-surface-continuity.test.mjs
