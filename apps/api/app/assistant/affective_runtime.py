@@ -86,7 +86,7 @@ class AffectiveTrace:
     subject_person_id: str
     context_key: str
     visibility_scope: str
-    source_class: str                   # observed | imported | inferred
+    source_class: str                   # observed | user_confirmed | imported | inferred
     evidence: str                       # confirmed | corroborated | pending | ...
     consent_for_affect: bool
     status: str                          # active | revoked | quarantined | ...
@@ -103,7 +103,7 @@ class AffectiveTrace:
             _required(n.upper(), getattr(self, n))
         if self.visibility_scope not in _ALLOWED_SCOPES:
             raise ValueError("SCOPE_INVALID")
-        if self.source_class not in {"observed", "imported", "inferred"}:
+        if self.source_class not in {"observed", "user_confirmed", "imported", "inferred"}:
             raise ValueError("SOURCE_CLASS_INVALID")
         if not isinstance(self.status, str):
             raise ValueError("STATUS_INVALID")
@@ -181,8 +181,10 @@ def _usable(trace: AffectiveTrace, requester: Requester, context_key: str,
             or not trace.attribution_verified
             or not trace.provenance_verified):
         return False
-    # Imported reports and inferred moods must NOT become "DOMI lived it".
-    if trace.source_class != "observed":
+    # Explicitly ratified human reports may modulate functional priorities,
+    # but NEVER become DOMI autobiographical experiences. Unratified imports
+    # and inferred moods remain disallowed, including synthetic prompt claims.
+    if trace.source_class not in {"observed", "user_confirmed"}:
         return False
     if _as_utc(trace.occurred_at) > now:
         return False
