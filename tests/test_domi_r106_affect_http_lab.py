@@ -246,3 +246,18 @@ def test_revocation_and_source_correction_invalidate(e):
     assert change.status_code == 200
     assert items(e).json()["items"][0]["status"] == "invalidated"
     assert revoke(e, link).status_code == 200
+
+
+def test_r107_lab_gate_rejects_non_sqlite_connection_even_in_test_mode(e):
+    # A developer may accidentally point a local API process at Neon; a
+    # valid lab flag and authenticated user must NEVER authorize PG writes.
+    from fastapi import HTTPException
+    from app.routes.assistant_affect_lab import _lab_gate
+
+    class FakePostgresConnection:
+        def execute(self, *_args, **_kwargs):
+            raise AssertionError("Postgres must be rejected before any SQL")
+
+    with pytest.raises(HTTPException) as caught:
+        _lab_gate(FakePostgresConnection(), e["hid"], e["people"]["ana"]["uid"])
+    assert caught.value.status_code == 404
