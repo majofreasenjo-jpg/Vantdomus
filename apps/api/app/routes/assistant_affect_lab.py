@@ -9,6 +9,7 @@ This is a laboratory API only. Not attached to /assistant/chat or an AI model.
 from __future__ import annotations
 
 import os
+import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
@@ -49,6 +50,11 @@ def _lab_gate(db, household_id: str, user_id: str):
     env = os.getenv("APP_ENV", "").strip().lower()
     enabled = os.getenv("DOMI_AFFECT_R106_HTTP_LAB_ENABLED", "").strip().lower()
     if env not in {"test", "local", "dev", "development"} or enabled not in {"1", "true"}:
+        raise HTTPException(status_code=404, detail="Not found")
+    # R107: the laboratory must never become a back door to Postgres/Neon.
+    # The runtime PG role has no audited authority to ratify consent in SQL,
+    # and can be connected even with APP_ENV=local. Only disposable SQLite.
+    if not isinstance(db, sqlite3.Connection):
         raise HTTPException(status_code=404, detail="Not found")
     # Membership is checked independently of client-provided fields.
     require_household_role(db, user_id, household_id, "member")
