@@ -12,10 +12,13 @@ import {
   HelpCircle,
   FileText,
   Check,
-  UploadCloud
+  UploadCloud,
+  Volume2,
+  SlidersHorizontal
 } from "lucide-react";
 import { ChatMessage } from "./domiTypes";
 import { parseListText } from "../../../lib/nlList";
+import { listSpanishVoices, speak, speechSupported, stopSpeaking } from "../../../lib/voice";
 
 interface DomiChatProps {
   messages: ChatMessage[];
@@ -47,6 +50,26 @@ export default function DomiChat({
   const [inputText, setInputText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  // R103: voice is a presentation preference, never used for identity.
+  const [voicePanelOpen, setVoicePanelOpen] = useState(false);
+  const [voiceChoices, setVoiceChoices] = useState<Array<{ id: string; label: string }>>([]);
+  const [voiceURI, setVoiceURI] = useState("");
+  React.useEffect(() => {
+    if (!speechSupported()) return;
+    const update = () => setVoiceChoices(
+      listSpanishVoices().map((v) => ({ id: v.voiceURI, label: v.name + " (" + v.lang + ")" }))
+    );
+    update();
+    window.speechSynthesis.addEventListener?.("voiceschanged", update);
+    return () => {
+      window.speechSynthesis.removeEventListener?.("voiceschanged", update);
+      stopSpeaking();
+    };
+  }, []);
+  const lastDomiReply = [...messages].reverse().find((m) => m.role === "model" && m.content.trim());
+  const speakLatest = () => {
+    if (lastDomiReply?.content && speechSupported()) speak(lastDomiReply.content, { voiceURI, rate: 0.95 });
+  };
   // MIN-3.2 — edición de una propuesta antes de confirmar (solo campos
   // whitelisted por el contrato; el backend revalida todo igual).
   const [editingProp, setEditingProp] = useState<{ propId: string; field: "items" | "title"; text: string } | null>(null);
@@ -137,6 +160,17 @@ export default function DomiChat({
                   <span className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>Asistente Inteligente del Hogar</span>
                 </div>
               </div>
+              <button type="button" onClick={speakLatest}
+                disabled={!lastDomiReply || !speechSupported()}
+                title="Escuchar la última respuesta de Domi"
+                aria-label="Escuchar la última respuesta de Domi"
+                className="rounded-lg p-2 text-amber-500 hover:bg-amber-500/10 disabled:opacity-40"
+              ><Volume2 className="w-4 h-4" /></button>
+              <button type="button" onClick={() => { stopSpeaking(); setVoicePanelOpen((v) => !v); }}
+                aria-label="Elegir voz de Domi" aria-expanded={voicePanelOpen}
+                aria-controls="domi-voice-preferences" title="Elegir voz de Domi"
+                className="rounded-lg p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10"
+              ><SlidersHorizontal className="w-4 h-4" /></button>
               <button 
                 onClick={() => setIsOpen(false)}
                 className={`p-1 rounded-lg transition-colors ${
@@ -146,6 +180,24 @@ export default function DomiChat({
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {voicePanelOpen && (
+              <div id="domi-voice-preferences" className="mb-3 rounded-xl border border-amber-500/15 p-3 text-xs">
+                <label htmlFor="domi-voice-choice" className="mb-1 block font-semibold">Voz de Domi</label>
+                <select id="domi-voice-choice" value={voiceURI}
+                  onChange={(e) => setVoiceURI(e.target.value)}
+                  className="w-full rounded-lg border border-slate-500/40 bg-transparent p-2">
+                  <option value="">Voz predeterminada en español</option>
+                  {voiceChoices.map((v) => (
+                    <option key={v.id} value={v.id}>{v.label}</option>
+                  ))}
+                </select>
+                <button type="button" disabled={!speechSupported()}
+                  onClick={() => speak("Hola. Soy Domi. Esta es una muestra de mi voz.", { voiceURI })}
+                  className="mt-2 rounded-lg border border-amber-500/40 px-3 py-1.5 disabled:opacity-40">Probar voz</button>
+                <p className="mt-1 opacity-70">La voz se elige escuchando. Preferencia temporal, sin cambiar identidad ni memoria.</p>
+              </div>
+            )}
 
             {/* Chat Messages Log */}
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 scrollbar-thin scrollbar-thumb-slate-800 no-scrollbar mb-3">
