@@ -52,7 +52,7 @@ class AnthropicFamilyProvider(Provider):
     name = "anthropic"
 
     def __init__(self):
-        self.model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5").strip()
+        self.model = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6").strip()
         self.last_usage = {}
 
     def is_available(self) -> bool:
