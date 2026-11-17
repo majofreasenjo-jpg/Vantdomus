@@ -218,3 +218,110 @@ def preview_from_confirmed_memory(
         candidates=candidates, traces=traces, now=at,
         use_affect=use_affect,
     )
+
+
+# R106: optional, authenticated and never exposed to live family profiles.
+# These functions share the R105 eligibility and ownership checks.
+
+def confirm_personal_memory_source(
+    db, *, household_id: str, user_id: str, memory_id: str,
+    explicitly_confirmed: bool, now: datetime | None = None,
+) -> bool:
+    """Separate attestation of source accuracy, NOT affect consent.
+
+    Only the owning adult can invoke this through the R106 route gate.
+    Preexisting unconfirmed family memory is not automatically confirmed.
+    A confirmed source can be ratified independently with new affect consent.
+    """
+    if explicitly_confirmed is not True:
+        raise PermissionError("EXPLICIT_MEMORY_CONFIRMATION_REQUIRED")
+    timestamp = _iso(now or _now())
+    requester = _trusted_requester(
+        db, household_id=household_id, user_id=user_id,
+        surface="PERSONAL_DESKTOP",
+    )
+    row = _source(
+        db, household_id, requester.person_id, memory_id, now=timestamp,
+    )
+    if not row or row["visibility_scope"] != "private_self" or (
+        row["source"] != "family" or row["sensitivity"] not in ("normal", "low")
+    ):
+        return False
+    if row["inference_status"] == "confirmed" and row["verified_at"]:
+        return True
+    if row["inference_status"] is not None:
+        # No silent promotion of pending/contested/dismissed inferences.
+        return False
+    changed = db.execute(
+        """UPDATE memory_items
+           SET inference_status='confirmed', verified_at=?, updated_at=?
+           WHERE household_id=? AND id=? AND person_id=?
+             AND visibility_scope='private_self'
+             AND source='family'
+             AND sensitivity IN ('normal','low')
+             AND inference_status IS NULL AND deleted_at IS NULL
+             AND (expires_at IS NULL OR expires_at>?)""",
+        (timestamp, timestamp, household_id, memory_id,
+         requester.person_id, timestamp),
+    )
+    return changed.rowcount == 1
+
+
+def list_personal_affective_links(
+    db, *, household_id: str, user_id: str,
+    now: datetime | None = None,
+) -> list[dict]:
+    """Own consent ledger only; no memory content, no guardian/owner override."""
+    timestamp = _iso(now or _now())
+    requester = _trusted_requester(
+        db, household_id=household_id, user_id=user_id,
+        surface="PERSONAL_DESKTOP",
+    )
+    rows = db.execute(
+        """SELECT a.id, a.memory_id, a.context_key, a.ratified_at,
+                  a.revoked_at, a.memory_updated_at, a.visibility_scope,
+                  a.expires_at, a.valence, a.activation, a.relevance,
+                  m.updated_at AS source_updated_at,
+                  m.deleted_at AS source_deleted_at,
+                  m.expires_at AS source_expires_at,
+                  m.visibility_scope AS source_scope,
+                  m.source AS source_class,
+                  m.inference_status, m.verified_at, m.sensitivity
+           FROM domi_affective_memory_links a
+           LEFT JOIN memory_items m ON m.id=a.memory_id
+             AND m.household_id=a.household_id
+             AND m.person_id=a.person_id
+           WHERE a.household_id=? AND a.person_id=?
+             AND a.ratified_by_user_id=?
+           ORDER BY a.ratified_at DESC LIMIT 100""",
+        (household_id, requester.person_id, user_id),
+    ).fetchall()
+    out = []
+    for item in rows:
+        current = bool(
+            item["source_deleted_at"] is None
+            and item["source_updated_at"] == item["memory_updated_at"]
+            and item["source_scope"] == item["visibility_scope"]
+            and item["source_scope"] == "private_self"
+            and item["source_class"] == "family"
+            and item["inference_status"] == "confirmed"
+            and item["verified_at"]
+            and item["sensitivity"] in ("normal", "low")
+            and (not item["source_expires_at"] or item["source_expires_at"] > timestamp)
+            and (not item["expires_at"] or item["expires_at"] > timestamp)
+        )
+        status = (
+            "revoked" if item["revoked_at"] else
+            "active" if current else "invalidated"
+        )
+        out.append({
+            "id": item["id"],
+            "memory_id": item["memory_id"],
+            "context_key": item["context_key"],
+            "ratified_at": item["ratified_at"],
+            "status": status,
+            "valence": item["valence"],
+            "activation": item["activation"],
+            "relevance": item["relevance"],
+        })
+    return out
