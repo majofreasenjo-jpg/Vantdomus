@@ -144,6 +144,10 @@ def test_r107_58th_table_would_fail_current_readiness(pg):
                 def fetchone(self):
                     return self.row
 
+            # The catalog gate must run as the restricted effective role.
+            # The PG container superuser correctly fails earlier at the
+            # unsafe-role guard; do not misreport that as a 58-table proof.
+            cursor.execute("SET LOCAL ROLE domi_app_runtime")
             with pytest.raises(RuntimeError, match="POSTGRES_SCHEMA_GATE"):
                 check_postgres_staging_readiness(PGCatalog(pg))
     finally:
