@@ -237,10 +237,19 @@ def select_provider() -> Provider:
     no las barreras que la contienen.
     """
     if real_provider_permitted():
-        from .providers.openai_provider import OpenAIProvider
-        real = OpenAIProvider()
-        if real.is_available():
-            return real
+        mode = provider_flags()["provider_mode"]
+        if mode == "anthropic":
+            # R102: opt-in gated Claude family provider. Never reuse the
+            # synthetic-only, expired R55 shadow experiment in family chat.
+            from .providers.anthropic_provider import AnthropicFamilyProvider
+            real = AnthropicFamilyProvider()
+            if real.is_available():
+                return real
+        elif mode in ("openai", "real", "llm"):
+            from .providers.openai_provider import OpenAIProvider
+            real = OpenAIProvider()
+            if real.is_available():
+                return real
     return MockProvider()
 
 
