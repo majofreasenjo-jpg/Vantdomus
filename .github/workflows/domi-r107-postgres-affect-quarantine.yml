@@ -1,0 +1,61 @@
+name: DOMI R107 PostgreSQL affect quarantine (disposable only)
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - "apps/api/app/routes/assistant_affect_lab.py"
+      - "tests/security/test_domi_r107_pg_affect_quarantine.py"
+      - "tests/test_domi_r106_affect_http_lab.py"
+      - ".github/workflows/domi-r107-postgres-affect-quarantine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-affect-quarantine:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_only_rls_ci_not_a_secret
+          POSTGRES_DB: domi_rls_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d domi_rls_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      VANTDOMUS_SKIP_LOCAL_ENV: "1"
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+      DOMI_ANTHROPIC_FAMILY_OPT_IN: "0"
+      ANTHROPIC_API_KEY: ""
+      DOMI_RLS_TEST_DSN: postgresql://postgres:test_only_rls_ci_not_a_secret@127.0.0.1:5432/domi_rls_ci
+      DOMI_RLS_REQUIRE_LIVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned PG and unit dependencies
+        run: python -m pip install -r apps/api/requirements-dev.txt
+      - name: Prove 58th-table startup rejection and no SQL permissions
+        run: python -m pytest tests/security/test_domi_r107_pg_affect_quarantine.py -q -ra
+      - name: HTTP affect lab and regression on disposable SQLite
+        env:
+          DOMI_RLS_TEST_DSN: ""
+          DOMI_RLS_REQUIRE_LIVE: "0"
+          DATABASE_URL: ""
+        run: >-
+          python -m pytest tests/test_domi_r106_affect_http_lab.py
+          tests/test_domi_r105_affective_memory_bridge.py
+          -q -ra
