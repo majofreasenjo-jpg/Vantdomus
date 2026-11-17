@@ -13,6 +13,7 @@ from .tenancy import backfill_tenant_columns
 from .routes import (
     alerts,
     assistant,
+    assistant_affect_lab,
     audit,
     audio,
     auth,
@@ -239,6 +240,7 @@ app.include_router(tasks.router)
 app.include_router(finance.router)
 app.include_router(scores.router)
 app.include_router(assistant.router)
+app.include_router(assistant_affect_lab.router)
 app.include_router(audit.router)
 app.include_router(audio.router, prefix="/audio", tags=["audio"])
 app.include_router(alerts.router)
