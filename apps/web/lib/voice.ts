@@ -8,28 +8,45 @@ export function speechSupported(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-let _spanishVoice: SpeechSynthesisVoice | null = null;
-function pickSpanishVoice(): SpeechSynthesisVoice | null {
-  if (!speechSupported()) return null;
-  if (_spanishVoice) return _spanishVoice;
-  const voices = window.speechSynthesis.getVoices() || [];
-  _spanishVoice =
-    voices.find((v) => v.lang?.toLowerCase().startsWith("es-cl")) ||
-    voices.find((v) => v.lang?.toLowerCase().startsWith("es")) ||
-    null;
-  return _spanishVoice;
+/** Voces reales anunciadas por el navegador. Web Speech no informa género. */
+export function listSpanishVoices(): SpeechSynthesisVoice[] {
+  if (!speechSupported()) return [];
+  return (window.speechSynthesis.getVoices() || [])
+    .filter((v) => /^es(?:-|$)/i.test(v.lang || ""));
 }
 
-/** Lee un texto en voz alta. rate<1 = más lento (Senior). */
-export function speak(text: string, opts: { rate?: number; volume?: number } = {}): void {
+function pickSpanishVoice(voiceURI?: string): SpeechSynthesisVoice | null {
+  const available = listSpanishVoices();
+  if (voiceURI) {
+    const chosen = available.find((v) => v.voiceURI === voiceURI);
+    if (chosen) return chosen;
+  }
+  return (
+    available.find((v) => v.lang?.toLowerCase() === "es-cl") ||
+    available.find((v) => v.default) ||
+    available[0] ||
+    null
+  );
+}
+
+/** Lee texto bajo demanda. La voz se elige por voiceURI, no por género inferido.
+ * Esta preferencia de presentación no escribe ni cambia memoria o identidad.
+ */
+export function speak(
+  text: string,
+  opts: { rate?: number; volume?: number; voiceURI?: string } = {},
+): void {
   if (!speechSupported() || !text.trim()) return;
-  window.speechSynthesis.cancel(); // no encimar
+  window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "es-CL";
   u.rate = Math.max(0.5, Math.min(1.5, opts.rate ?? 1));
   u.volume = Math.max(0, Math.min(1, opts.volume ?? 1));
-  const v = pickSpanishVoice();
-  if (v) u.voice = v;
+  const voice = pickSpanishVoice(opts.voiceURI);
+  if (voice) {
+    u.voice = voice;
+    u.lang = voice.lang;
+  }
   window.speechSynthesis.speak(u);
 }
 
