@@ -6,6 +6,7 @@ on:
       - domi-r97-memory-safety-isolated-20261116
     paths:
       - "apps/api/app/assistant/affective_runtime.py"
+      - "apps/api/app/db.py"
       - "apps/api/app/assistant/affective_memory_bridge.py"
       - "apps/api/sqlite_migrations/288_domi_affective_memory_links.sql"
       - "tests/test_domi_r105_affective_memory_bridge.py"
