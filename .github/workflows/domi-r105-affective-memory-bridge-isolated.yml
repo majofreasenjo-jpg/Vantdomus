@@ -1,0 +1,43 @@
+name: DOMI R105 confirmed memory-affect readback (offline)
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - "apps/api/app/assistant/affective_runtime.py"
+      - "apps/api/app/assistant/affective_memory_bridge.py"
+      - "apps/api/sqlite_migrations/288_domi_affective_memory_links.sql"
+      - "tests/test_domi_r105_affective_memory_bridge.py"
+      - ".github/workflows/domi-r105-affective-memory-bridge-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  affective-memory-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      APP_ENV: test
+      VANTDOMUS_SKIP_LOCAL_ENV: "1"
+      DATABASE_URL: ""
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+      DOMI_ANTHROPIC_FAMILY_OPT_IN: "0"
+      ANTHROPIC_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned dev requirements
+        run: python -m pip install -r apps/api/requirements-dev.txt
+      - name: R105 true SQLite persistence and revocation with R104 and M1 regression
+        run: >-
+          python -m pytest
+          tests/test_domi_r105_affective_memory_bridge.py
+          tests/test_domi_r104_micr_affect_kernel.py
+          tests/test_domi_memory_privacy.py
+          -q
