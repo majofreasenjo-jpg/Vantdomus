@@ -1,0 +1,41 @@
+name: DOMI R104 MICR affect isolated
+
+on:
+  push:
+    branches:
+      - domi-r97-memory-safety-isolated-20261116
+    paths:
+      - "apps/api/app/assistant/affective_runtime.py"
+      - "tests/test_domi_r104_micr_affect_kernel.py"
+      - ".github/workflows/domi-r104-micr-affective-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  micr-affect-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      APP_ENV: test
+      VANTDOMUS_SKIP_LOCAL_ENV: "1"
+      DATABASE_URL: ""
+      ASSISTANT_REAL_PROVIDER_ENABLED: "0"
+      ASSISTANT_EXTERNAL_CALLS_ALLOWED: "0"
+      DOMI_ANTHROPIC_FAMILY_OPT_IN: "0"
+      ANTHROPIC_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned dev requirements
+        run: python -m pip install -r apps/api/requirements-dev.txt
+      - name: MICR affect kernel + original memory privacy regression
+        run: >-
+          python -m pytest
+          tests/test_domi_r104_micr_affect_kernel.py
+          tests/test_domi_memory_privacy.py
+          tests/test_domi_memory_identity_http.py
+          -q
