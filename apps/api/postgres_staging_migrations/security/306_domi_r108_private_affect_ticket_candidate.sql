@@ -87,6 +87,7 @@ CREATE POLICY domi_r108_owner_only_links ON domi_affect.memory_links
 
 -- Only source metadata and content-verification bytes. The owner is not
 -- permitted to read all household memory. RLS checks the signed subject.
+GRANT USAGE ON SCHEMA domi_r31 TO domi_affect_owner;
 GRANT EXECUTE ON FUNCTION domi_r31.subject_id() TO domi_affect_owner;
 GRANT EXECUTE ON FUNCTION domi_r31.household_ok(text,text) TO domi_affect_owner;
 GRANT SELECT(id,household_id,organization_id,user_id)
