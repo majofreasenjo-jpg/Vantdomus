@@ -124,12 +124,14 @@ def seed_voucher(admin, uid="u-a", *, memory="m-u-a", memory_owner="u-a",
                 "INSERT INTO domi_affect.approved_tickets("
                 "id,household_id,person_id,memory_id,memory_updated_at,"
                 "memory_content_sha256,ratified_by_user_id,context_key,"
-                "valence,activation,relevance,expires_at,revoked_at)"
+                "valence,activation,relevance,issued_at,expires_at,revoked_at)"
                 "VALUES(%s,%s,%s,%s,'2026-11-17T00:00:00Z',"
                 "digest(convert_to(%s,'UTF8'),'sha256'),%s,'schedule',"
-                "0.75,0.5,1.0,%s,%s)",
+                "0.75,0.5,1.0,%s,%s,%s)",
                 (voucher,"h-"+memory_owner,"p-"+memory_owner,memory,
-                 "fictional:"+memory_owner,uid,expires,
+                 "fictional:"+memory_owner,uid,
+                 "2024-01-01T00:00:00Z" if expires.startswith("2025") else "2026-11-17T00:00:00Z",
+                 expires,
                  "2026-11-17T00:00:00Z" if revoked else None))
     return voucher
 
