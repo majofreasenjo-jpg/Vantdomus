@@ -222,15 +222,22 @@ def test_unsigned_connection_cannot_redeem(admin):
 
 def test_content_mismatch_invalidates_ticket(admin):
     ticket=seed_voucher(admin)
-    with admin[0]:
-        with admin[0].cursor() as cur:
-            cur.execute("UPDATE memory_items SET content='changed-without-timestamp' WHERE id='m-u-a'")
-    conn=login(admin,"u-a")
     try:
-        assert scalar(conn,"SELECT domi_affect.redeem_ticket(%s::uuid)",(ticket,)) is None
+        with admin[0]:
+            with admin[0].cursor() as cur:
+                cur.execute("UPDATE memory_items SET content='changed-without-timestamp' WHERE id='m-u-a'")
+        conn=login(admin,"u-a")
+        try:
+            assert scalar(conn,"SELECT domi_affect.redeem_ticket(%s::uuid)",(ticket,)) is None
+        finally:
+            conn.rollback()
+            conn.close()
     finally:
-        conn.rollback()
-        conn.close()
+        # Test isolation: no mutation may affect the later concurrency
+        # falsifier or turn a valid voucher into a mismatched memory.
+        with admin[0]:
+            with admin[0].cursor() as cur:
+                cur.execute("UPDATE memory_items SET content='fictional:u-a' WHERE id='m-u-a'")
 
 
 def test_signed_jti_mismatch_denies_ticket(admin):
