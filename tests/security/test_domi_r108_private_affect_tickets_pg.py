@@ -231,3 +231,40 @@ def test_content_mismatch_invalidates_ticket(admin):
     finally:
         conn.rollback()
         conn.close()
+
+
+def test_signed_jti_mismatch_denies_ticket(admin):
+    ticket=seed_voucher(admin)
+    conn=psycopg2.connect(DSN, user="domi_r108_ci_login",password=admin[1])
+    conn.autocommit=False
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET LOCAL ROLE domi_app_runtime")
+            assert not bind_signed_rls_context(conn,"u-a","wrong-jti")
+            assert scalar(conn,"SELECT domi_affect.redeem_ticket(%s::uuid)",(ticket,)) is None
+    finally:
+        conn.rollback()
+        conn.close()
+
+
+def test_two_concurrent_verified_sessions_only_redeem_one_ticket(admin):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    ticket=seed_voucher(admin)
+    barrier=Barrier(2)
+
+    def compete(_):
+        conn=login(admin,"u-a")
+        try:
+            barrier.wait(timeout=10)
+            result=scalar(conn,"SELECT domi_affect.redeem_ticket(%s::uuid)",(ticket,))
+            conn.commit()
+            return result
+        finally:
+            conn.close()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes=list(pool.map(compete,[0,1]))
+    assert sum(v is not None for v in outcomes)==1
+    assert scalar(admin[0],"SELECT count(*) FROM domi_affect.memory_links "
+                  "WHERE receipt_id=%s::uuid",(ticket,))==1
